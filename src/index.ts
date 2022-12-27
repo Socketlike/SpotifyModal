@@ -1,4 +1,4 @@
-import { Logger, common } from "replugged";
+import { Logger, webpack, common } from "replugged";
 import { modal } from "./modal";
 
 /*
@@ -10,7 +10,7 @@ import { modal } from "./modal";
 // asportnoy please export Logger as a global Replugged module
 const logger = new Logger("SpotifyModal", "SpotifyModal");
 
-let panel;
+let panel: Element;
 let modalInjected = false;
 let containerClassName = "";
 let panelClassName = "";
@@ -27,8 +27,8 @@ const handleSpotifyPlayerStateChange = (data): void => {
     modal.children[0].src =
       typeof data?.track?.album?.image?.url === "string" ? data.track.album.image.url : "";
     let artists = "";
-    data.track.artists.forEach(({ name }, i) => {
-      if (data.track.artists.length - 1 === i) artists += `${name}`;
+    data.track.artists.forEach(({ name: string }, index: number) => {
+      if (data.track.artists.length - 1 === index) artists += `${name}`;
       else artists += `${name}, `;
     });
     if (!artists.length) artists = "Unknown";
@@ -45,11 +45,12 @@ const handleSpotifyPlayerStateChange = (data): void => {
 
 // fluxDispatcher: SPOTIFY_PLAYER_STATE
 export async function start(): Promise<void> {
-  const panelClasses = await replugged.webpack.waitForModule<{
+  const panelClasses = await webpack.waitForModule<{
     panels: string;
-  }>(replugged.webpack.filters.byProps("panels"));
+  }>(webpack.filters.byProps("panels"));
   if (panelClasses) {
     panelClassName = panelClasses.panels;
+    // @ts-ignore subscribe exists on fluxDispatcher
     common.fluxDispatcher.subscribe("SPOTIFY_PLAYER_STATE", handleSpotifyPlayerStateChange);
     fluxDispatcherSubscriptionId =
       common.fluxDispatcher._subscriptions.SPOTIFY_PLAYER_STATE.size - 1;
@@ -98,9 +99,11 @@ export function uninjectModal(): boolean {
 
 export function stop(): void {
   uninjectModal();
+  // @ts-ignore _subscriptions exists on fluxDispatcher
   if (common.fluxDispatcher._subscriptions.SPOTIFY_PLAYER_STATE)
     common.fluxDispatcher.unsubscribe(
       "SPOTIFY_PLAYER_STATE",
+      // @ts-ignore _subscriptions exists on fluxDispatcher
       [...common.fluxDispatcher._subscriptions.SPOTIFY_PLAYER_STATE][fluxDispatcherSubscriptionId],
     );
 }

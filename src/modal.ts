@@ -1,4 +1,4 @@
-const imageElement = document.createElement("img"),
+const imageElement: HTMLImageElement = document.createElement("img"),
   titleElement = document.createElement("div"),
   artistsElement = document.createElement("div"),
   metadataElement = document.createElement("div");
