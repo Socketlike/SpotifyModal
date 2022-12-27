@@ -1,4 +1,4 @@
-import { Logger, webpack, common } from "replugged";
+import { common, Logger, webpack } from "replugged";
 import { modal } from "./modal";
 
 /*
@@ -28,8 +28,8 @@ const handleSpotifyPlayerStateChange = (data): void => {
       typeof data?.track?.album?.image?.url === "string" ? data.track.album.image.url : "";
     let artists = "";
     data.track.artists.forEach(({ name: string }, index: number) => {
-      if (data.track.artists.length - 1 === index) artists += `${name}`;
-      else artists += `${name}, `;
+      if (data.track.artists.length - 1 === index) artists += name;
+      else artists += name + ', ';
     });
     if (!artists.length) artists = "Unknown";
     modal.children[1].children[0].replaceChildren(
@@ -50,7 +50,7 @@ export async function start(): Promise<void> {
   }>(webpack.filters.byProps("panels"));
   if (panelClasses) {
     panelClassName = panelClasses.panels;
-    // @ts-ignore subscribe exists on fluxDispatcher
+    // @ts-expect-error subscribe exists on fluxDispatcher
     common.fluxDispatcher.subscribe("SPOTIFY_PLAYER_STATE", handleSpotifyPlayerStateChange);
     fluxDispatcherSubscriptionId =
       common.fluxDispatcher._subscriptions.SPOTIFY_PLAYER_STATE.size - 1;
@@ -99,11 +99,11 @@ export function uninjectModal(): boolean {
 
 export function stop(): void {
   uninjectModal();
-  // @ts-ignore _subscriptions exists on fluxDispatcher
+  // @ts-expect-error _subscriptions exists on fluxDispatcher
   if (common.fluxDispatcher._subscriptions.SPOTIFY_PLAYER_STATE)
     common.fluxDispatcher.unsubscribe(
       "SPOTIFY_PLAYER_STATE",
-      // @ts-ignore _subscriptions exists on fluxDispatcher
+      // @ts-expect-error _subscriptions exists on fluxDispatcher
       [...common.fluxDispatcher._subscriptions.SPOTIFY_PLAYER_STATE][fluxDispatcherSubscriptionId],
     );
 }
