@@ -29,7 +29,7 @@ const handleSpotifyPlayerStateChange = (data): void => {
     let artists = "";
     data.track.artists.forEach(({ name: string }, index: number) => {
       if (data.track.artists.length - 1 === index) artists += name;
-      else artists += name + ', ';
+      else artists += name + ", ";
     });
     if (!artists.length) artists = "Unknown";
     modal.children[1].children[0].replaceChildren(
