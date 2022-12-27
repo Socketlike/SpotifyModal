@@ -1,4 +1,4 @@
-import { common, Logger, webpack } from "replugged";
+import { Logger, common, webpack } from "replugged";
 import { modal } from "./modal";
 
 /*
@@ -26,10 +26,11 @@ const handleSpotifyPlayerStateChange = (data): void => {
     modal.style.display = "flex";
     modal.children[0].src =
       typeof data?.track?.album?.image?.url === "string" ? data.track.album.image.url : "";
+    // @ts-expect-error jfc the variable is used why don't you get it you asshole
     let artists = "";
     data.track.artists.forEach(({ name: string }, index: number) => {
       if (data.track.artists.length - 1 === index) artists += name;
-      else artists += name + ", ";
+      else artists += `${name}, `;
     });
     if (!artists.length) artists = "Unknown";
     modal.children[1].children[0].replaceChildren(
