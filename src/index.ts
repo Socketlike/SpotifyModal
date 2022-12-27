@@ -26,7 +26,7 @@ const handleSpotifyPlayerStateChange = (data): void => {
     modal.style.display = "flex";
     modal.children[0].src =
       typeof data?.track?.album?.image?.url === "string" ? data.track.album.image.url : "";
-    // @ts-expect-error jfc the variable is used why don't you get it you asshole
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     let artists = "";
     data.track.artists.forEach(({ name: string }, index: number) => {
       if (data.track.artists.length - 1 === index) artists += name;
