@@ -16,7 +16,10 @@ let containerClassName = "";
 let panelClassName = "";
 let fluxDispatcherSubscriptionId = 0;
 
-const handleSpotifyPlayerStateChange = (data): void => {
+const handleSpotifyPlayerStateChange = (data: {
+  isPlaying: boolean;
+  track: { album: { image: { url: string } }; artists: Array<{ name: string }>; name: string };
+}): void => {
   if (!modalInjected)
     if (!injectModal()) {
       logger.warn("handleSpotifyPlayerStateChange() failed: Modal injection failed");
@@ -24,11 +27,11 @@ const handleSpotifyPlayerStateChange = (data): void => {
     }
   if (data.isPlaying) {
     modal.style.display = "flex";
+    // @ts-expect-error - Cannot type this with HTMLImageElement
     modal.children[0].src =
       typeof data?.track?.album?.image?.url === "string" ? data.track.album.image.url : "";
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     let artists = "";
-    data.track.artists.forEach(({ name: string }, index: number) => {
+    data.track.artists.forEach(({ name }: { name: string }, index: number) => {
       if (data.track.artists.length - 1 === index) artists += name;
       else artists += `${name}, `;
     });
@@ -51,9 +54,10 @@ export async function start(): Promise<void> {
   }>(webpack.filters.byProps("panels"));
   if (panelClasses) {
     panelClassName = panelClasses.panels;
-    // @ts-expect-error subscribe exists on fluxDispatcher
+    // @ts-expect-error - .subscribe() exists on fluxDispatcher
     common.fluxDispatcher.subscribe("SPOTIFY_PLAYER_STATE", handleSpotifyPlayerStateChange);
     fluxDispatcherSubscriptionId =
+      // @ts-expect-error - _subscriptions exists on fluxDispatcher
       common.fluxDispatcher._subscriptions.SPOTIFY_PLAYER_STATE.size - 1;
   }
 }
@@ -78,6 +82,7 @@ export function injectModal(): boolean {
     return false;
   }
   if (!modal.className.includes("container")) modal.classList.add(containerClassName);
+  // @ts-expect-error - afterBegin is assignable to InsertPosition
   panel.insertAdjacentElement("afterBegin", modal);
   logger.log("Modal injected");
   return (modalInjected = true);
@@ -100,11 +105,12 @@ export function uninjectModal(): boolean {
 
 export function stop(): void {
   uninjectModal();
-  // @ts-expect-error _subscriptions exists on fluxDispatcher
+  // @ts-expect-error - _subscriptions exists on fluxDispatcher
   if (common.fluxDispatcher._subscriptions.SPOTIFY_PLAYER_STATE)
+    // @ts-expect-error - fluxDispatcher is not string
     common.fluxDispatcher.unsubscribe(
       "SPOTIFY_PLAYER_STATE",
-      // @ts-expect-error _subscriptions exists on fluxDispatcher
+      // @ts-expect-error - _subscriptions exists on fluxDispatcher
       [...common.fluxDispatcher._subscriptions.SPOTIFY_PLAYER_STATE][fluxDispatcherSubscriptionId],
     );
 }

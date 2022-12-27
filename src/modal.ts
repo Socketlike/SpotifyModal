@@ -47,7 +47,7 @@ modal.setAttribute("style", "display: flex; height: 80px;");
 modal.appendChild(imageElement);
 modal.appendChild(metadataElement);
 // Todo: Remove this function
-export function createLinkText(text, link): Node {
+export function createLinkText(text: string, link: string): Element {
   const linkElement = document.createElement("a");
   if (typeof text === "string") linkElement.appendChild(document.createTextNode(text));
   if (typeof link === "string") {
