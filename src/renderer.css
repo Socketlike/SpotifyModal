@@ -1,0 +1,43 @@
+/*
+  Todo: Remove this file
+ */
+
+.spotify-modal {
+  height: 700px;
+}
+
+.spotify-modal-image {
+  max-height: 80%;
+  max-width: 80%;
+  border-radius: 8px;
+  object-fit: contain;
+  margin-top: 5px;
+}
+
+.spotify-modal-metadata {
+  padding-left: 10px;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.spotify-modal-song-title {
+  color: var(--header-primary);
+  font-family: var(--font-primary);
+  font-weight: 600;
+  font-size: 14px;
+  padding-top: 2px;
+  padding-bottom: 5px;
+  height: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.spotify-modal-song-artists {
+  color: var(--header-secondary);
+  font-family: var(--font-primary);
+  font-weight: 400;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

@@ -1,7 +1,7 @@
 {
-  "name": "plugin-template",
-  "version": "1.0.0",
-  "description": "A plugin template",
+  "name": "SpotifyModal",
+  "version": "0.0.1",
+  "description": "Spotify modal",
   "engines": {
     "node": ">=14.0.0"
   },
@@ -22,19 +22,19 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@electron/asar": "^3.2.1",
+    "@electron/asar": "^3.2.2",
     "@fal-works/esbuild-plugin-global-externals": "^2.1.2",
-    "@types/node": "^18.11.2",
-    "@typescript-eslint/eslint-plugin": "^5.40.1",
-    "@typescript-eslint/parser": "^5.40.1",
-    "esbuild": "^0.15.11",
-    "eslint": "^8.25.0",
+    "@types/node": "^18.11.17",
+    "@typescript-eslint/eslint-plugin": "^5.47.0",
+    "@typescript-eslint/parser": "^5.47.0",
+    "esbuild": "^0.15.18",
+    "eslint": "^8.30.0",
     "eslint-config-dmitmel": "github:dmitmel/eslint-config-dmitmel",
     "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-react": "^7.31.10",
+    "eslint-plugin-react": "^7.31.11",
     "prettier": "^2.8.1",
     "replugged": "4.0.0-beta0.19",
-    "tsx": "^3.10.3",
-    "typescript": "^4.8.4"
+    "tsx": "^3.12.1",
+    "typescript": "^4.9.4"
   }
 }

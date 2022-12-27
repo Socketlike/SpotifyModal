@@ -1,13 +1,13 @@
 {
-  "id": "dev.replugged.PluginTemplate",
-  "name": "Plugin Template",
-  "description": "A plugin template",
+  "id": "lib.evelyn.SpotifyModal",
+  "name": "SpotifyModal",
+  "description": "Spotify modal",
   "author": {
-    "name": "replugged",
-    "discordID": "1000992611840049192",
-    "github": "replugged-org"
+    "name": "Evelyn",
+    "discordID": "285329659023851520",
+    "github": "Socketlike"
   },
-  "version": "1.0.3",
+  "version": "0.0.1",
   "updater": {
     "type": "github",
     "id": "replugged-org/plugin-template"
