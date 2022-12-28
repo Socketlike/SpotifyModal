@@ -3,16 +3,21 @@ export const coverArtElement: HTMLImageElement = document.createElement("img");
 export const titleElement: HTMLAnchorElement = document.createElement("a");
 export const artistsElement: HTMLDivElement = document.createElement("div");
 export const metadataElement: HTMLDivElement = document.createElement("div");
+export const timebarElement: HTMLDivElement = document.createElement("div");
+export const timebarInnerElement: HTMLDivElement = document.createElement("div");
 modalElement.classList.add("spotify-modal");
 coverArtElement.classList.add("spotify-modal-cover-art");
 titleElement.classList.add("spotify-modal-song-title");
 artistsElement.classList.add("spotify-modal-song-artists");
 metadataElement.classList.add("spotify-modal-metadata");
-modalElement.setAttribute("style", "display: flex; height: 80px;");
+timebarElement.classList.add("spotify-modal-timebar");
+timebarInnerElement.classList.add("spotify-modal-timebar-inner");
+modalElement.setAttribute("style", "display: flex; height: 80px; padding-bottom: 14px;");
 metadataElement.appendChild(titleElement);
 metadataElement.appendChild(artistsElement);
 modalElement.appendChild(coverArtElement);
 modalElement.appendChild(metadataElement);
+timebarElement.appendChild(timebarInnerElement);
 titleElement.setAttribute("target", "_blank");
 titleElement.setAttribute("style", "font-size: 14px");
 artistsElement.setAttribute("style", "color: var(--header-secondary); font-size: 13px;");
@@ -23,6 +28,24 @@ coverArtElement.setAttribute(
 metadataElement.setAttribute(
   "style",
   "padding: 10px; display: flex; flex-direction: column; max-width: 145px;",
+);
+timebarElement.setAttribute(
+  "style",
+  "height: 4px; " +
+    "border-radius: 8px; " +
+    "background-color: var(--background-modifier-accent); " +
+    "width: calc(100% - 10px); " +
+    "position: relative; " +
+    "left: 5px; " +
+    "top: -5px; " +
+    "margin: 0px;",
+);
+timebarInnerElement.setAttribute(
+  "style",
+  "background-color: var(--text-normal); " +
+    "height: 4px; " +
+    "max-width: calc(100% - 10px); " +
+    "border-radius: 8px",
 );
 
 export function parseArtists(

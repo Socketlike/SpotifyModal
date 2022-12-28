@@ -1,5 +1,13 @@
 import { Logger, common, webpack } from "replugged";
-import { artistsElement, coverArtElement, modalElement, parseArtists, titleElement } from "./modal";
+import {
+  artistsElement,
+  coverArtElement,
+  modalElement,
+  parseArtists,
+  titleElement,
+  timebarElement,
+  timebarInnerElement,
+} from "./modal";
 
 /*
   Very WIP Spotify modal implementation
@@ -33,11 +41,17 @@ let classes: {
   };
 };
 let fluxDispatcherFunctionIndex = 0;
+let timebarUpdateInterval: Number;
+let playing: boolean;
+let timePassed: number = 0;
+let trackInterval: number = 0;
 
 const handleSpotifyPlayerStateChange = (data: {
   isPlaying: boolean;
+  position: number;
   track: {
     id: string;
+    duration: number;
     album: { image: { url: string } };
     artists: Array<{ name: string; id: string }>;
     name: string;
@@ -48,8 +62,21 @@ const handleSpotifyPlayerStateChange = (data: {
       logger.warn("handleSpotifyPlayerStateChange() failed: Modal injection failed");
       return;
     }
+  if (typeof timebarUpdateInterval !== 'number')
+    timebarUpdateInterval = setInterval(() => {
+      if (!playing) {
+        timebarInnerElement.style.width = "0%";
+        return;
+      }
+      timebarInnerElement.style.width = `${((timePassed / trackInterval) * 100).toFixed(4)}%`;
+      timePassed = timePassed + 5;
+    }, 5);
+  playing = data.isPlaying;
   if (data.isPlaying) {
+    trackInterval = data.track.duration;
+    timePassed = data.position;
     modalElement.style.display = "flex";
+    timebarElement.style.display = "";
     coverArtElement.src =
       typeof data?.track?.album?.image?.url === "string" ? data.track.album.image.url : "";
 
@@ -72,6 +99,7 @@ const handleSpotifyPlayerStateChange = (data: {
   } else {
     logger.log("Spotify state changed; player is not playing", data);
     modalElement.style.display = "none";
+    timebarElement.style.display = "none";
   }
 };
 
@@ -125,16 +153,17 @@ export function injectModal(): boolean {
         classes.container = element.className;
     }
   if (!classes.container) {
-    logger.warn("injectModal() failed: Container class name was still not found");
+    logger.warn("injectModal() failed: Container class name is still not found");
     return false;
   }
   if (modalInjected) {
-    logger.warn("injectModal() failed: Modal was already injected");
+    logger.warn("injectModal() failed: Modal is already injected");
     return false;
   }
   if (!modalElement.className.includes("container")) modalElement.classList.add(classes.container);
   // @ts-expect-error - afterBegin is assignable to InsertPosition
   panel.insertAdjacentElement("afterBegin", modalElement);
+  modalElement.insertAdjacentElement("afterEnd", timebarElement);
   logger.log("Modal injected");
   return (modalInjected = true);
 }
@@ -150,12 +179,14 @@ export function uninjectModal(): boolean {
   }
   if (!panel) panel = document.body.getElementsByClassName(classes.panels.panels)[0];
   panel.removeChild(modalElement);
+  panel.removeChild(timebarElement);
   logger.warn("Modal uninjected");
   return true;
 }
 
 export function stop(): void {
   uninjectModal();
+  if (typeof timebarUpdateInterval === "number") clearInterval(timebarUpdateInterval);
   // @ts-expect-error - _subscriptions exists on fluxDispatcher
   if (common.fluxDispatcher._subscriptions.SPOTIFY_PLAYER_STATE)
     // @ts-expect-error - fluxDispatcher is not string
