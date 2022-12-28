@@ -1,5 +1,5 @@
 import { Logger, common, webpack } from "replugged";
-import { modal } from "./modal";
+import { artistsElement, coverArtElement, modalElement, parseArtists, titleElement } from "./modal";
 
 /*
   Very WIP Spotify modal implementation
@@ -12,13 +12,36 @@ const logger = new Logger("SpotifyModal", "SpotifyModal");
 
 let panel: Element;
 let modalInjected = false;
-let containerClassName = "";
-let panelClassName = "";
-let fluxDispatcherSubscriptionId = 0;
+let classes: {
+  panels: {
+    panels: string;
+  };
+  container: string;
+  anchors: {
+    anchors: string;
+    anchorUnderlineOnHover: string;
+  };
+  activity: {
+    activityName: string;
+    bodyLink: string;
+    ellipsis: string;
+    nameNormal: string;
+  };
+  colors: {
+    defaultColor: string;
+    "text-sm/semibold": string;
+  };
+};
+let fluxDispatcherFunctionIndex = 0;
 
 const handleSpotifyPlayerStateChange = (data: {
   isPlaying: boolean;
-  track: { album: { image: { url: string } }; artists: Array<{ name: string }>; name: string };
+  track: {
+    id: string;
+    album: { image: { url: string } };
+    artists: Array<{ name: string; id: string }>;
+    name: string;
+  };
 }): void => {
   if (!modalInjected)
     if (!injectModal()) {
@@ -26,54 +49,83 @@ const handleSpotifyPlayerStateChange = (data: {
       return;
     }
   if (data.isPlaying) {
-    modal.style.display = "flex";
-    // @ts-expect-error - Cannot type this with HTMLImageElement
-    modal.children[0].src =
+    modalElement.style.display = "flex";
+    coverArtElement.src =
       typeof data?.track?.album?.image?.url === "string" ? data.track.album.image.url : "";
-    let artists = "";
-    data.track.artists.forEach(({ name }: { name: string }, index: number) => {
-      if (data.track.artists.length - 1 === index) artists += name;
-      else artists += `${name}, `;
-    });
-    if (!artists.length) artists = "Unknown";
-    modal.children[1].children[0].replaceChildren(
-      document.createTextNode(typeof data?.track?.name === "string" ? data.track.name : "Unknown"),
+
+    const trackArtists = parseArtists(
+      data.track,
+      `${classes.anchors.anchor} ` +
+        `${classes.anchors.anchorUnderlineOnHover} ` +
+        `${classes.activity.bodyLink} ` +
+        `${classes.activity.ellipsis}`,
     );
-    modal.children[1].children[1].replaceChildren(document.createTextNode(`by ${artists}`));
+    const trackName = typeof data?.track?.name === "string" ? data.track.name : "Unknown";
+
+    if (typeof data?.track?.id === "string")
+      titleElement.setAttribute("href", `https://open.spotify.com/track/${data.track.id}`);
+    else
+      titleElement.removeAttribute("href");
+
+    titleElement.replaceChildren(document.createTextNode(trackName));
+    artistsElement.replaceChildren(...trackArtists);
     logger.log("Spotify state changed; player is playing", data);
   } else {
     logger.log("Spotify state changed; player is not playing", data);
-    modal.style.display = "none";
+    modalElement.style.display = "none";
   }
 };
 
 // fluxDispatcher: SPOTIFY_PLAYER_STATE
 export async function start(): Promise<void> {
-  const panelClasses = await webpack.waitForModule<{
-    panels: string;
-  }>(webpack.filters.byProps("panels"));
-  if (panelClasses) {
-    panelClassName = panelClasses.panels;
+  classes = {
+    panels: await webpack.waitForModule<{
+      panels: string;
+    }>(webpack.filters.byProps("panels")),
+    container: "",
+    anchors: await webpack.waitForModule<{
+      anchor: string;
+      anchorUnderlineOnHover: string;
+    }>(webpack.filters.byProps("anchorUnderlineOnHover")),
+    activity: await webpack.waitForModule<{
+      activityName: string;
+      bodyLink: string;
+      ellipsis: string;
+      nameNormal: string;
+    }>(replugged.webpack.filters.byProps("activityName")),
+    colors: await webpack.getModule<{
+      defaultColor: string;
+      "text-sm/semibold": string;
+    }>(replugged.webpack.filters.byProps("defaultColor")),
+  };
+  if (classes) {
+    titleElement.classList.add(
+      classes.anchors.anchor,
+      classes.anchors.anchorUnderlineOnHover,
+      classes.colors.defaultColor,
+      classes.colors["text-sm/semibold"],
+      ...classes.activity.nameNormal.split(" "),
+    );
     // @ts-expect-error - .subscribe() exists on fluxDispatcher
     common.fluxDispatcher.subscribe("SPOTIFY_PLAYER_STATE", handleSpotifyPlayerStateChange);
-    fluxDispatcherSubscriptionId =
+    fluxDispatcherFunctionIndex =
       // @ts-expect-error - _subscriptions exists on fluxDispatcher
       common.fluxDispatcher._subscriptions.SPOTIFY_PLAYER_STATE.size - 1;
   }
 }
 
 export function injectModal(): boolean {
-  if (!document.body.getElementsByClassName(panelClassName)[0]) {
+  if (!document.body.getElementsByClassName(classes.panels.panels)[0]) {
     logger.warn("injectModal() failed: Cannot get user panel");
     return false;
   }
-  if (!panel) panel = document.body.getElementsByClassName(panelClassName)[0];
-  if (!containerClassName)
+  if (!panel) panel = document.body.getElementsByClassName(classes.panels.panels)[0];
+  if (!classes.container)
     for (const element of panel.children) {
       if (/^container-[a-zA-Z0-9]{6}$/.test(element.className))
-        containerClassName = element.className;
+        classes.container = element.className;
     }
-  if (!containerClassName) {
+  if (!classes.container) {
     logger.warn("injectModal() failed: Container class name was still not found");
     return false;
   }
@@ -81,9 +133,9 @@ export function injectModal(): boolean {
     logger.warn("injectModal() failed: Modal was already injected");
     return false;
   }
-  if (!modal.className.includes("container")) modal.classList.add(containerClassName);
+  if (!modalElement.className.includes("container")) modalElement.classList.add(classes.container);
   // @ts-expect-error - afterBegin is assignable to InsertPosition
-  panel.insertAdjacentElement("afterBegin", modal);
+  panel.insertAdjacentElement("afterBegin", modalElement);
   logger.log("Modal injected");
   return (modalInjected = true);
 }
@@ -93,12 +145,12 @@ export function uninjectModal(): boolean {
     logger.warn("uninjectModal() failed: Modal is not injected");
     return false;
   }
-  if (!document.body.getElementsByClassName(panelClassName)[0]) {
+  if (!document.body.getElementsByClassName(classes.panels.panels)[0]) {
     logger.warn("uninjectModal() failed: Cannot get user panel");
     return false;
   }
-  if (!panel) panel = document.body.getElementsByClassName(panelClassName)[0];
-  panel.removeChild(modal);
+  if (!panel) panel = document.body.getElementsByClassName(classes.panels.panels)[0];
+  panel.removeChild(modalElement);
   logger.warn("Modal uninjected");
   return true;
 }
@@ -111,6 +163,6 @@ export function stop(): void {
     common.fluxDispatcher.unsubscribe(
       "SPOTIFY_PLAYER_STATE",
       // @ts-expect-error - _subscriptions exists on fluxDispatcher
-      [...common.fluxDispatcher._subscriptions.SPOTIFY_PLAYER_STATE][fluxDispatcherSubscriptionId],
+      [...common.fluxDispatcher._subscriptions.SPOTIFY_PLAYER_STATE][fluxDispatcherFunctionIndex],
     );
 }
