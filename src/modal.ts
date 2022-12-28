@@ -31,8 +31,8 @@ export function parseArtists(
     name: string;
   },
   additionalLinkElementClasses: string,
-): Array<Text|HTMLAnchorElement> {
-  const res: Array<Text|HTMLAnchorElement> = [document.createTextNode("by ")];
+): Array<Text | HTMLAnchorElement> {
+  const res: Array<Text | HTMLAnchorElement> = [document.createTextNode("by ")];
   if (track.artists.length) {
     track.artists.forEach(({ name, id }: { name: string; id: string }, index: number) => {
       const element = document.createElement("a");
@@ -48,7 +48,6 @@ export function parseArtists(
       }
       element.appendChild(document.createTextNode(name));
       if (track.artists.length - 1 !== index) {
-        
         res.push(element);
         res.push(document.createTextNode(", "));
       } else res.push(element);
