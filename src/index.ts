@@ -18,7 +18,7 @@ let classes: {
   };
   container: string;
   anchors: {
-    anchors: string;
+    anchor: string;
     anchorUnderlineOnHover: string;
   };
   activity: {
@@ -64,8 +64,7 @@ const handleSpotifyPlayerStateChange = (data: {
 
     if (typeof data?.track?.id === "string")
       titleElement.setAttribute("href", `https://open.spotify.com/track/${data.track.id}`);
-    else
-      titleElement.removeAttribute("href");
+    else titleElement.removeAttribute("href");
 
     titleElement.replaceChildren(document.createTextNode(trackName));
     artistsElement.replaceChildren(...trackArtists);
@@ -92,11 +91,11 @@ export async function start(): Promise<void> {
       bodyLink: string;
       ellipsis: string;
       nameNormal: string;
-    }>(replugged.webpack.filters.byProps("activityName")),
-    colors: await webpack.getModule<{
+    }>(webpack.filters.byProps("activityName")),
+    colors: await webpack.waitForModule<{
       defaultColor: string;
       "text-sm/semibold": string;
-    }>(replugged.webpack.filters.byProps("defaultColor")),
+    }>(webpack.filters.byProps("defaultColor")),
   };
   if (classes) {
     titleElement.classList.add(
