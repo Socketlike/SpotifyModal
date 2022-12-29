@@ -1,13 +1,29 @@
-import { Logger, common, webpack } from "replugged";
+/* eslint-disable no-undefined
+   ----
+   So that I can use replugged.logger */
+import { common, logger, webpack } from "replugged";
+import { Classes, EnvironmentData, SpotifyPlayerStateData } from "./types";
 import {
+  _dockIconsElement,
+  _timebarElement,
   artistsElement,
   coverArtElement,
+  dockAnimations,
+  dockElement,
+  modalAnimations,
   modalElement,
   parseArtists,
-  titleElement,
-  timebarElement,
   timebarInnerElement,
+  titleElement,
 } from "./modal";
+import {
+  desktopIcon,
+  desktopIconTitle,
+  repeatIcon,
+  repeatIconTitle,
+  smartphoneIcon,
+  smartphoneIconTitle,
+} from "./icons";
 
 /*
   Very WIP Spotify modal implementation
@@ -15,70 +31,120 @@ import {
        things differently than normal people does then please let me know
  */
 
-// asportnoy please export Logger as a global Replugged module
-const logger = new Logger("SpotifyModal", "SpotifyModal");
-
-let panel: Element;
-let modalInjected = false;
-let classes: {
-  panels: {
-    panels: string;
-  };
-  container: string;
-  anchors: {
-    anchor: string;
-    anchorUnderlineOnHover: string;
-  };
-  activity: {
-    activityName: string;
-    bodyLink: string;
-    ellipsis: string;
-    nameNormal: string;
-  };
-  colors: {
-    defaultColor: string;
-    "text-sm/semibold": string;
-  };
+const env: EnvironmentData = {
+  panel: undefined,
+  injected: false,
+  fluxDispatcherIndex: 0,
+  timebarInterval: undefined,
+  isPlaying: false,
+  trackStats: {
+    passed: 0,
+    duration: 0,
+    albumUrl: "",
+  },
 };
-let fluxDispatcherFunctionIndex = 0;
-let timebarUpdateInterval: Number;
-let playing: boolean;
-let timePassed: number = 0;
-let trackInterval: number = 0;
 
-const handleSpotifyPlayerStateChange = (data: {
-  isPlaying: boolean;
-  position: number;
-  track: {
-    id: string;
-    duration: number;
-    album: { image: { url: string } };
-    artists: Array<{ name: string; id: string }>;
-    name: string;
-  };
-}): void => {
-  if (!modalInjected)
-    if (!injectModal()) {
-      logger.warn("handleSpotifyPlayerStateChange() failed: Modal injection failed");
-      return;
-    }
-  if (typeof timebarUpdateInterval !== 'number')
-    timebarUpdateInterval = setInterval(() => {
-      if (!playing) {
-        timebarInnerElement.style.width = "0%";
-        return;
-      }
-      timebarInnerElement.style.width = `${((timePassed / trackInterval) * 100).toFixed(4)}%`;
-      timePassed = timePassed + 5;
-    }, 5);
-  playing = data.isPlaying;
-  if (data.isPlaying) {
-    trackInterval = data.track.duration;
-    timePassed = data.position;
-    modalElement.style.display = "flex";
-    timebarElement.style.display = "";
-    coverArtElement.src =
-      typeof data?.track?.album?.image?.url === "string" ? data.track.album.image.url : "";
+let classes: Classes;
+
+coverArtElement.onclick = () => {
+  if (!env.trackStats.albumUrl) return;
+  window.open(env.trackStats.albumUrl, "_blank");
+};
+
+/* Todo: Remove this blob of code since "clipboard-write" is not enabled on Discord
+coverArtElement.oncontextmenu = () => {
+  if (!env.trackStats.albumUrl) return;
+  navigator.clipboard.writeText(env.trackStats.albumUrl).catch((error) => {
+    logger.error(
+      "AlbumUrlCopy",
+      "SpotifyModal",
+      undefined,
+      "An error has occurred trying to write to clipboard",
+      error,
+    );
+  });
+};
+
+titleElement.oncontextmenu = (mouseEvent) => {
+  if (!mouseEvent.srcElement.href) return;
+  navigator.clipboard.writeText(mouseEvent.srcElement.href).catch((error) => {
+    logger.error(
+      "SongUrlCopy",
+      "SpotifyModal",
+      undefined,
+      "An error has occurred trying to write to clipboard",
+      error,
+    );
+  });
+};
+*/
+
+/* This will be used one day
+function parseTime(ms) {
+  let hours: number;
+  let minutes: number | string = Math.floor(ms / 1000 / 60);
+  let seconds: number | string = Math.round(
+    Number(`0.${(ms / 1000 / 60).toString().split(".")[1]}`) * 60,
+  );
+  if (seconds > 60) {
+    minutes += 1;
+    seconds -= 60;
+  }
+  if (minutes >= 60) {
+    hours = Math.floor(minutes / 60);
+    minutes = Math.round(Number(`0.${(minutes / 60).toString().split(".")[1]}`) * 60);
+  }
+  if (seconds.toString().length === 1) seconds = `${seconds.toString()}0`;
+  if (hours && minutes.toString().length === 1) minutes = `0${minutes.toString()}`;
+  return hours ? `${hours}:${minutes}:${seconds}` : `${minutes}:${seconds}`;
+}
+*/
+
+const handleSpotifyPlayerStateChange = (data: SpotifyPlayerStateData): void => {
+  env.isPlaying = data.isPlaying;
+  if (!env.injected && !injectModal()) {
+    logger.warn(
+      "HandleSpotifyPlayerStateChange",
+      "SpotifyModal",
+      undefined,
+      "Modal injection failed",
+    );
+  } else if (data.isPlaying) {
+    logger.log(
+      "HandleSpotifyPlayerStateChange",
+      "SpotifyModal",
+      undefined,
+      "State update: Player is playing",
+      data,
+    );
+
+    if (typeof env.timebarInterval !== "number")
+      // @ts-expect-error - setInterval() returns a number, this is not pure NodeJS
+      env.timebarInterval = setInterval(() => {
+        if (!env.isPlaying) {
+          timebarInnerElement.style.width = "0%";
+          clearInterval(env.timebarInterval);
+          env.timebarInterval = undefined;
+          return;
+        }
+        env.trackStats.passed += 200;
+        timebarInnerElement.style.width = `${(
+          (env.trackStats.passed / env.trackStats.duration) *
+          100
+        ).toFixed(4)}%`;
+      }, 200);
+
+    env.trackStats.duration = data.track.duration;
+    env.trackStats.passed = data.position;
+
+    if (modalElement.style.display === "none") modalAnimations.fadein();
+    if (dockElement.style.display === "none") dockAnimations.fadein();
+
+    coverArtElement.src = data.track.isLocal ? "" : data.track.album.image.url;
+    coverArtElement.title = data.track.isLocal ? "" : data.track.album.name;
+    env.trackStats.albumUrl = data.track.isLocal
+      ? ""
+      : `https://open.spotify.com/album/${data.track.album.id}`;
 
     const trackArtists = parseArtists(
       data.track,
@@ -86,20 +152,65 @@ const handleSpotifyPlayerStateChange = (data: {
         `${classes.anchors.anchorUnderlineOnHover} ` +
         `${classes.activity.bodyLink} ` +
         `${classes.activity.ellipsis}`,
+      /* Todo: Remove this blob of code since "clipboard-write" is not enabled on Discord
+        (mouseEvent) => {
+          if (!mouseEvent.srcElement.href) return;
+          navigator.clipboard.writeText(mouseEvent.srcElement.href).catch((error) => {
+            logger.error(
+              "ArtistUrlCopy",
+              "SpotifyModal",
+              undefined,
+              "An error has occurred trying to write to clipboard",
+              error,
+            );
+          });
+        }, */
     );
     const trackName = typeof data?.track?.name === "string" ? data.track.name : "Unknown";
 
-    if (typeof data?.track?.id === "string")
-      titleElement.setAttribute("href", `https://open.spotify.com/track/${data.track.id}`);
-    else titleElement.removeAttribute("href");
+    if (data.track.isLocal) {
+      titleElement.href = "";
+      titleElement.style.textDecoration = "none";
+      titleElement.style.cursor = "default";
+      coverArtElement.style.cursor = "";
+    } else {
+      titleElement.href = `https://open.spotify.com/track/${data.track.id}`;
+      titleElement.style.textDecoration = "";
+      titleElement.style.cursor = "";
+      coverArtElement.style.cursor = "pointer";
+    }
+
+    desktopIcon.style.display = data?.device?.type === "Computer" ? "" : "none";
+    desktopIconTitle.replaceChildren(
+      document.createTextNode(
+        data?.device?.type === "Computer" ? `Listening on: ${data.device.name}` : "",
+      ),
+    );
+    smartphoneIcon.style.display = data?.device?.type === "Smartphone" ? "" : "none";
+    smartphoneIconTitle.replaceChildren(
+      document.createTextNode(
+        data?.device?.type === "Smartphone" ? `Listening on: ${data.device.name}` : "",
+      ),
+    );
+
+    repeatIcon.style.color = data.repeat ? "var(--brand-experiment-500)" : "var(--text-normal)";
+    repeatIconTitle.replaceChildren(
+      document.createTextNode(data.repeat ? "Repeat on" : "Repeat off"),
+    );
 
     titleElement.replaceChildren(document.createTextNode(trackName));
+    titleElement.title = trackName;
     artistsElement.replaceChildren(...trackArtists);
-    logger.log("Spotify state changed; player is playing", data);
   } else {
-    logger.log("Spotify state changed; player is not playing", data);
-    modalElement.style.display = "none";
-    timebarElement.style.display = "none";
+    logger.log(
+      "HandleSpotifyPlayerStateChange",
+      "SpotifyModal",
+      undefined,
+      "State update: Player is not playing",
+      data,
+    );
+    if (modalElement.style.display !== "none") modalAnimations.fadeout();
+    if (dockElement.style.display !== "none") dockAnimations.fadeout();
   }
 };
 
@@ -135,64 +246,65 @@ export async function start(): Promise<void> {
     );
     // @ts-expect-error - .subscribe() exists on fluxDispatcher
     common.fluxDispatcher.subscribe("SPOTIFY_PLAYER_STATE", handleSpotifyPlayerStateChange);
-    fluxDispatcherFunctionIndex =
+    env.fluxDispatcherIndex =
       // @ts-expect-error - _subscriptions exists on fluxDispatcher
       common.fluxDispatcher._subscriptions.SPOTIFY_PLAYER_STATE.size - 1;
   }
 }
 
 export function injectModal(): boolean {
-  if (!document.body.getElementsByClassName(classes.panels.panels)[0]) {
-    logger.warn("injectModal() failed: Cannot get user panel");
-    return false;
-  }
-  if (!panel) panel = document.body.getElementsByClassName(classes.panels.panels)[0];
-  if (!classes.container)
-    for (const element of panel.children) {
-      if (/^container-[a-zA-Z0-9]{6}$/.test(element.className))
-        classes.container = element.className;
+  if (env.injected)
+    logger.warn("InjectModal", "SpotifyModal", undefined, "Modal is already injected");
+  else if (!document.body.getElementsByClassName(classes.panels.panels)[0])
+    logger.error("InjectModal", "SpotifyModal", undefined, "Cannot get user panel");
+  else {
+    if (!env.panel) env.panel = document.body.getElementsByClassName(classes.panels.panels)[0];
+    if (!classes.container) {
+      for (const element of env.panel.children) {
+        if (/^container-[a-zA-Z0-9]{6}$/.test(element.className))
+          classes.container = element.className;
+      }
+      if (!classes.container) {
+        logger.error("InjectModal", "SpotifyModal", undefined, "Container class name not found");
+        return false;
+      }
     }
-  if (!classes.container) {
-    logger.warn("injectModal() failed: Container class name is still not found");
-    return false;
+    if (!modalElement.className.includes("container"))
+      modalElement.classList.add(classes.container);
+    // @ts-expect-error - "afterBegin" is a valid argument for "InsertPosition"
+    env.panel.insertAdjacentElement("afterBegin", modalElement);
+    // @ts-expect-error - "afterEnd" is a valid argument for "InsertPosition"
+    modalElement.insertAdjacentElement("afterEnd", dockElement);
+    logger.log("InjectModal", "SpotifyModal", undefined, "Modal injected");
+    return (env.injected = true);
   }
-  if (modalInjected) {
-    logger.warn("injectModal() failed: Modal is already injected");
-    return false;
-  }
-  if (!modalElement.className.includes("container")) modalElement.classList.add(classes.container);
-  // @ts-expect-error - afterBegin is assignable to InsertPosition
-  panel.insertAdjacentElement("afterBegin", modalElement);
-  modalElement.insertAdjacentElement("afterEnd", timebarElement);
-  logger.log("Modal injected");
-  return (modalInjected = true);
+  return false;
 }
 
 export function uninjectModal(): boolean {
-  if (!modalInjected) {
-    logger.warn("uninjectModal() failed: Modal is not injected");
-    return false;
+  if (!env.injected)
+    logger.warn("UninjectModal", "SpotifyModal", undefined, "Modal is not injected");
+  else if (!document.body.getElementsByClassName(classes.panels.panels)[0]) {
+    logger.error("UninjectModal", "SpotifyModal", undefined, "Cannot get user panel");
+  } else {
+    if (!env.panel) env.panel = document.body.getElementsByClassName(classes.panels.panels)[0];
+    env.panel.removeChild(modalElement);
+    env.panel.removeChild(dockElement);
+    logger.log("UninjectModal", "SpotifyModal", undefined, "Modal uninjected");
+    return !(env.injected = false);
   }
-  if (!document.body.getElementsByClassName(classes.panels.panels)[0]) {
-    logger.warn("uninjectModal() failed: Cannot get user panel");
-    return false;
-  }
-  if (!panel) panel = document.body.getElementsByClassName(classes.panels.panels)[0];
-  panel.removeChild(modalElement);
-  panel.removeChild(timebarElement);
-  logger.warn("Modal uninjected");
-  return true;
+  return false;
 }
 
 export function stop(): void {
   uninjectModal();
-  if (typeof timebarUpdateInterval === "number") clearInterval(timebarUpdateInterval);
+  if (typeof env.timebarInterval === "number") clearInterval(env.timebarInterval);
   // @ts-expect-error - _subscriptions exists on fluxDispatcher
   if (common.fluxDispatcher._subscriptions.SPOTIFY_PLAYER_STATE)
     // @ts-expect-error - fluxDispatcher is not string
     common.fluxDispatcher.unsubscribe(
       "SPOTIFY_PLAYER_STATE",
       // @ts-expect-error - _subscriptions exists on fluxDispatcher
-      [...common.fluxDispatcher._subscriptions.SPOTIFY_PLAYER_STATE][fluxDispatcherFunctionIndex],
+      [...common.fluxDispatcher._subscriptions.SPOTIFY_PLAYER_STATE][env.fluxDispatcherIndex],
     );
 }

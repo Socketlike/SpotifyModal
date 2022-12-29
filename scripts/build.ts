@@ -17,7 +17,7 @@ const globalModules = {
       "Injector",
       "webpack",
       "common",
-      "Logger",
+      "logger",
       "notices",
       "commands",
       "settings",
