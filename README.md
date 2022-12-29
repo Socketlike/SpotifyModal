@@ -11,6 +11,6 @@ A bad WIP reimplementation of the spotify-modal Powercord coremod for the post-S
   
 # Roadmap
   - [X] Add basic functionality
-  - [ ] Song progress bar
+  - [X] Song progress bar
   - [ ] Controls
-  - [ ] Styling improvements
+  - [X] Styling improvements
