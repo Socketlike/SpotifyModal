@@ -9,6 +9,9 @@ A bad WIP reimplementation of the spotify-modal Powercord coremod for the post-S
 # How to use
   - Play any Spotify song (that's literally it)
   
+# Preview
+  ![Preview](https://raw.githubusercontent.com/Socketlike/SpotifyModal/main/Preview.gif)
+  
 # Roadmap
   - [X] Add basic functionality
   - [X] Song progress bar
