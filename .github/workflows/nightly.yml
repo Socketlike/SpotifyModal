@@ -2,8 +2,9 @@ name: Nightly Release
 
 on:
   push:
-    branches:
-      - main
+    paths:
+      - src/**/*.ts
+      - scripts/**/*.js
 
 jobs:
   release:
@@ -36,7 +37,6 @@ jobs:
           artifacts: "*.asar"
           tag: "nightly"
           makeLatest: true
+          name: "nightly ${{ github.sha }}"
           generateReleaseNotes: true
           prerelease: true
-          allowUpdates: true
-          replacesArtifacts: true
