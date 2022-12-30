@@ -112,7 +112,8 @@ const handleSpotifyPlayerStateChange = (data: SpotifyPlayerStateData): void => {
           return;
         }
         env.trackStats.passed += 200;
-        playbackTimeCurrentElement.innerText = parseTime(env.trackStats.passed);
+        if (parseTime(env.trackStats.passed) !== playbackTimeCurrentElement.innerText)
+          playbackTimeCurrentElement.innerText = parseTime(env.trackStats.passed);
         timebarInnerElement.style.width = `${(
           (env.trackStats.passed / env.trackStats.duration) *
           100
