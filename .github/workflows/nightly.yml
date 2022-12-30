@@ -35,7 +35,6 @@ jobs:
       - uses: ncipollo/release-action@v1
         with:
           artifacts: "*.asar"
-          tag: "nightly"
           makeLatest: true
           name: "nightly ${{ github.sha }}"
           generateReleaseNotes: true
