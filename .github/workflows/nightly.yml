@@ -35,6 +35,8 @@ jobs:
         with:
           artifacts: "*.asar"
           tag: "nightly"
+          makeLatest: true
+          generateReleaseNotes: true
           prerelease: true
           allowUpdates: true
           replacesArtifacts: true
