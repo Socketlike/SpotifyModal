@@ -5,13 +5,16 @@ import { common, logger, webpack } from "replugged";
 import { Classes, EnvironmentData, SpotifyPlayerStateData } from "./types";
 import {
   _dockIconsElement,
+  _metadataElement,
   _playbackTimeDisplayElement,
   _timebarElement,
   artistsElement,
   coverArtElement,
+  dockAnimations,
   dockElement,
-  metadataElement,
+  modalAnimations,
   modalElement,
+  parseArtists,
   playbackTimeCurrentElement,
   playbackTimeDurationElement,
   timebarInnerElement,
@@ -59,7 +62,7 @@ coverArtElement.onclick = () => {
  * @returns {string} - Parsed time
  */
 function parseTime(ms: number): string {
-  if (typeof ms !== "number") return;
+  if (typeof ms !== "number") return "";
   const dateObject = new Date(ms);
   const raw = {
     month: dateObject.getUTCMonth(),
@@ -68,10 +71,10 @@ function parseTime(ms: number): string {
     minutes: dateObject.getUTCMinutes(),
     seconds: dateObject.getUTCSeconds(),
   };
-  const parsedHours = raw.hours + (raw.day - 1) * 24 + ((raw.month) * 30) * 24;
+  const parsedHours = raw.hours + (raw.day - 1) * 24 + raw.month * 30 * 24;
 
   return `${parsedHours > 0 ? `${parsedHours}:` : ""}${
-    raw.minutes < 10 ? `0${raw.minutes}` : raw.minutes
+    raw.minutes < 10 && parsedHours > 0 ? `0${raw.minutes}` : raw.minutes
   }:${raw.seconds < 10 ? `0${raw.seconds}` : raw.seconds}`;
 }
 

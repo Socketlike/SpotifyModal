@@ -8,12 +8,12 @@ import {
 } from "./icons";
 
 export const _dockIconsElement: HTMLDivElement = document.createElement("div");
+export const _metadataElement: HTMLDivElement = document.createElement("div");
 export const _playbackTimeDisplayElement: HTMLDivElement = document.createElement("div");
 export const _timebarElement: HTMLDivElement = document.createElement("div");
 export const artistsElement: HTMLDivElement = document.createElement("div");
 export const coverArtElement: HTMLImageElement = document.createElement("img");
 export const dockElement: HTMLDivElement = document.createElement("div");
-export const metadataElement: HTMLDivElement = document.createElement("div");
 export const modalElement: HTMLDivElement = document.createElement("div");
 export const playbackTimeCurrentElement: HTMLSpanElement = document.createElement("span");
 export const playbackTimeDurationElement: HTMLSpanElement = document.createElement("span");
@@ -30,17 +30,26 @@ _dockIconsElement.appendChild(desktopIcon);
 _dockIconsElement.appendChild(smartphoneIcon);
 _dockIconsElement.appendChild(repeatIcon);
 
+/* Song title & Artists container */
+_metadataElement.classList.add("spotify-modal-metadata");
+_metadataElement.setAttribute(
+  "style",
+  "padding: 10px; display: flex; flex-direction: column; max-width: 145px",
+);
+_metadataElement.appendChild(titleElement);
+_metadataElement.appendChild(artistsElement);
+
 /* Playback time display container */
 _playbackTimeDisplayElement.classList.add("spotify-modal-playback-time");
 _playbackTimeDisplayElement.setAttribute(
   "style",
   "display: flex; " +
-  "position: relative; " +
-  "top: -7px; " +
-  "left: 8px;"
-  "height: 16px; " +
-  "color: var(--text-normal); " +
-  "font-size: 12px",
+    "position: relative; " +
+    "top: -7px; " +
+    "left: 8px; " +
+    "height: 16px; " +
+    "color: var(--text-normal); " +
+    "font-size: 12px",
 );
 _playbackTimeDisplayElement.appendChild(playbackTimeCurrentElement);
 _playbackTimeDisplayElement.appendChild(playbackTimeDurationElement);
@@ -102,19 +111,10 @@ dockAnimations.animations.fadeout.addEventListener("finish", () => {
   dockElement.style.display = "none";
 });
 
-/* Song title & Artists container */
-metadataElement.classList.add("spotify-modal-metadata");
-metadataElement.setAttribute(
-  "style",
-  "padding: 10px; display: flex; flex-direction: column; max-width: 145px",
-);
-metadataElement.appendChild(titleElement);
-metadataElement.appendChild(artistsElement);
-
 /* Main modal */
 modalElement.classList.add("spotify-modal");
 modalElement.appendChild(coverArtElement);
-modalElement.appendChild(metadataElement);
+modalElement.appendChild(_metadataElement);
 modalElement.setAttribute("style", "display: flex; height: 60px; padding-bottom: 8px");
 export let modalAnimations: {
   animations: {
