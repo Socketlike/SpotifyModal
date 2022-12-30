@@ -35,7 +35,7 @@ import {
        things differently than normal people does then please let me know
  */
 
-const timebarUpdateRate = 700;
+const timebarUpdateRate = 800;
 
 const env: EnvironmentData = {
   panel: undefined,
