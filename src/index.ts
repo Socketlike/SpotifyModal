@@ -107,9 +107,12 @@ const handleSpotifyPlayerStateChange = (data: SpotifyPlayerStateData): void => {
           timebarInnerElement.style.width = "0%";
           clearInterval(env.timebarInterval);
           env.timebarInterval = undefined;
+          playbackTimeCurrentElement.innerText = "0:00";
+          playbackTimeDuratinElement.innerText = "0:00";
           return;
         }
         env.trackStats.passed += 200;
+        playbackTimeCurrentElement.innerText = parseTime(env.trackStats.passed);
         timebarInnerElement.style.width = `${(
           (env.trackStats.passed / env.trackStats.duration) *
           100
@@ -164,7 +167,6 @@ const handleSpotifyPlayerStateChange = (data: SpotifyPlayerStateData): void => {
 
     if (parseTime(env.trackStats.duration) !== playbackTimeDurationElement.innerText)
       playbackTimeDurationElement.innerText = parseTime(env.trackStats.duration);
-    playbackTimeCurrentElement.innerText = parseTime(env.trackStats.passed);
 
     desktopIcon.style.display = data?.device?.type === "Computer" ? "" : "none";
     desktopIconTitle.replaceChildren(
