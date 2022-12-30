@@ -10,7 +10,7 @@ A bad WIP reimplementation of the spotify-modal Powercord coremod for the post-S
   - Play any Spotify song (that's literally it)
   
 # Preview
-  ![Preview](Preview.webm)
+  ![Preview](Preview.gif)
   
 # Roadmap
   - [X] Add basic functionality
