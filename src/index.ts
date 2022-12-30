@@ -35,6 +35,8 @@ import {
        things differently than normal people does then please let me know
  */
 
+const timebarUpdateRate = 700;
+
 const env: EnvironmentData = {
   panel: undefined,
   injected: false,
@@ -82,7 +84,7 @@ function parseTime(ms: number): string {
  * Handler for SPOTIFY_PLAYER_STATE
  * @param {SpotifyPlayerStateData} data
  */
-const handleSpotifyPlayerStateChange = (data: SpotifyPlayerStateData): void => {
+const handleSpotifyPlayerStateChange = async (data: SpotifyPlayerStateData): Promise<void> => {
   env.isPlaying = data.isPlaying;
   if (!env.injected && !injectModal()) {
     logger.warn(
@@ -102,7 +104,7 @@ const handleSpotifyPlayerStateChange = (data: SpotifyPlayerStateData): void => {
 
     if (typeof env.timebarInterval !== "number")
       // @ts-expect-error - setInterval() returns a number, this is not pure NodeJS
-      env.timebarInterval = setInterval(() => {
+      env.timebarInterval = setInterval(async (): Promise<void> => {
         if (!env.isPlaying) {
           timebarInnerElement.style.width = "0%";
           clearInterval(env.timebarInterval);
@@ -111,14 +113,14 @@ const handleSpotifyPlayerStateChange = (data: SpotifyPlayerStateData): void => {
           playbackTimeDurationElement.innerText = "0:00";
           return;
         }
-        env.trackStats.passed += 200;
+        env.trackStats.passed += timebarUpdateRate;
         if (parseTime(env.trackStats.passed) !== playbackTimeCurrentElement.innerText)
           playbackTimeCurrentElement.innerText = parseTime(env.trackStats.passed);
         timebarInnerElement.style.width = `${(
           (env.trackStats.passed / env.trackStats.duration) *
           100
         ).toFixed(4)}%`;
-      }, 200);
+      }, timebarUpdateRate);
 
     env.trackStats.duration = data.track.duration;
     env.trackStats.passed = data.position;
