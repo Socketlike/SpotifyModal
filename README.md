@@ -2,7 +2,7 @@
 A bad WIP reimplementation of the spotify-modal Powercord coremod for the post-SWC era of Replugged, I think
   
 # Install
-  - [Download plugin ASAR file](https://github.com/Socketlike/SpotifyModal/releases/latest)  
+  - [Download plugin ASAR file from releases](https://github.com/Socketlike/SpotifyModal/releases)  
   - Move plugin ASAR file to Replugged plugin directory  
   - Reload Discord (if running)
   
