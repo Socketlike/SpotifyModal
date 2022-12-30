@@ -7,70 +7,43 @@ import {
   smartphoneIcon,
 } from "./icons";
 
-export const modalElement: HTMLDivElement = document.createElement("div");
-export const coverArtElement: HTMLImageElement = document.createElement("img");
-export const titleElement: HTMLAnchorElement = document.createElement("a");
-export const artistsElement: HTMLDivElement = document.createElement("div");
-export const metadataElement: HTMLDivElement = document.createElement("div");
-export const _timebarElement: HTMLDivElement = document.createElement("div");
-export const timebarInnerElement: HTMLDivElement = document.createElement("div");
-export const dockElement: HTMLDivElement = document.createElement("div");
 export const _dockIconsElement: HTMLDivElement = document.createElement("div");
+export const _playbackTimeDisplayElement: HTMLDivElement = document.createElement("div");
+export const _timebarElement: HTMLDivElement = document.createElement("div");
+export const artistsElement: HTMLDivElement = document.createElement("div");
+export const coverArtElement: HTMLImageElement = document.createElement("img");
+export const dockElement: HTMLDivElement = document.createElement("div");
+export const metadataElement: HTMLDivElement = document.createElement("div");
+export const modalElement: HTMLDivElement = document.createElement("div");
+export const playbackTimeCurrentElement: HTMLSpanElement = document.createElement("span");
+export const playbackTimeDurationElement: HTMLSpanElement = document.createElement("span");
+export const timebarInnerElement: HTMLDivElement = document.createElement("div");
+export const titleElement: HTMLAnchorElement = document.createElement("a");
 
-/* Main modal */
-modalElement.classList.add("spotify-modal");
-modalElement.appendChild(coverArtElement);
-modalElement.appendChild(metadataElement);
-modalElement.setAttribute("style", "display: flex; height: 60px; padding-bottom: 8px;");
-export let modalAnimations: {
-  animations: {
-    fadein: Animation;
-    fadeout: Animation;
-  };
-  fadein: () => void;
-  fadeout: () => void;
-};
-modalAnimations = {
-  animations: {
-    fadein: modalElement.animate({ opacity: [0, 1] }, 700),
-    fadeout: modalElement.animate({ opacity: [1, 0] }, 700),
-  },
-  fadein: (): void => {
-    modalElement.style.display = "flex";
-    modalAnimations.animations.fadein.play();
-  },
-  fadeout: (): void => {
-    modalAnimations.animations.fadeout.play();
-  },
-};
-modalAnimations.animations.fadeout.addEventListener("finish", () => {
-  modalElement.style.display = "none";
-});
-
-/* Cover art */
-coverArtElement.classList.add("spotify-modal-cover-art");
-coverArtElement.setAttribute(
+/* Dock icons container */
+_dockIconsElement.classList.add("spotify-modal-dock-icons");
+_dockIconsElement.setAttribute(
   "style",
-  "max-height: 80%; max-width: 80%; border-radius: 8px; object-fit: contain;",
+  "padding-top: 5px; padding-left: 5px; height: 24px; width: 100%; display: flex; flex-direction: row",
 );
+_dockIconsElement.appendChild(desktopIcon);
+_dockIconsElement.appendChild(smartphoneIcon);
+_dockIconsElement.appendChild(repeatIcon);
 
-/* Song title */
-titleElement.classList.add("spotify-modal-song-title");
-titleElement.style.fontSize = "14px";
-titleElement.target = "_blank";
-
-/* Artist list */
-artistsElement.classList.add("spotify-modal-song-artists");
-artistsElement.setAttribute("style", "color: var(--header-secondary); font-size: 13px;");
-
-/* Song title & Artists container */
-metadataElement.classList.add("spotify-modal-metadata");
-metadataElement.setAttribute(
+/* Playback time display container */
+_playbackTimeDisplayElement.classList.add("spotify-modal-playback-time");
+_playbackTimeDisplayElement.setAttribute(
   "style",
-  "padding: 10px; display: flex; flex-direction: column; max-width: 145px;",
+  "display: flex; " +
+  "position: relative; " +
+  "top: -7px; " +
+  "left: 8px;"
+  "height: 16px; " +
+  "color: var(--text-normal); " +
+  "font-size: 12px",
 );
-metadataElement.appendChild(titleElement);
-metadataElement.appendChild(artistsElement);
+_playbackTimeDisplayElement.appendChild(playbackTimeCurrentElement);
+_playbackTimeDisplayElement.appendChild(playbackTimeDurationElement);
 
 /* Playback time bar */
 _timebarElement.classList.add("spotify-modal-timebar");
@@ -83,23 +56,25 @@ _timebarElement.setAttribute(
     "position: relative; " +
     "left: 5px; " +
     "top: -5px; " +
-    "margin: 0px;",
+    "margin: 0px",
 );
 _timebarElement.appendChild(timebarInnerElement);
 
-/* Playback time inner bar */
-timebarInnerElement.classList.add("spotify-modal-timebar-inner");
-timebarInnerElement.setAttribute(
+/* Artist list */
+artistsElement.classList.add("spotify-modal-song-artists");
+artistsElement.setAttribute("style", "color: var(--header-secondary); font-size: 13px");
+
+/* Cover art */
+coverArtElement.classList.add("spotify-modal-cover-art");
+coverArtElement.setAttribute(
   "style",
-  "background-color: var(--text-normal); " +
-    "height: 4px; " +
-    "max-width: 100%; " +
-    "border-radius: 8px",
+  "max-height: 80%; max-width: 80%; border-radius: 8px; object-fit: contain",
 );
 
-/* Playback time bar & Icons container */
+/* Playback time & Icons container */
 dockElement.classList.add("spotify-modal-dock");
 dockElement.setAttribute("style", "display: flex; flex-direction: column");
+dockElement.appendChild(_playbackTimeDisplayElement);
 dockElement.appendChild(_timebarElement);
 dockElement.appendChild(_dockIconsElement);
 export let dockAnimations: {
@@ -127,16 +102,74 @@ dockAnimations.animations.fadeout.addEventListener("finish", () => {
   dockElement.style.display = "none";
 });
 
-/* Dock icons container */
-_dockIconsElement.classList.add("spotify-modal-dock-icons");
-_dockIconsElement.setAttribute(
+/* Song title & Artists container */
+metadataElement.classList.add("spotify-modal-metadata");
+metadataElement.setAttribute(
   "style",
-  "padding-top: 5px; padding-left: 5px; height: 24px; width: 100%; display: flex; flex-direction: row;",
+  "padding: 10px; display: flex; flex-direction: column; max-width: 145px",
 );
-_dockIconsElement.appendChild(desktopIcon);
-_dockIconsElement.appendChild(smartphoneIcon);
-_dockIconsElement.appendChild(repeatIcon);
+metadataElement.appendChild(titleElement);
+metadataElement.appendChild(artistsElement);
 
+/* Main modal */
+modalElement.classList.add("spotify-modal");
+modalElement.appendChild(coverArtElement);
+modalElement.appendChild(metadataElement);
+modalElement.setAttribute("style", "display: flex; height: 60px; padding-bottom: 8px");
+export let modalAnimations: {
+  animations: {
+    fadein: Animation;
+    fadeout: Animation;
+  };
+  fadein: () => void;
+  fadeout: () => void;
+};
+modalAnimations = {
+  animations: {
+    fadein: modalElement.animate({ opacity: [0, 1] }, 700),
+    fadeout: modalElement.animate({ opacity: [1, 0] }, 700),
+  },
+  fadein: (): void => {
+    modalElement.style.display = "flex";
+    modalAnimations.animations.fadein.play();
+  },
+  fadeout: (): void => {
+    modalAnimations.animations.fadeout.play();
+  },
+};
+modalAnimations.animations.fadeout.addEventListener("finish", () => {
+  modalElement.style.display = "none";
+});
+
+/* Current playback time element */
+playbackTimeCurrentElement.classList.add("spotify-modal-playback-time-current");
+
+/* Playback duration element */
+playbackTimeDurationElement.classList.add("spotify-modal-playback-time-duration");
+playbackTimeDurationElement.setAttribute("style", "margin-left: auto; margin-right: 16px");
+
+/* Playback time inner bar */
+timebarInnerElement.classList.add("spotify-modal-timebar-inner");
+timebarInnerElement.setAttribute(
+  "style",
+  "background-color: var(--text-normal); " +
+    "height: 4px; " +
+    "max-width: 100%; " +
+    "border-radius: 8px",
+);
+
+/* Song title */
+titleElement.classList.add("spotify-modal-song-title");
+titleElement.style.fontSize = "14px";
+titleElement.target = "_blank";
+
+/**
+ * Parse artists list from a track to an array of Text and HTMLAnchorElements.
+ * @param  {object}             track                        Track object
+ * @param  {(string|undefined)} additionalLinkElementClasses Additional HTML classes for HTMLAnchorElements created
+ * @param  {boolean}            [enableTooltip]              Enable tooltips (aka: title) on elements
+ * @return {Array.<Text|HTMLAnchorElement>}                  An array of Text and HTMLAnchorElements
+ */
 export function parseArtists(
   track: {
     artists: Array<{ name: string; id: string }>;

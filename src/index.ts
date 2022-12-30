@@ -5,14 +5,15 @@ import { common, logger, webpack } from "replugged";
 import { Classes, EnvironmentData, SpotifyPlayerStateData } from "./types";
 import {
   _dockIconsElement,
+  _playbackTimeDisplayElement,
   _timebarElement,
   artistsElement,
   coverArtElement,
-  dockAnimations,
   dockElement,
-  modalAnimations,
+  metadataElement,
   modalElement,
-  parseArtists,
+  playbackTimeCurrentElement,
+  playbackTimeDurationElement,
   timebarInnerElement,
   titleElement,
 } from "./modal";
@@ -46,60 +47,38 @@ const env: EnvironmentData = {
 
 let classes: Classes;
 
+// Register anchorlike href for cover art image
 coverArtElement.onclick = () => {
   if (!env.trackStats.albumUrl) return;
   window.open(env.trackStats.albumUrl, "_blank");
 };
 
-/* Todo: Remove this blob of code since "clipboard-write" is not enabled on Discord
-coverArtElement.oncontextmenu = () => {
-  if (!env.trackStats.albumUrl) return;
-  navigator.clipboard.writeText(env.trackStats.albumUrl).catch((error) => {
-    logger.error(
-      "AlbumUrlCopy",
-      "SpotifyModal",
-      undefined,
-      "An error has occurred trying to write to clipboard",
-      error,
-    );
-  });
-};
+/**
+ * Parse time in miliseconds to minutes:seconds format or hours:minutes:seconds format
+ * @param {number} ms - Time in miliseconds
+ * @returns {string} - Parsed time
+ */
+function parseTime(ms: number): string {
+  if (typeof ms !== "number") return;
+  const dateObject = new Date(ms);
+  const raw = {
+    month: dateObject.getUTCMonth(),
+    day: dateObject.getUTCDate(),
+    hours: dateObject.getUTCHours(),
+    minutes: dateObject.getUTCMinutes(),
+    seconds: dateObject.getUTCSeconds(),
+  };
+  const parsedHours = raw.hours + (raw.day - 1) * 24 + ((raw.month) * 30) * 24;
 
-titleElement.oncontextmenu = (mouseEvent) => {
-  if (!mouseEvent.srcElement.href) return;
-  navigator.clipboard.writeText(mouseEvent.srcElement.href).catch((error) => {
-    logger.error(
-      "SongUrlCopy",
-      "SpotifyModal",
-      undefined,
-      "An error has occurred trying to write to clipboard",
-      error,
-    );
-  });
-};
-*/
-
-/* This will be used one day
-function parseTime(ms) {
-  let hours: number;
-  let minutes: number | string = Math.floor(ms / 1000 / 60);
-  let seconds: number | string = Math.round(
-    Number(`0.${(ms / 1000 / 60).toString().split(".")[1]}`) * 60,
-  );
-  if (seconds > 60) {
-    minutes += 1;
-    seconds -= 60;
-  }
-  if (minutes >= 60) {
-    hours = Math.floor(minutes / 60);
-    minutes = Math.round(Number(`0.${(minutes / 60).toString().split(".")[1]}`) * 60);
-  }
-  if (seconds.toString().length === 1) seconds = `${seconds.toString()}0`;
-  if (hours && minutes.toString().length === 1) minutes = `0${minutes.toString()}`;
-  return hours ? `${hours}:${minutes}:${seconds}` : `${minutes}:${seconds}`;
+  return `${parsedHours > 0 ? `${parsedHours}:` : ""}${
+    raw.minutes < 10 ? `0${raw.minutes}` : raw.minutes
+  }:${raw.seconds < 10 ? `0${raw.seconds}` : raw.seconds}`;
 }
-*/
 
+/**
+ * Handler for SPOTIFY_PLAYER_STATE
+ * @param {SpotifyPlayerStateData} data
+ */
 const handleSpotifyPlayerStateChange = (data: SpotifyPlayerStateData): void => {
   env.isPlaying = data.isPlaying;
   if (!env.injected && !injectModal()) {
@@ -179,6 +158,10 @@ const handleSpotifyPlayerStateChange = (data: SpotifyPlayerStateData): void => {
       titleElement.style.cursor = "";
       coverArtElement.style.cursor = "pointer";
     }
+
+    if (parseTime(env.trackStats.duration) !== playbackTimeDurationElement.innerText)
+      playbackTimeDurationElement.innerText = parseTime(env.trackStats.duration);
+    playbackTimeCurrentElement.innerText = parseTime(env.trackStats.passed);
 
     desktopIcon.style.display = data?.device?.type === "Computer" ? "" : "none";
     desktopIconTitle.replaceChildren(
