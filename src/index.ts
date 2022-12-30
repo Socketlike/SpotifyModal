@@ -108,7 +108,7 @@ const handleSpotifyPlayerStateChange = (data: SpotifyPlayerStateData): void => {
           clearInterval(env.timebarInterval);
           env.timebarInterval = undefined;
           playbackTimeCurrentElement.innerText = "0:00";
-          playbackTimeDuratinElement.innerText = "0:00";
+          playbackTimeDurationElement.innerText = "0:00";
           return;
         }
         env.trackStats.passed += 200;
