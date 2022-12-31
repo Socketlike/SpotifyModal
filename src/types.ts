@@ -22,6 +22,7 @@ export interface EnvironmentData {
   fluxDispatcherIndex: number;
   timebarInterval: number | undefined;
   isPlaying: boolean;
+  spotifyAccountId: string;
   trackStats: {
     passed: number;
     duration: number;

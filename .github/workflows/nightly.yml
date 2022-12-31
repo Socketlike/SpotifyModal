@@ -4,7 +4,7 @@ on:
   push:
     paths:
       - src/**/*.ts
-      - scripts/**/*.js
+      - scripts/**/*.ts
 
 jobs:
   release:
