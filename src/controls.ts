@@ -1,13 +1,15 @@
-/* eslint-disable no-undefined
+/* eslint-disable no-undefined, @typescript-eslint/require-await, @typescript-eslint/no-floating-promises
    ----
-   For using replugged.logger */
-import { common, logger, webpack } from "replugged";
+   putSpotifyAPI() does not need to be catched */
+import { common, logger } from "replugged";
 
 async function putSpotifyAPI(url: string, data: string, name: string): Promise<void> {
+  // @ts-expect-error - spotifySocket is not a string
   if (!common.spotifySocket.getActiveSocketAndDevice()) {
     logger.warn(name, "SpotifyModal", undefined, "No devices detected");
     return;
   }
+  // @ts-expect-error - spotifySocket is not a string
   const socket = common.spotifySocket.getActiveSocketAndDevice()?.socket;
   if (socket)
     fetch(url, {
@@ -17,30 +19,37 @@ async function putSpotifyAPI(url: string, data: string, name: string): Promise<v
         "Content-Type": "application/json",
         Authorization: `Bearer ${socket.accessToken}`,
       },
-      data,
+      body: data,
     })
       .catch((error) => {
         logger.error(name, "SpotifyModal", undefined, "An error has occurred:", error);
       })
       .then((response) => {
+        // @ts-expect-error - response is not void
         if (response.status === 401)
           logger.error(name, "SpotifyModal", undefined, "Expired access token");
+        // @ts-expect-error - response is not void
         else if (response.status === 403)
           logger.error(name, "SpotifyModal", undefined, "Bad request");
+        // @ts-expect-error - response is not void
         else if (response.status === 204) logger.log(name, "SpotifyModal", undefined, "Succeeded");
+        // @ts-expect-error - response is not void
         else logger.log(name, "SpotifyModal", undefined, "Unknown response", response.json());
       });
 }
 
 export function togglePlaybackState(): string {
+  // @ts-expect-error - spotifySocket is not a string
   const socket = common.spotifySocket.getActiveSocketAndDevice()?.socket;
   putSpotifyAPI(
     `https://api.spotify.com/v1/me/player/${
+      // @ts-expect-error - spotifySocket is not a string
       !common.spotifySocket.getPlayerState(socket?.accountId) ? "play" : "pause"
     }`,
     '{ "position_ms": 0 }',
     "togglePlaybackState",
   );
+  // @ts-expect-error - spotifySocket is not a string
   return !common.spotifySocket.getPlayerState(socket?.accountId) ? "play" : "pause";
 }
 
@@ -58,7 +67,7 @@ export function seekToPosition(position: number): void {
   if (typeof position !== "number") return;
   putSpotifyAPI(
     "https://api.spotify.com/v1/me/player/seek",
-    `{ "position_ms": ${number} }`,
+    `{ "position_ms": ${position} }`,
     "seekToPosition",
   );
 }
@@ -82,7 +91,7 @@ export function togglePlaybackShuffle(state: boolean): void {
   );
 }
 
-export function skipToPreviousOrNext(next: boolean = true) {
+export function skipToPreviousOrNext(next = true): void {
   putSpotifyAPI(
     `https://api.spotify.com/v1/me/player/${next ? "next" : "previous"}`,
     "{}",

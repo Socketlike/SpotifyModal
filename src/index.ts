@@ -1,9 +1,7 @@
-/* eslint-disable no-undefined
-   ----
-   For using replugged.logger */
+/* eslint-disable no-undefined, @typescript-eslint/no-floating-promises, @typescript-eslint/require-await */
 import { common, logger, webpack } from "replugged";
-import { Classes, EnvironmentData, SpotifyPlayerStateData } from "./types";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { SpotifyPlayerStateData } from "./types";
+
 import * as controls from "./controls";
 import {
   _dockIconsElement,
@@ -56,10 +54,27 @@ function parseTime(ms: number): string {
 }
 
 class ModalManager {
-  constructor() {
+  public timebarSetIntervalId: undefined | number;
+  public timebarUpdateHandler: () => Promise<void>;
+  public fluxSubscriptionFunction: undefined | (() => Promise<void>);
+  public modalInjected: boolean;
+  public panel: Element;
+  public classes: Record<string, string>;
+  public playerState: {
+    isPlaying: boolean;
+    accountId: string;
+    trackState: {
+      passed: number;
+      duration: number;
+      albumUrl: string;
+    };
+  };
+
+  public constructor() {
     this.timebarSetIntervalId = undefined;
     this.fluxSubscriptionFunction = undefined;
     this.modalInjected = false;
+    // @ts-expect-error - When panel is falsy it gets catched so it doesn't matter
     this.panel = undefined;
     this.classes = {};
     this.playerState = {
@@ -70,7 +85,8 @@ class ModalManager {
         duration: 0,
         albumUrl: "",
       },
-    }
+    };
+
     this.timebarUpdateHandler = async (): Promise<void> => {
       if (!this.playerState.isPlaying) {
         clearInterval(this.timebarSetIntervalId);
@@ -83,13 +99,13 @@ class ModalManager {
         playbackTimeCurrentElement.innerText = parseTime(this.playerState.trackState.passed);
       timebarInnerElement.style.width = `${(
         (this.playerState.trackState.passed / this.playerState.trackState.duration) *
-          100
-        ).toFixed(4)}%`;
-    }
+        100
+      ).toFixed(4)}%`;
+    };
   }
 
-  async getClasses(): Promise<void> {
-    const activityClasses =  await webpack.waitForModule<{
+  public async getClasses(): Promise<void> {
+    const activityClasses = await webpack.waitForModule<{
       activityName: string;
       bodyLink: string;
       ellipsis: string;
@@ -113,7 +129,8 @@ class ModalManager {
     this.classes = {
       activityName: this.classes.activityName || activityClasses.activityName,
       anchor: this.classes.anchor || anchorClasses.anchor,
-      anchorUnderlineOnHover: this.classes.anchorUnderlineOnHover || anchorClasses.anchorUnderlineOnHover,
+      anchorUnderlineOnHover:
+        this.classes.anchorUnderlineOnHover || anchorClasses.anchorUnderlineOnHover,
       bodyLink: this.classes.bodyLink || activityClasses.bodyLink,
       container: this.classes.container || containerClasses.container,
       defaultColor: this.classes.defaultColor || colorClasses.defaultColor,
@@ -121,17 +138,16 @@ class ModalManager {
       nameNormal: this.classes.nameNormal || activityClasses.nameNormal,
       panels: this.classes.panels || panelClasses.panels,
       "text-sm/semibold": this.classes["text-sm/semibold"] || colorClasses["text-sm/semibold"],
-    }
+    };
   }
 
-  async injectModal(): Promise<void> {
+  public async injectModal(): Promise<void> {
     if (this.modalInjected) {
       logger.warn("ModalManager#injectModal", "SpotifyModal", undefined, "Already injected");
       return;
     }
 
-    if (Object.keys(this.classes).length === 0)
-      await this.getClasses();
+    if (Object.keys(this.classes).length === 0) await this.getClasses();
 
     if (!this.classes.panels) {
       logger.error("ModalManager#injectModal", "SpotifyModal", undefined, "Panel class not found");
@@ -139,14 +155,19 @@ class ModalManager {
       return;
     }
 
-    this.panel = document.getElementsByClassName(this.classes.panels)[0]
+    this.panel = document.getElementsByClassName(this.classes.panels)[0];
     if (!this.panel) {
       logger.error("ModalManager#injectModal", "SpotifyModal", undefined, "Panel not found");
       return;
     }
 
     if (!this.classes.container) {
-      logger.error("ModalManager#injectModal", "SpotifyModal", undefined, "Container class not found");
+      logger.error(
+        "ModalManager#injectModal",
+        "SpotifyModal",
+        undefined,
+        "Container class not found",
+      );
       this.getClasses();
       return;
     }
@@ -161,14 +182,17 @@ class ModalManager {
         this.classes["text-sm/semibold"],
         ...this.classes.nameNormal.split(" "),
       );
-
+    if (!artistsElement.className.includes(this.classes.ellipsis))
+      artistsElement.classList.add(this.classes.ellipsis);
+    // @ts-expect-error - "afterBegin" is a valid argument for InsertPosition
     this.panel.insertAdjacentElement("afterBegin", modalElement);
+    // @ts-expect-error - "afterEnd" is a valid argument for InsertPosition
     modalElement.insertAdjacentElement("afterEnd", dockElement);
     this.modalInjected = true;
     logger.log("ModalManager#injectModal", "SpotifyModal", undefined, "Modal injected");
   }
 
-  uninjectModal(): void {
+  public uninjectModal(): void {
     if (!this.modalInjected) {
       logger.warn("ModalManager#uninjectModal", "SpotifyModal", undefined, "Already uninjected");
       return;
@@ -179,9 +203,10 @@ class ModalManager {
     logger.log("ModalManager#uninjectModal", "SpotifyModal", undefined, "Modal uninjected");
   }
 
-  async updateModal(data: SpotifyPlayerStateData): void {
+  public async updateModal(data: SpotifyPlayerStateData): Promise<void> {
     if (data.isPlaying || data.track) {
-      if (typeof this.timebarSetIntervalId !== 'number')
+      if (typeof this.timebarSetIntervalId !== "number")
+        // @ts-expect-error - This is not Node.js, setInterval returns a Number.
         this.timebarSetIntervalId = setInterval(this.timebarUpdateHandler, timebarUpdateRate);
 
       if (modalElement.style.display === "none") modalAnimations.fadein();
@@ -240,30 +265,48 @@ class ModalManager {
     } else {
       if (modalElement.style.display !== "none") modalAnimations.fadeout();
       if (dockElement.style.display !== "none") dockAnimations.fadeout();
-    };
+    }
   }
 
-  async handleSpotifyStateChange(data: SpotifyPlayerStateData): Promise<void> {
-    if (!this.modalInjected)
-      this.injectModal();
+  public async handleSpotifyStateChange(data: SpotifyPlayerStateData): Promise<void> {
+    if (!this.modalInjected) this.injectModal();
     this.playerState.isPlaying = data.isPlaying;
 
     if (!this.playerState.accountId) {
       this.playerState.accountId = data.accountId;
-      logger.log("ModalManager#handleSpotifyStateChange", "SpotifyModal", undefined, "Registered new account ID:", this.playerState.accountId);
+      logger.log(
+        "ModalManager#handleSpotifyStateChange",
+        "SpotifyModal",
+        undefined,
+        "Registered new account ID:",
+        this.playerState.accountId,
+      );
     }
 
     if (this.playerState.accountId !== data.accountId) {
-      logger.warn("ModalManager#handleSpotifyStateChange", "SpotifyModal", undefined, "New state's account ID differs from current account ID. State change will be ignored.");
+      logger.warn(
+        "ModalManager#handleSpotifyStateChange",
+        "SpotifyModal",
+        undefined,
+        "New state's account ID differs from current account ID. State change will be ignored.",
+      );
       return;
     }
 
     if (data.isPlaying) {
-      logger.log("ModalManager#handleSpotifyStateChange", "SpotifyModal", undefined, "State updated: Playing", data);
+      logger.log(
+        "ModalManager#handleSpotifyStateChange",
+        "SpotifyModal",
+        undefined,
+        "State updated: Playing",
+        data,
+      );
 
       this.playerState.trackState.duration = data.track.duration;
       this.playerState.trackState.passed = data.position;
-      this.playerState.trackState.albumUrl = data.track.isLocal ? "" : `https://open.spotify.com/album/${data.track.album.id}`;
+      this.playerState.trackState.albumUrl = data.track.isLocal
+        ? ""
+        : `https://open.spotify.com/album/${data.track.album.id}`;
 
       this.updateModal(data);
     } else {
@@ -275,39 +318,62 @@ class ModalManager {
         data,
       );
 
-      if (!data.track)
-        this.spotifyAccountId = "";
+      if (!data.track) this.playerState.accountId = "";
 
       this.updateModal(data);
     }
   }
 
-  registerFluxSubscription(): void {
+  public registerFluxSubscription(): void {
     if (this.fluxSubscriptionFunction !== undefined) {
-      logger.warn("ModalManager#registerFluxSubscription", "SpotifyModal", undefined, "Already registered");
+      logger.warn(
+        "ModalManager#registerFluxSubscription",
+        "SpotifyModal",
+        undefined,
+        "Already registered",
+      );
     } else {
+      // @ts-expect-error - fluxDispatcher is not a string
       common.fluxDispatcher.subscribe(
         "SPOTIFY_PLAYER_STATE",
         this.handleSpotifyStateChange.bind(this),
       );
       this.fluxSubscriptionFunction = [
+        // @ts-expect-error - fluxDispatcher is not a string
         ...common.fluxDispatcher._subscriptions.SPOTIFY_PLAYER_STATE.values(),
+        // @ts-expect-error - fluxDispatcher is not a string
       ][common.fluxDispatcher._subscriptions.SPOTIFY_PLAYER_STATE.size - 1];
-      logger.log("ModalManager#registerFluxSubscription", "SpotifyModal", undefined, "Registered FluxDispatcher subscription");
+      logger.log(
+        "ModalManager#registerFluxSubscription",
+        "SpotifyModal",
+        undefined,
+        "Registered FluxDispatcher subscription",
+      );
     }
   }
 
-  unregisterFluxSubscription(): void {
+  public unregisterFluxSubscription(): void {
     if (this.fluxSubscriptionFunction === undefined) {
-      logger.warn("ModalManager#unregisterFluxSubscription", "SpotifyModal", undefined, "Already unregistered");
+      logger.warn(
+        "ModalManager#unregisterFluxSubscription",
+        "SpotifyModal",
+        undefined,
+        "Already unregistered",
+      );
     } else {
+      // @ts-expect-error - fluxDispatcher is not a string
       common.fluxDispatcher.unsubscribe("SPOTIFY_PLAYER_STATE", this.fluxSubscriptionFunction);
-      logger.log("ModalManager#unregisterFluxSubscription", "SpotifyModal", undefined, "Unregistered FluxDispatcher subscription");
+      logger.log(
+        "ModalManager#unregisterFluxSubscription",
+        "SpotifyModal",
+        undefined,
+        "Unregistered FluxDispatcher subscription",
+      );
     }
   }
 }
 
-const modalManager = new ModalManager;
+const modalManager = new ModalManager();
 
 // Register anchorlike href for cover art image
 coverArtElement.onclick = () => {
@@ -315,6 +381,7 @@ coverArtElement.onclick = () => {
   window.open(modalManager.playerState.trackState.albumUrl, "_blank");
 };
 
+// @ts-expect-error - We are doing mutations
 window.SpotifyModal = {
   components: {
     _dockIconsElement,

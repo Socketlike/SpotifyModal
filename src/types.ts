@@ -4,63 +4,6 @@
   not my fault that they used snake case on like 3 properties */
 
 /**
- * Persistent data for a session
- * @typedef {Object}              EnvironmentData
- * @param   {(Element|undefined)} panel - Reference to the user panel element
- * @param   {boolean}             injected - Stores the panel injection status
- * @param   {number}              fluxDispatcherIndex - Index of the current SPOTIFY_PLAYER_STATE subscription function
- * @param   {(number|undefined)}  timebarInterval - Stores the Interval ID for the timebar update function
- * @param   {boolean}             isPlaying - Whether Spotify is playing or not
- * @param   {Object}              trackStats - Statistics of the current playing track
- * @param   {number}              trackStats.passed - Current play time for current playing track
- * @param   {number}              trackStats.duration - Duration of the current playing track
- * @param   {string}              albumUrl - URL to the album of the current playing track
- */
-export interface EnvironmentData {
-  panel: Element | undefined;
-  injected: boolean;
-  fluxDispatcherIndex: number;
-  timebarInterval: number | undefined;
-  isPlaying: boolean;
-  spotifyAccountId: string;
-  trackStats: {
-    passed: number;
-    duration: number;
-    albumUrl: string;
-  };
-}
-
-/**
- * Stores Discord's HTML classes
- * @typedef {Object} Classes
- * @param   {Object} panels - Stores the classes relating to the user panel components
- * @param   {string} container - Stores the class relating to the user panel container component
- * @param   {Object} anchors - Stores the classes relating to Discord's anchor (hyperlink) components
- * @param   {Object} activity - Stores the classes relating to Discord's user activity components
- * @param   {Object} colors - Stores the classes relating to Discord's text color scheme
- */
-export interface Classes {
-  panels: {
-    panels: string;
-  };
-  container: string;
-  anchors: {
-    anchor: string;
-    anchorUnderlineOnHover: string;
-  };
-  activity: {
-    activityName: string;
-    bodyLink: string;
-    ellipsis: string;
-    nameNormal: string;
-  };
-  colors: {
-    defaultColor: string;
-    "text-sm/semibold": string;
-  };
-}
-
-/**
  * The data recieved from fluxDispatcher's SPOTIFY_PLAYER_STATE subscription
  * @typedef {Object}             SpotifyPlayerStateData
  * @param   {boolean}            isPlaying - Whether or not the player is active
@@ -90,6 +33,7 @@ export interface Classes {
  */
 export interface SpotifyPlayerStateData {
   isPlaying: boolean;
+  accountId: string;
   repeat: boolean;
   position: number;
   device: {

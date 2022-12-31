@@ -34,7 +34,12 @@ _dockIconsElement.appendChild(repeatIcon);
 _metadataElement.classList.add("spotify-modal-metadata");
 _metadataElement.setAttribute(
   "style",
-  "padding: 10px; display: flex; flex-direction: column; max-width: 145px",
+  "margin: 10px; " +
+    "display: flex; " +
+    "flex-direction: column; " +
+    "max-width: 145px; " +
+    "overflow: hidden; " +
+    "white-space: nowrap",
 );
 _metadataElement.appendChild(titleElement);
 _metadataElement.appendChild(artistsElement);
@@ -69,7 +74,10 @@ _timebarElement.setAttribute(
 );
 _timebarElement.appendChild(timebarInnerElement);
 
-/* Artist list */
+/* 
+   Artist list
+   Todo: Add scrolling animation
+ */
 artistsElement.classList.add("spotify-modal-song-artists");
 artistsElement.setAttribute("style", "color: var(--header-secondary); font-size: 13px");
 
@@ -179,7 +187,7 @@ export function parseArtists(
   // onRightClick: Function | undefined,
   enableTooltip?: boolean,
 ): Array<Text | HTMLAnchorElement> {
-  const res: Array<Text | HTMLAnchorElement> = [document.createTextNode("by ")];
+  const res: Array<Text | HTMLAnchorElement> = [];
   if (track.artists.length) {
     track.artists.forEach(({ name, id }: { name: string; id: string }, index: number) => {
       const element =
@@ -210,6 +218,6 @@ export function parseArtists(
       } else res.push(element);
     });
   }
-  if (res.length === 1) res[0] = document.createTextNode("by Unknown");
+  if (!res.length) res.push(document.createTextNode("Unknown"));
   return res;
 }

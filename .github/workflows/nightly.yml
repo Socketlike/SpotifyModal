@@ -14,6 +14,10 @@ jobs:
       contents: write
 
     steps:
+      - name: Get current date
+        id: date
+        run: echo "::set-output name=date::$(date +'%d/%m/%Y - %T')"
+
       - name: Check out Git repository
         uses: actions/checkout@v2
 
@@ -36,6 +40,10 @@ jobs:
         with:
           artifacts: "*.asar"
           makeLatest: true
-          name: "nightly ${{ github.sha }}"
+          allowUpdates: true
+          tag: nightly
+          body: "Generated at `${{ steps.date.outputs.date }}`"
+          name: "nightly (${{ github.sha }})"
           generateReleaseNotes: true
+          replacesArtifacts: true
           prerelease: true
