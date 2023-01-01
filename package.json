@@ -1,6 +1,6 @@
 {
   "name": "SpotifyModal",
-  "version": "0.1.0",
+  "version": "0.1.5",
   "description": "Spotify modal",
   "engines": {
     "node": ">=14.0.0"
