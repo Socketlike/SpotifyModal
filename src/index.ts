@@ -58,6 +58,10 @@ class ModalManager {
   public timebarUpdateHandler: () => Promise<void>;
   public fluxSubscriptionFunction: undefined | (() => Promise<void>);
   public modalInjected: boolean;
+  public modalAnimations: {
+    artistsElement: undefined | Animation;
+    titleElement: undefined | Animation;
+  };
   public panel: Element;
   public classes: Record<string, string>;
   public playerState: {
@@ -74,6 +78,10 @@ class ModalManager {
     this.timebarSetIntervalId = undefined;
     this.fluxSubscriptionFunction = undefined;
     this.modalInjected = false;
+    this.modalAnimations = {
+      artistsElement: undefined,
+      titleElement: undefined,
+    };
     // @ts-expect-error - When panel is falsy it gets catched so it doesn't matter
     this.panel = undefined;
     this.classes = {};
@@ -180,10 +188,9 @@ class ModalManager {
         this.classes.anchorUnderlineOnHover,
         this.classes.defaultColor,
         this.classes["text-sm/semibold"],
-        ...this.classes.nameNormal.split(" "),
+        ...this.classes.nameNormal.split(" ").filter((classes) => !classes.match(/^ellipsis/)),
       );
-    if (!artistsElement.className.includes(this.classes.ellipsis))
-      artistsElement.classList.add(this.classes.ellipsis);
+
     // @ts-expect-error - "afterBegin" is a valid argument for InsertPosition
     this.panel.insertAdjacentElement("afterBegin", modalElement);
     // @ts-expect-error - "afterEnd" is a valid argument for InsertPosition
@@ -259,10 +266,83 @@ class ModalManager {
         document.createTextNode(data.repeat ? "Repeat on" : "Repeat off"),
       );
 
-      titleElement.replaceChildren(document.createTextNode(trackName));
+      titleElement.innerText = trackName;
       titleElement.title = trackName;
+      if (titleElement.scrollWidth > titleElement.offsetWidth + 20) {
+        if (this.modalAnimations.titleElement) this.modalAnimations.titleElement.cancel();
+        this.modalAnimations.titleElement = titleElement.animate(
+          [
+            { transform: "translateX(0)" },
+            {
+              transform: `translateX(-${titleElement.scrollWidth - titleElement.offsetWidth}px)`,
+            },
+          ],
+          {
+            iterations: Infinity,
+            duration: (titleElement.scrollWidth - titleElement.offsetWidth) * 50,
+            direction: "alternate-reverse",
+            easing: "linear"
+          },
+        );
+      } else if (
+        this.modalAnimations.titleElement &&
+        titleElement.scrollWidth <= artistsElement.offsetWidth + 20
+      ) {
+        this.modalAnimations.titleElement.cancel();
+        this.modalAnimations.titleElement = undefined;
+      }
+
+      if (!this.modalAnimations.titleElement && titleElement.scrollWidth <= artistsElement.offsetWidth + 20) {
+        if (!titleElement.className.includes(this.classes.ellipsis))
+          titleElement.classList.add(this.classes.ellipsis);
+      } else {
+        if (titleElement.className.includes(this.classes.ellipsis))
+          titleElement.classList.remove(this.classes.ellipsis);
+      }
+
       artistsElement.replaceChildren(...trackArtists);
+      if (artistsElement.scrollWidth > artistsElement.offsetWidth + 20) {
+        if (this.modalAnimations.artistsElement) this.modalAnimations.artistsElement.cancel();
+        this.modalAnimations.artistsElement = artistsElement.animate(
+          [
+            { transform: "translateX(0)" },
+            {
+              transform: `translateX(-${
+                artistsElement.scrollWidth - artistsElement.offsetWidth
+              }px)`,
+            },
+          ],
+          {
+            iterations: Infinity,
+            duration: (artistsElement.scrollWidth - artistsElement.offsetWidth) * 50,
+            direction: "alternate-reverse",
+            easing: "linear"
+          },
+        );
+      } else if (
+        this.modalAnimations.artistsElement &&
+        artistsElement.scrollWidth <= artistsElement.offsetWidth + 20
+      ) {
+        this.modalAnimations.artistsElement.cancel();
+        this.modalAnimations.artistsElement = undefined;
+      }
+
+      if (!this.modalAnimations.artistsElement && artistsElement.scrollWidth <= artistsElement.offsetWidth + 20) {
+        if (!artistsElement.className.includes(this.classes.ellipsis))
+          artistsElement.classList.add(this.classes.ellipsis);
+      } else {
+        if (artistsElement.className.includes(this.classes.ellipsis))
+          artistsElement.classList.remove(this.classes.ellipsis);
+      }
     } else {
+      if (this.modalAnimations.artistsElement) {
+        this.modalAnimations.artistsElement.cancel();
+        this.modalAnimations.artistsElement = undefined;
+      }
+      if (this.modalAnimations.titleElement) {
+        this.modalAnimations.titleElement.cancel();
+        this.modalAnimations.titleElement = undefined;
+      }
       if (modalElement.style.display !== "none") modalAnimations.fadeout();
       if (dockElement.style.display !== "none") dockAnimations.fadeout();
     }
@@ -301,6 +381,16 @@ class ModalManager {
         "State updated: Playing",
         data,
       );
+
+      if (!data?.track) {
+        logger.warn(
+          "ModalManager#handleSpotifyStateChange",
+          "SpotifyModal",
+          undefined,
+          "State is missing the track property!",
+        );
+        return;
+      }
 
       this.playerState.trackState.duration = data.track.duration;
       this.playerState.trackState.passed = data.position;
