@@ -1,11 +1,4 @@
-import {
-  _desktopPath,
-  _repeatPath,
-  _smartphonePath,
-  desktopIcon,
-  repeatIcon,
-  smartphoneIcon,
-} from "./icons";
+import { playPauseIcon, repeatIcon, shuffleIcon, skipNextIcon, skipPreviousIcon } from "./icons";
 
 export const _dockIconsElement: HTMLDivElement = document.createElement("div");
 export const _metadataElement: HTMLDivElement = document.createElement("div");
@@ -26,8 +19,10 @@ _dockIconsElement.setAttribute(
   "style",
   "padding-top: 5px; padding-left: 5px; height: 24px; width: 100%; display: flex; flex-direction: row",
 );
-_dockIconsElement.appendChild(desktopIcon);
-_dockIconsElement.appendChild(smartphoneIcon);
+_dockIconsElement.appendChild(shuffleIcon);
+_dockIconsElement.appendChild(skipPreviousIcon);
+_dockIconsElement.appendChild(playPauseIcon);
+_dockIconsElement.appendChild(skipNextIcon);
 _dockIconsElement.appendChild(repeatIcon);
 
 /* Song title & Artists container */
@@ -90,7 +85,7 @@ coverArtElement.setAttribute(
 
 /* Playback time & Icons container */
 dockElement.classList.add("spotify-modal-dock");
-dockElement.setAttribute("style", "display: flex; flex-direction: column");
+dockElement.setAttribute("style", "display: flex; flex-direction: column; padding-bottom: 4px");
 dockElement.appendChild(_playbackTimeDisplayElement);
 dockElement.appendChild(_timebarElement);
 dockElement.appendChild(_dockIconsElement);
@@ -123,7 +118,10 @@ dockAnimations.animations.fadeout.addEventListener("finish", () => {
 modalElement.classList.add("spotify-modal");
 modalElement.appendChild(coverArtElement);
 modalElement.appendChild(_metadataElement);
-modalElement.setAttribute("style", "display: flex; height: 60px; padding-bottom: 8px");
+modalElement.setAttribute(
+  "style",
+  "display: flex; height: 60px; padding-bottom: 8px; padding-top: 4px",
+);
 export let modalAnimations: {
   animations: {
     fadein: Animation;

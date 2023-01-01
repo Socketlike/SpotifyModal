@@ -60,3 +60,14 @@ export interface SpotifyPlayerStateData {
     name: string;
   };
 }
+
+/**
+ * Player state data recieved from the raw Spotify API
+ * @type  {Object}  SpotifyAPIPlayerStateData
+ * @param {string}  repeat_state
+ * @param {boolean} shuffle_state
+ */
+export interface SpotifyAPIPlayerStateData {
+  repeat_state: string;
+  shuffle_state: boolean;
+}

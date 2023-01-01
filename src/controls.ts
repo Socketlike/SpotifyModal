@@ -1,100 +1,139 @@
-/* eslint-disable no-undefined, @typescript-eslint/require-await, @typescript-eslint/no-floating-promises
+/* eslint-disable no-undefined
    ----
    putSpotifyAPI() does not need to be catched */
 import { common, logger } from "replugged";
+import { SpotifyAPIPlayerStateData } from "./types"
 
-async function putSpotifyAPI(url: string, data: string, name: string): Promise<void> {
+function putSpotifyAPI(
+  endpoint: string,
+  data?: string,
+  method?: string = "PUT",
+): Promise<void | Response> | void {
   // @ts-expect-error - spotifySocket is not a string
   if (!common.spotifySocket.getActiveSocketAndDevice()) {
-    logger.warn(name, "SpotifyModal", undefined, "No devices detected");
+    logger.warn("putSpotifyAPI", "SpotifyModal", undefined, "No devices detected");
     return;
   }
   // @ts-expect-error - spotifySocket is not a string
   const socket = common.spotifySocket.getActiveSocketAndDevice()?.socket;
   if (socket)
-    fetch(url, {
-      method: "PUT",
+    return fetch(`https://api.spotify.com/v1/${endpoint}`, {
+      method,
       mode: "cors",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${socket.accessToken}`,
       },
       body: data,
-    })
-      .catch((error) => {
-        logger.error(name, "SpotifyModal", undefined, "An error has occurred:", error);
-      })
-      .then((response) => {
-        // @ts-expect-error - response is not void
-        if (response.status === 401)
-          logger.error(name, "SpotifyModal", undefined, "Expired access token");
-        // @ts-expect-error - response is not void
-        else if (response.status === 403)
-          logger.error(name, "SpotifyModal", undefined, "Bad request");
-        // @ts-expect-error - response is not void
-        else if (response.status === 204) logger.log(name, "SpotifyModal", undefined, "Succeeded");
-        // @ts-expect-error - response is not void
-        else logger.log(name, "SpotifyModal", undefined, "Unknown response", response.json());
-      });
+    });
+  return;
 }
 
-export function togglePlaybackState(): string {
-  // @ts-expect-error - spotifySocket is not a string
+export async function getPlayerState(): Promise<SpotifyAPIPlayerStateData | void> {
+  let res: void | Response;
+
+  try {
+    res = await putSpotifyAPI("me/player", undefined, "GET");
+  } catch (error) {
+    logger.error("getPlayerState", "SpotifyModal", undefined, "An error has occurred:", error);
+  }
+
+  if (!res) return;
+  return await res.json();
+}
+
+export async function togglePlaybackState(): Promise<void | Response> {
+  let res: void | Response;
   const socket = common.spotifySocket.getActiveSocketAndDevice()?.socket;
-  putSpotifyAPI(
-    `https://api.spotify.com/v1/me/player/${
-      // @ts-expect-error - spotifySocket is not a string
-      !common.spotifySocket.getPlayerState(socket?.accountId) ? "play" : "pause"
-    }`,
-    '{ "position_ms": 0 }',
-    "togglePlaybackState",
-  );
-  // @ts-expect-error - spotifySocket is not a string
-  return !common.spotifySocket.getPlayerState(socket?.accountId) ? "play" : "pause";
+
+  try {
+    res = await putSpotifyAPI(
+      `me/player/${
+        // @ts-expect-error - spotifySocket is not a string
+        !common.spotifySocket.getPlayerState(socket?.accountId) ? "play" : "pause"
+      }`,
+      '{ "position_ms": 0 }',
+    );
+  } catch (error) {
+    logger.error("togglePlaybackState", "SpotifyModal", undefined, "An error has occurred:", error);
+  }
+
+  return res;
 }
 
-export function toggleRepeatState(repeatMode: number): string {
+export async function toggleRepeatState(repeatMode: number): Promise<void | Response> {
   const repeatModeList = ["off", "context", "track"];
-  putSpotifyAPI(
-    "https://api.spotify.com/v1/me/player/repeat",
-    `{ "state": "${repeatModeList[repeatMode] || "off"}" }`,
-    "toggleRepeatState",
-  );
-  return repeatModeList[repeatMode] || "off";
+  let res: void | Response;
+
+  try {
+    res = await putSpotifyAPI(`me/player/repeat?state=${repeatModeList[repeatMode] || "off"}`);
+  } catch (error) {
+    logger.error("toggleRepeatState", "SpotifyModal", undefined, "An error has occurred:", error);
+  }
+
+  return res;
 }
 
-export function seekToPosition(position: number): void {
+export async function seekToPosition(position: number): Promise<void | Response> {
   if (typeof position !== "number") return;
-  putSpotifyAPI(
-    "https://api.spotify.com/v1/me/player/seek",
-    `{ "position_ms": ${position} }`,
-    "seekToPosition",
-  );
+  let res: void | Response;
+
+  try {
+    res = await putSpotifyAPI("me/player/seek", `{ "position_ms": ${position} }`);
+  } catch (error) {
+    logger.error("seekToPosition", "SpotifyModal", undefined, "An error has occurred:", error);
+  }
+
+  return res;
 }
 
-export function setPlaybackVolume(percent: number): void {
+export async function setPlaybackVolume(percent: number): Promise<void | Response> {
   let volumePercent = percent;
+  let res: void | Response;
   if (volumePercent > 100) volumePercent = 100;
   if (volumePercent < 0) volumePercent = 0;
-  putSpotifyAPI(
-    "https://api.spotify.com/v1/me/player/volume",
-    `{ "volume_percent": ${volumePercent} }`,
-    "setPlaybackVolume",
-  );
+
+  try {
+    res = await putSpotifyAPI("me/player/volume", `{ "volume_percent": ${volumePercent} }`);
+  } catch (error) {
+    logger.error("setPlaybackVolume", "SpotifyModal", undefined, "An error has occurred:", error);
+  }
+
+  return res;
 }
 
-export function togglePlaybackShuffle(state: boolean): void {
-  putSpotifyAPI(
-    "https://api.spotify.com/v1/me/player/shuffle",
-    `{ "state": ${Boolean(state)} }`,
-    "togglePlaybackShuffle",
-  );
+export async function togglePlaybackShuffle(state: boolean): Promise<void | Response> {
+  let res: void | Response;
+
+  try {
+    res = await putSpotifyAPI(`me/player/shuffle?state=${Boolean(state)}`);
+  } catch (error) {
+    logger.error(
+      "togglePlaybackShuffle",
+      "SpotifyModal",
+      undefined,
+      "An error has occurred:",
+      error,
+    );
+  }
+
+  return res;
 }
 
-export function skipToPreviousOrNext(next = true): void {
-  putSpotifyAPI(
-    `https://api.spotify.com/v1/me/player/${next ? "next" : "previous"}`,
-    "{}",
-    "skipToPreviousOrNext",
-  );
+export async function skipToPreviousOrNext(next = true): Promise<void | Response> {
+  let res: void | Response;
+
+  try {
+    res = await putSpotifyAPI(`me/player/${next ? "next" : "previous"}`, undefined, "POST");
+  } catch (error) {
+    logger.error(
+      "skipToPreviousOrNext",
+      "SpotifyModal",
+      undefined,
+      "An error has occurred:",
+      error,
+    );
+  }
+
+  return res;
 }

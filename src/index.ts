@@ -21,12 +21,17 @@ import {
   titleElement,
 } from "./modal";
 import {
-  desktopIcon,
-  desktopIconTitle,
+  pausePath,
+  playPath,
+  playPauseIcon,
+  repeatAllPath,
   repeatIcon,
   repeatIconTitle,
-  smartphoneIcon,
-  smartphoneIconTitle,
+  repeatOnePath,
+  shuffleIcon,
+  shuffleIconTitle,
+  skipNextIcon,
+  skipPreviousIcon,
 } from "./icons";
 
 const timebarUpdateRate = 500;
@@ -67,6 +72,8 @@ class ModalManager {
   public playerState: {
     isPlaying: boolean;
     accountId: string;
+    shuffleOn: boolean;
+    repeatMode: string;
     trackState: {
       passed: number;
       duration: number;
@@ -88,6 +95,8 @@ class ModalManager {
     this.playerState = {
       isPlaying: false,
       accountId: "",
+      shuffleOn: false,
+      repeatMode: "off",
       trackState: {
         passed: 0,
         duration: 0,
@@ -95,6 +104,7 @@ class ModalManager {
       },
     };
 
+    // This is only an arrow function because it needs to stay in this context
     this.timebarUpdateHandler = async (): Promise<void> => {
       if (!this.playerState.isPlaying) {
         clearInterval(this.timebarSetIntervalId);
@@ -163,12 +173,6 @@ class ModalManager {
       return;
     }
 
-    this.panel = document.getElementsByClassName(this.classes.panels)[0];
-    if (!this.panel) {
-      logger.error("ModalManager#injectModal", "SpotifyModal", undefined, "Panel not found");
-      return;
-    }
-
     if (!this.classes.container) {
       logger.error(
         "ModalManager#injectModal",
@@ -177,6 +181,12 @@ class ModalManager {
         "Container class not found",
       );
       this.getClasses();
+      return;
+    }
+
+    this.panel = document.getElementsByClassName(this.classes.panels)[0];
+    if (!this.panel) {
+      logger.error("ModalManager#injectModal", "SpotifyModal", undefined, "Panel not found");
       return;
     }
 
@@ -195,6 +205,7 @@ class ModalManager {
     this.panel.insertAdjacentElement("afterBegin", modalElement);
     // @ts-expect-error - "afterEnd" is a valid argument for InsertPosition
     modalElement.insertAdjacentElement("afterEnd", dockElement);
+
     this.modalInjected = true;
     logger.log("ModalManager#injectModal", "SpotifyModal", undefined, "Modal injected");
   }
@@ -204,6 +215,7 @@ class ModalManager {
       logger.warn("ModalManager#uninjectModal", "SpotifyModal", undefined, "Already uninjected");
       return;
     }
+
     this.panel.removeChild(modalElement);
     this.panel.removeChild(dockElement);
     this.modalInjected = false;
@@ -215,6 +227,37 @@ class ModalManager {
       if (typeof this.timebarSetIntervalId !== "number")
         // @ts-expect-error - This is not Node.js, setInterval returns a Number.
         this.timebarSetIntervalId = setInterval(this.timebarUpdateHandler, timebarUpdateRate);
+
+      (async () => {
+        const res = await controls.getPlayerState();
+        if (!res) return;
+
+        // @ts-expect-error - this.playerState.repeatMode is not of type "{}"...?
+        this.playerState.repeatMode = res.repeat_state || "off";
+        this.playerState.shuffleOn = res.shuffle_state;
+
+        repeatIcon.style.color = data.repeat ? "var(--brand-experiment-500)" : "var(--text-normal)";
+        repeatIcon.replaceChild(
+          res.repeat_state === "off" || res.repeat_state === "context"
+            ? repeatAllPath
+            : repeatOnePath,
+          repeatIcon.children[1],
+        );
+        repeatIconTitle.replaceChildren(
+          // res.repeat_state will be a String
+          // eslint-disable-next-line @typescript-eslint/no-base-to-string
+          document.createTextNode(`Repeat ${res.repeat_state || "off"}`),
+        );
+
+        shuffleIcon.style.color = res.shuffle_state
+          ? "var(--brand-experiment-500)"
+          : "var(--text-normal)";
+        shuffleIconTitle.replaceChildren(
+          // res.shuffle_state will be a String
+          // eslint-disable-next-line @typescript-eslint/no-base-to-string
+          document.createTextNode(`Shuffle ${res.shuffle_state || "off"}`),
+        );
+      })();
 
       if (modalElement.style.display === "none") modalAnimations.fadein();
       if (dockElement.style.display === "none") dockAnimations.fadein();
@@ -247,24 +290,7 @@ class ModalManager {
       if (parseTime(this.playerState.trackState.duration) !== playbackTimeDurationElement.innerText)
         playbackTimeDurationElement.innerText = parseTime(this.playerState.trackState.duration);
 
-      desktopIcon.style.display = data?.device?.type === "Computer" ? "" : "none";
-      desktopIconTitle.replaceChildren(
-        document.createTextNode(
-          data?.device?.type === "Computer" ? `Listening on: ${data.device.name}` : "",
-        ),
-      );
-
-      smartphoneIcon.style.display = data?.device?.type === "Smartphone" ? "" : "none";
-      smartphoneIconTitle.replaceChildren(
-        document.createTextNode(
-          data?.device?.type === "Smartphone" ? `Listening on: ${data.device.name}` : "",
-        ),
-      );
-
-      repeatIcon.style.color = data.repeat ? "var(--brand-experiment-500)" : "var(--text-normal)";
-      repeatIconTitle.replaceChildren(
-        document.createTextNode(data.repeat ? "Repeat on" : "Repeat off"),
-      );
+      playPauseIcon.replaceChildren(data?.isPlaying ? pausePath : playPath);
 
       titleElement.innerText = trackName;
       titleElement.title = trackName;
@@ -281,7 +307,7 @@ class ModalManager {
             iterations: Infinity,
             duration: (titleElement.scrollWidth - titleElement.offsetWidth) * 50,
             direction: "alternate-reverse",
-            easing: "linear"
+            easing: "linear",
           },
         );
       } else if (
@@ -292,13 +318,14 @@ class ModalManager {
         this.modalAnimations.titleElement = undefined;
       }
 
-      if (!this.modalAnimations.titleElement && titleElement.scrollWidth <= artistsElement.offsetWidth + 20) {
+      if (
+        !this.modalAnimations.titleElement &&
+        titleElement.scrollWidth <= artistsElement.offsetWidth + 20
+      ) {
         if (!titleElement.className.includes(this.classes.ellipsis))
           titleElement.classList.add(this.classes.ellipsis);
-      } else {
-        if (titleElement.className.includes(this.classes.ellipsis))
-          titleElement.classList.remove(this.classes.ellipsis);
-      }
+      } else if (titleElement.className.includes(this.classes.ellipsis))
+        titleElement.classList.remove(this.classes.ellipsis);
 
       artistsElement.replaceChildren(...trackArtists);
       if (artistsElement.scrollWidth > artistsElement.offsetWidth + 20) {
@@ -316,7 +343,7 @@ class ModalManager {
             iterations: Infinity,
             duration: (artistsElement.scrollWidth - artistsElement.offsetWidth) * 50,
             direction: "alternate-reverse",
-            easing: "linear"
+            easing: "linear",
           },
         );
       } else if (
@@ -327,22 +354,25 @@ class ModalManager {
         this.modalAnimations.artistsElement = undefined;
       }
 
-      if (!this.modalAnimations.artistsElement && artistsElement.scrollWidth <= artistsElement.offsetWidth + 20) {
+      if (
+        !this.modalAnimations.artistsElement &&
+        artistsElement.scrollWidth <= artistsElement.offsetWidth + 20
+      ) {
         if (!artistsElement.className.includes(this.classes.ellipsis))
           artistsElement.classList.add(this.classes.ellipsis);
-      } else {
-        if (artistsElement.className.includes(this.classes.ellipsis))
-          artistsElement.classList.remove(this.classes.ellipsis);
-      }
+      } else if (artistsElement.className.includes(this.classes.ellipsis))
+        artistsElement.classList.remove(this.classes.ellipsis);
     } else {
       if (this.modalAnimations.artistsElement) {
         this.modalAnimations.artistsElement.cancel();
         this.modalAnimations.artistsElement = undefined;
       }
+
       if (this.modalAnimations.titleElement) {
         this.modalAnimations.titleElement.cancel();
         this.modalAnimations.titleElement = undefined;
       }
+
       if (modalElement.style.display !== "none") modalAnimations.fadeout();
       if (dockElement.style.display !== "none") dockAnimations.fadeout();
     }
@@ -471,6 +501,52 @@ coverArtElement.onclick = () => {
   window.open(modalManager.playerState.trackState.albumUrl, "_blank");
 };
 
+// Register controls
+playPauseIcon.onclick = () => {
+  controls.togglePlaybackState();
+};
+
+repeatIcon.onclick = () => {
+  let nextMode = 0;
+  if (modalManager.playerState.repeatMode === "off") nextMode = 1;
+  else if (modalManager.playerState.repeatMode === "context") nextMode = 2;
+  else if (modalManager.playerState.repeatMode === "track") nextMode = 0;
+  controls.toggleRepeatState(nextMode);
+};
+
+repeatIcon.onmouseenter = () => {
+  repeatIcon.style.color = "var(--brand-experiment-400)";
+};
+
+repeatIcon.onmouseleave = () => {
+  repeatIcon.style.color =
+    modalManager.playerState.repeatMode === "off"
+      ? "var(--text-normal)"
+      : "var(--brand-experiment-500)";
+};
+
+shuffleIcon.onclick = () => {
+  controls.togglePlaybackShuffle(!modalManager.playerState.shuffleOn);
+};
+
+shuffleIcon.onmouseenter = () => {
+  shuffleIcon.style.color = "var(--brand-experiment-400)";
+};
+
+shuffleIcon.onmouseleave = () => {
+  shuffleIcon.style.color = modalManager.playerState.shuffleOn
+    ? "var(--brand-experiment-500)"
+    : "var(--text-normal)";
+};
+
+skipPreviousIcon.onclick = () => {
+  controls.skipToPreviousOrNext(false);
+};
+
+skipNextIcon.onclick = () => {
+  controls.skipToPreviousOrNext();
+};
+
 // @ts-expect-error - We are doing mutations
 window.SpotifyModal = {
   components: {
@@ -489,6 +565,19 @@ window.SpotifyModal = {
     playbackTimeDurationElement,
     timebarInnerElement,
     titleElement,
+  },
+  icons: {
+    pausePath,
+    playPath,
+    playPauseIcon,
+    repeatIcon,
+    repeatAllPath,
+    repeatOnePath,
+    repeatIconTitle,
+    shuffleIcon,
+    shuffleIconTitle,
+    skipNextIcon,
+    skipPreviousIcon,
   },
   controls,
   modalManager,
