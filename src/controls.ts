@@ -2,12 +2,12 @@
    ----
    putSpotifyAPI() does not need to be catched */
 import { common, logger } from "replugged";
-import { SpotifyAPIPlayerStateData } from "./types"
+import { SpotifyAPIPlayerStateData } from "./types";
 
 function putSpotifyAPI(
   endpoint: string,
   data?: string,
-  method?: string = "PUT",
+  method = "PUT",
 ): Promise<void | Response> | void {
   // @ts-expect-error - spotifySocket is not a string
   if (!common.spotifySocket.getActiveSocketAndDevice()) {
@@ -26,7 +26,7 @@ function putSpotifyAPI(
       },
       body: data,
     });
-  return;
+  
 }
 
 export async function getPlayerState(): Promise<SpotifyAPIPlayerStateData | void> {
@@ -44,6 +44,7 @@ export async function getPlayerState(): Promise<SpotifyAPIPlayerStateData | void
 
 export async function togglePlaybackState(): Promise<void | Response> {
   let res: void | Response;
+  // @ts-expect-error - spotifySocket is not a string
   const socket = common.spotifySocket.getActiveSocketAndDevice()?.socket;
 
   try {

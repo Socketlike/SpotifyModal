@@ -232,7 +232,6 @@ class ModalManager {
         const res = await controls.getPlayerState();
         if (!res) return;
 
-        // @ts-expect-error - this.playerState.repeatMode is not of type "{}"...?
         this.playerState.repeatMode = res.repeat_state || "off";
         this.playerState.shuffleOn = res.shuffle_state;
 
@@ -245,7 +244,7 @@ class ModalManager {
         );
         repeatIconTitle.replaceChildren(
           // res.repeat_state will be a String
-          // eslint-disable-next-line @typescript-eslint/no-base-to-string
+           
           document.createTextNode(`Repeat ${res.repeat_state || "off"}`),
         );
 
