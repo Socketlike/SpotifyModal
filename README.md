@@ -37,4 +37,10 @@ UI elements are also exposed to CSS via these classes:
   - [X] Add basic functionality
   - [X] Song progress bar
   - [ ] Controls
+    - [X] Play/pause
+    - [X] Skip forwards/backwards
+    - [X] Toggle shuffle
+    - [X] Change repeat mode
+    - [ ] Track seeking
+    - [ ] Volume control
   - [X] Styling improvements
