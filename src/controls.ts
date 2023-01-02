@@ -29,19 +29,6 @@ function putSpotifyAPI(
   
 }
 
-export async function getPlayerState(): Promise<SpotifyAPIPlayerStateData | void> {
-  let res: void | Response;
-
-  try {
-    res = await putSpotifyAPI("me/player", undefined, "GET");
-  } catch (error) {
-    logger.error("getPlayerState", "SpotifyModal", undefined, "An error has occurred:", error);
-  }
-
-  if (!res) return;
-  return await res.json();
-}
-
 export async function togglePlaybackState(): Promise<void | Response> {
   let res: void | Response;
   // @ts-expect-error - spotifySocket is not a string

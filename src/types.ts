@@ -1,73 +1,130 @@
-/* eslint-disable @typescript-eslint/naming-convention
-  ----
-  It's Discord's naming conventions,
-  not my fault that they used snake case on like 3 properties */
+/* eslint-disable @typescript-eslint/naming-convention */
 
-/**
- * The data recieved from fluxDispatcher's SPOTIFY_PLAYER_STATE subscription
- * @typedef {Object}             SpotifyPlayerStateData
- * @param   {boolean}            isPlaying - Whether or not the player is active
- * @param   {boolean}            repeat - Whether or not the repeat mode is active
- * @param   {(number|undefined)} position - Current playback time for current playing track (if playing)
- * @param   {Object}             device - Current device's data
- * @param   {boolean}            device.is_active - Whether or not the playing device is active
- * @param   {boolean}            device.is_private_session - Whether or not the user has activated private session mode
- * @param   {boolean}            device.is_restricted - Whether or not the user is restricted
- * @param   {string}             device.name - Device's name
- * @param   {string}             device.type - Type of the device (Smartphone|Computer)
- * @param   {(Object|undefined)} track - The current playing track's data (if playing)
- * @param   {(Object|undefined)} track.album - The current playing track's album data (if playing and album data is defined)
- * @param   {(string|undefined)} track.album.id - The current playing track's album ID (if track exists on Spotify)
- * @param   {(Object|undefined)} track.album.image - The current playing track's album image (if track exists on Spotify)
- * @param   {number}             track.album.image.height - Album image's height
- * @param   {number}             track.album.image.width - Album image's width
- * @param   {string}             track.album.image.url - Album image's source URL
- * @param   {(string|undefined)} track.album.name - Album's name (if defined)
- * @param   {(string|undefined)} track.id - Track's ID (if track exists on Spotify)
- * @param   {number}             track.duration - Track's duration
- * @param   {(Object[]|undefined)} track.artists - Track's list of artists
- * @param   {string}             track.artists[].name - Artist's name
- * @param   {(string|undefined)} track.artists[].id - Artist's ID (if artist exists on Spotify)
- * @param   {boolean}            track.isLocal - Whether or not the current playing track is a local file
- * @param   {string}             name - Current playing track's name
- */
-export interface SpotifyPlayerStateData {
-  isPlaying: boolean;
-  accountId: string;
-  repeat: boolean;
-  position: number;
-  device: {
-    is_active: boolean;
-    is_private_session: boolean;
-    is_restricted: boolean;
+export interface SpotifyDevice {
+  id: string;
+  is_active: boolean;
+  is_private_session: boolean;
+  is_restricted: boolean;
+  name: string;
+  type: string;
+  volume_percent: number;
+};
+
+export interface SpotifyTrack {
+  album: null | {
+    album_type: null | string;
+    artists: Array<{
+      external_urls: undefined | Record<string, string>;
+      href: undefined | string;
+      id: undefined | string;
+      name: string;
+      type: string;
+      uri: undefined | string;
+    }>;
+    external_urls: undefined | Record<string, string>;
+    href: null | string;
+    id: null | string;
+    images: null | Array<{
+      height: number;
+      url: string;
+      width: number;
+    }>;
+    available_markets: string[];
+    name: string;
+    release_date: null | string;
+    release_date_precision: null | string;
+    total_tracks: null | string;
+    type: string;
+    uri: null | string;
+  };
+  artists: null | Array<{
+    external_urls: Record<string, string>;
+    href: null | string;
+    id: null | string;
     name: string;
     type: string;
+    uri: null | string;
+  }>;
+  available_markets: string[];
+  disc_number: number;
+  duration_ms: number;
+  explicit: boolean;
+  external_ids: Record<string, string>;
+  external_urls: Record<string, string>;
+  href: null | string;
+  id: null | string;
+  is_local: boolean;
+  is_playable: boolean;
+  name: string;
+  popularity: number;
+  preview_url: null | string;
+  track_number: number;
+  type: string;
+  uri: string;
+}
+
+export interface SpotifyState {
+  actions: {
+    disallows: Record<string, boolean>;
   };
-  track: {
-    album: {
-      id: string;
-      image: {
-        height: number;
-        width: number;
-        url: string;
-      };
-      name: string;
-    };
-    id: string;
-    duration: number;
-    artists: Array<{ name: string; id: string }>;
-    isLocal: boolean;
-    name: string;
+  context: undefined | {
+    external_urls: Record<string, string>;
+    href: string;
+    type: string;
+    uri: string;
   };
+  currently_playing_type: string;
+  device: SpotifyDevice;
+  is_playing: boolean;
+  item: undefined | SpotifyTrack;
+  progress_ms: undefined | number;
+  repeat_state: string;
+  shuffle_state: boolean;
+  timestamp: number;
 }
 
 /**
- * Player state data recieved from the raw Spotify API
- * @type  {Object}  SpotifyAPIPlayerStateData
- * @param {string}  repeat_state
- * @param {boolean} shuffle_state
+ * Message recieved from the Spotify WebSocket
+ * @type  {Object}  SpotifyWebSocketMessage
  */
-export interface SpotifyAPIPlayerStateData {
-  repeat_state: string;
-  shuffle_state: boolean;
+export interface SpotifyWebSocketMessage {
+  headers: undefined | {
+    "content-type": string;
+  };
+  payloads: undefined | Array<{
+    events: Array<{
+      event: {
+        event_id: number;
+        devices: undefined | Array<SpotifyDevice>;
+        state: undefined | SpotifyState;
+        href: string;
+        source: string;
+        type: string;
+        uri: string;
+        user: {
+          id: string;
+        };
+      };
+    }>;
+  }>;
+  type: string;
+  uri: string;
+}
+
+export interface SpotifyMinifiedWebSocketMessage {
+  type: string;
+  eventType: undefined | string;
+  user: undefined | string;
+  devices: undefined | Array<SpotifyDevice>;
+  state: undefined | SpotifyState;
+}
+
+export interface SpotifySocket {
+  __getLocalVars: () => {
+    accounts: Record<string, {
+      socket: undefined | Record<string, {
+        socket: WebSocket;
+      }>;
+    };
+  }>;
 }

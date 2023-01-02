@@ -1,4 +1,5 @@
 import { playPauseIcon, repeatIcon, shuffleIcon, skipNextIcon, skipPreviousIcon } from "./icons";
+import { SpotifyTrack } from "./types";
 
 export const _dockIconsElement: HTMLDivElement = document.createElement("div");
 export const _metadataElement: HTMLDivElement = document.createElement("div");
@@ -159,6 +160,7 @@ timebarInnerElement.classList.add("spotify-modal-timebar-inner");
 timebarInnerElement.setAttribute(
   "style",
   "background-color: var(--text-normal); " +
+    "width: 0%; " +
     "height: 4px; " +
     "max-width: 100%; " +
     "border-radius: 8px",
@@ -177,10 +179,7 @@ titleElement.target = "_blank";
  * @return {Array.<Text|HTMLAnchorElement>}                  An array of Text and HTMLAnchorElements
  */
 export function parseArtists(
-  track: {
-    artists: Array<{ name: string; id: string }>;
-    name: string;
-  },
+  track: SpotifyTrack,
   additionalLinkElementClasses: string | undefined,
   // onRightClick: Function | undefined,
   enableTooltip?: boolean,
