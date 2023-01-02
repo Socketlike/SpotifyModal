@@ -253,9 +253,7 @@ class ModalManager {
           ? "var(--brand-experiment-500)"
           : "var(--text-normal)";
         shuffleIconTitle.replaceChildren(
-          // res.shuffle_state will be a String
-          // eslint-disable-next-line @typescript-eslint/no-base-to-string
-          document.createTextNode(`Shuffle ${res.shuffle_state || "off"}`),
+          document.createTextNode(`Shuffle ${res.shuffle_state ? "on" : "off"}`),
         );
       })();
 
