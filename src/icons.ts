@@ -13,31 +13,6 @@ function createPath(d: string): SVGPathElement {
   return path;
 }
 
-/* Desktop icon */
-/* Removed to make space for the new control buttons
-export const desktopIcon = createSVG();
-export const desktopIconTitle: SVGTitleElement = document.createElementNS(
-  "http://www.w3.org/2000/svg",
-  "title",
-);
-desktopIcon.setAttributeNS(
-  "null",
-  "style",
-  desktopIcon.getAttribute("style") +
-    `; color: var(--brand-experiment-500); ` +
-    `position: relative; ` +
-    `top: -125px; ` +
-    `left: 210px`,
-);
-desktopIcon.style.color = "var(--brand-experiment-500)";
-desktopIcon.classList.add("desktopIcon");
-desktopIcon.appendChild(desktopIconTitle);
-desktopIcon.appendChild(
-  createPath(
-    "M4,6H20V16H4M20,18A2,2 0 0,0 22,16V6C22,4.89 21.1,4 20,4H4C2.89,4 2,4.89 2,6V16A2,2 0 0,0 4,18H0V20H24V18H20Z",
-  ),
-); */
-
 /* Play & pause icon */
 export const playPauseIcon = createSVG();
 export const playPath = createPath("M8,5.14V19.14L19,12.14L8,5.14Z");
@@ -70,30 +45,6 @@ repeatIcon.style.color = "var(--text-normal)";
 repeatIcon.classList.add("repeatIcon");
 repeatIcon.appendChild(repeatIconTitle);
 repeatIcon.appendChild(repeatAllPath);
-
-/* Smartphone icon */
-/* Removed to make space for the new control buttons
-export const smartphoneIcon = createSVG();
-export const smartphoneIconTitle: SVGTitleElement = document.createElementNS(
-  "http://www.w3.org/2000/svg",
-  "title",
-);
-smartphoneIcon.setAttributeNS(
-  null,
-  "style",
-  smartphoneIcon.getAttribute("style") +
-    `; color: var(--brand-experiment-500); ` +
-    `position: relative; ` +
-    `top: 6px; ` +
-    `left: 210px`,
-);
-smartphoneIcon.classList.add("smartphoneIcon");
-smartphoneIcon.appendChild(smartphoneIconTitle);
-smartphoneIcon.appendChild(
-  createPath(
-    "M17,19H7V5H17M17,1H7C5.89,1 5,1.89 5,3V21A2,2 0 0,0 7,23H17A2,2 0 0,0 19,21V3C19,1.89 18.1,1 17,1Z",
-  ),
-); */
 
 /* Shuffle icon */
 export const shuffleIcon = createSVG();

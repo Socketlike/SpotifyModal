@@ -1,18 +1,16 @@
 import { common, webpack, logger } from "replugged";
-import { getSpotifySocket, SpotifyWatcher } from "./utils";
+import { getSpotifySocket, getAllSpotifySockets, SpotifyWatcher, SpotifyModal } from "./utils";
 
 const watcher = new SpotifyWatcher();
 
 window.SpotifyModal = {
   getSpotifySocket,
+  getAllSpotifySockets,
   watcher,
 }
 
 export async function start() {
-  await watcher.registerFlux();
+  await watcher.load();
 }
 
-export function stop() {
-  watcher.removeFlux();
-  watcher.removeSocketEvent();
-}
+export const stop = watcher.unload;

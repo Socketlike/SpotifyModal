@@ -36,28 +36,6 @@ import {
 
 const timebarUpdateRate = 500;
 
-/**
- * Parse time in miliseconds to minutes:seconds format or hours:minutes:seconds format
- * @param {number} ms - Time in miliseconds
- * @returns {string} - Parsed time
- */
-function parseTime(ms: number): string {
-  if (typeof ms !== "number") return "";
-  const dateObject = new Date(ms);
-  const raw = {
-    month: dateObject.getUTCMonth(),
-    day: dateObject.getUTCDate(),
-    hours: dateObject.getUTCHours(),
-    minutes: dateObject.getUTCMinutes(),
-    seconds: dateObject.getUTCSeconds(),
-  };
-  const parsedHours = raw.hours + (raw.day - 1) * 24 + raw.month * 30 * 24;
-
-  return `${parsedHours > 0 ? `${parsedHours}:` : ""}${
-    raw.minutes < 10 && parsedHours > 0 ? `0${raw.minutes}` : raw.minutes
-  }:${raw.seconds < 10 ? `0${raw.seconds}` : raw.seconds}`;
-}
-
 class ModalManager {
   public timebarSetIntervalId: undefined | number;
   public timebarUpdateHandler: () => Promise<void>;
