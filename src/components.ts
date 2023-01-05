@@ -3,14 +3,14 @@ import { playPauseIcon, repeatIcon, shuffleIcon, skipNextIcon, skipPreviousIcon 
 export const _dockIconsElement: HTMLDivElement = document.createElement("div");
 export const _metadataElement: HTMLDivElement = document.createElement("div");
 export const _playbackTimeDisplayElement: HTMLDivElement = document.createElement("div");
-export const _timebarElement: HTMLDivElement = document.createElement("div");
+export const _progressBarElement: HTMLDivElement = document.createElement("div");
 export const artistsElement: HTMLDivElement = document.createElement("div");
 export const coverArtElement: HTMLImageElement = document.createElement("img");
 export const dockElement: HTMLDivElement = document.createElement("div");
 export const modalElement: HTMLDivElement = document.createElement("div");
 export const playbackTimeCurrentElement: HTMLSpanElement = document.createElement("span");
 export const playbackTimeDurationElement: HTMLSpanElement = document.createElement("span");
-export const timebarInnerElement: HTMLDivElement = document.createElement("div");
+export const progressBarInnerElement: HTMLDivElement = document.createElement("div");
 export const titleElement: HTMLAnchorElement = document.createElement("a");
 
 /* Dock icons container */
@@ -54,9 +54,9 @@ _playbackTimeDisplayElement.setAttribute(
 _playbackTimeDisplayElement.appendChild(playbackTimeCurrentElement);
 _playbackTimeDisplayElement.appendChild(playbackTimeDurationElement);
 
-/* Playback time bar */
-_timebarElement.classList.add("spotify-modal-timebar");
-_timebarElement.setAttribute(
+/* Progress bar bar */
+_progressBarElement.classList.add("spotify-modal-progressbar");
+_progressBarElement.setAttribute(
   "style",
   "height: 4px; " +
     "border-radius: 8px; " +
@@ -67,12 +67,9 @@ _timebarElement.setAttribute(
     "top: -5px; " +
     "margin: 0px",
 );
-_timebarElement.appendChild(timebarInnerElement);
+_progressBarElement.appendChild(progressBarInnerElement);
 
-/* 
-   Artist list
-   Todo: Add scrolling animation
- */
+/* Artist list */
 artistsElement.classList.add("spotify-modal-song-artists");
 artistsElement.setAttribute("style", "color: var(--header-secondary); font-size: 13px");
 
@@ -87,7 +84,7 @@ coverArtElement.setAttribute(
 dockElement.classList.add("spotify-modal-dock");
 dockElement.setAttribute("style", "display: flex; flex-direction: column; padding-bottom: 4px");
 dockElement.appendChild(_playbackTimeDisplayElement);
-dockElement.appendChild(_timebarElement);
+dockElement.appendChild(_progressBarElement);
 dockElement.appendChild(_dockIconsElement);
 export let dockAnimations: {
   animations: {
@@ -154,9 +151,9 @@ playbackTimeCurrentElement.classList.add("spotify-modal-playback-time-current");
 playbackTimeDurationElement.classList.add("spotify-modal-playback-time-duration");
 playbackTimeDurationElement.setAttribute("style", "margin-left: auto; margin-right: 16px");
 
-/* Playback time inner bar */
-timebarInnerElement.classList.add("spotify-modal-timebar-inner");
-timebarInnerElement.setAttribute(
+/* Progress bar inner bar */
+progressBarInnerElement.classList.add("spotify-modal-progressbar-inner");
+progressBarInnerElement.setAttribute(
   "style",
   "background-color: var(--text-normal); " +
     "height: 4px; " +
@@ -168,54 +165,3 @@ timebarInnerElement.setAttribute(
 titleElement.classList.add("spotify-modal-song-title");
 titleElement.style.fontSize = "14px";
 titleElement.target = "_blank";
-
-/**
- * Parse artists list from a track to an array of Text and HTMLAnchorElements.
- * @param  {object}             track                        Track object
- * @param  {(string|undefined)} additionalLinkElementClasses Additional HTML classes for HTMLAnchorElements created
- * @param  {boolean}            [enableTooltip]              Enable tooltips (aka: title) on elements
- * @return {Array.<Text|HTMLAnchorElement>}                  An array of Text and HTMLAnchorElements
- */
-export function parseArtists(
-  track: {
-    artists: Array<{ name: string; id: string }>;
-    name: string;
-  },
-  additionalLinkElementClasses: string | undefined,
-  // onRightClick: Function | undefined,
-  enableTooltip?: boolean,
-): Array<Text | HTMLAnchorElement> {
-  const res: Array<Text | HTMLAnchorElement> = [];
-  if (track.artists.length) {
-    track.artists.forEach(({ name, id }: { name: string; id: string }, index: number) => {
-      const element =
-        typeof id === "string" ? document.createElement("a") : document.createTextNode("");
-      if (typeof id === "string") {
-        // @ts-expect-error - In this case .target does exist on element
-        element.target = "_blank";
-        // @ts-expect-error - In this case .href does exist on element
-        element.href = `https://open.spotify.com/artist/${id}`;
-        // @ts-expect-error - In this case .style does exist on element
-        element.style.color = "var(--header-secondary)";
-        // @ts-expect-error - In this case .classList does exist on element
-        element.classList.add(
-          ...(typeof additionalLinkElementClasses === "string"
-            ? additionalLinkElementClasses.split(" ")
-            : []),
-        );
-        // @ts-expect-error - In this case .title does exist on element
-        if (enableTooltip) element.title = name;
-        // if (typeof onRightClick === "function") element.oncontextmenu = onRightClick;
-        element.appendChild(document.createTextNode(name));
-      } else {
-        element.nodeValue = name;
-      }
-      if (track.artists.length - 1 !== index) {
-        res.push(element);
-        res.push(document.createTextNode(", "));
-      } else res.push(element);
-    });
-  }
-  if (!res.length) res.push(document.createTextNode("Unknown"));
-  return res;
-}
