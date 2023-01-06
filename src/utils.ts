@@ -93,14 +93,32 @@ async function sendSpotifyAPI (endpoint: string, accountId?: string, method: str
 
 export const SpotifyControls = {
   sendSpotifyAPI,
+  async getPlayerState(accountId?: string): Promise<void | Response> {
+    const res = await sendSpotifyAPI("me/player", accountId, "GET");
+    return res.json();
+  },
   async setPlaybackState(state: boolean, accountId?: string): Promise<void | Response> {
     return sendSpotifyAPI(`me/player/${state ? "play" : "pause"}`, accountId);
   },
   async setRepeatMode(mode: string, accountId?: string): Promise<void | Response> {
     const modes = ["off", "context", "track"];
-    if (modes.includes(mode))
+    if (!modes.includes(mode))
       return;
     return sendSpotifyAPI(`me/player/repeat`, accountId, undefined, { state: mode });
+  },
+  async setShuffleState(state: boolean, accountId?: string): Promise<void | Response> {
+    return sendSpotifyAPI("me/player/shuffle", accountId, undefined, { state: `${state ? "true" : "false"}` });
+  },
+  async seekToPosition(position: number, accountId?: string): Promise<void | Response> {
+    if (typeof position_ms !== "number") return;
+    return sendSpotifyAPI("me/player/seek", accountId, undefined, { position_ms: position.toString() });
+  },
+  async setPlaybackVolume(percent: number, accountId?: string): Promise<void | Response> {
+    if (typeof percent !== "number") return;
+    return sendSpotifyAPI("me/player/volume", accountId, undefined, { volume_percent: percent.toString() });
+  },
+  async skipTrack(forward: boolean = true, accountId?: string): Promise<void | Response> {
+    return sendSpotifyAPI(`me/player/${forward ? "next" : "previous"}`, accountId, "POST");
   },
 }
 
@@ -212,6 +230,9 @@ export class SpotifyWatcher extends EventEmitter {
         this.addPongEvent();
         this.dispatcher.unsubscribe("GAMES_DATABASE_UPDATE", this.handlers.REGISTER_PONG_EVENT);
       },
+      PONG_UPDATE: (accountId: string): void => {
+        this.handlers.SPOTIFY_UPDATE({ accountId });
+      },
       SPOTIFY_UPDATE: (data: { accountId: string }): void => {
         const functionName = "SPOTIFY_UPDATE";
 
@@ -262,6 +283,11 @@ export class SpotifyWatcher extends EventEmitter {
     if (id in this.#sockets) {
       this.#accountId = id;
       this.handlers.SPOTIFY_UPDATE({ accountId: id });
+    } else {
+      if (!id) {
+        this.#accountId = "";
+        this.removeSocketEvent();
+      }
     }
   }
 
@@ -273,23 +299,23 @@ export class SpotifyWatcher extends EventEmitter {
   }
 
   async #afterSpotifyUpdate(): Promise<void> {
-    if (this.socket.ws && this.socket.accountId !== this.#accountId)
-      this.socket.ws.removeEventListener("message", this.handlers.SPOTIFY_WEBSOCKET_MESSAGE);
-    else if (this.socket.ws && this.socket.accountId === this.#accountId)
+    if (this.#socket.ws && this.#socket.accountId !== this.#accountId)
+      this.#socket.ws.removeEventListener("message", this.handlers.SPOTIFY_WEBSOCKET_MESSAGE);
+    else if (this.#socket.ws && this.#socket.accountId === this.#accountId)
       return;
 
-    this.socket.accountId = this.#accountId;
-    this.socket.ws = await getSpotifySocket(this.#accountId);
-    if (this?.socket?.ws) {
-      this.socket.ws.addEventListener("message", this.handlers.SPOTIFY_WEBSOCKET_MESSAGE);
-      this.emit("websocket", this.socket.ws);
+    this.#socket.accountId = this.#accountId;
+    this.#socket.ws = await getSpotifySocket(this.#accountId);
+    if (this.#socket.ws) {
+      this.#socket.ws.addEventListener("message", this.handlers.SPOTIFY_WEBSOCKET_MESSAGE);
+      this.emit("websocket", this.#socket.ws);
     } else this.emit("error", "websocket");
   }
 
   removeSocketEvent(): void {
-    if (!this.socket.ws)
+    if (!this.#socket.ws)
       return;
-    this.socket.ws.removeEventListener("message", this.handlers.SPOTIFY_WEBSOCKET_MESSAGE);
+    this.#socket.ws.removeEventListener("message", this.handlers.SPOTIFY_WEBSOCKET_MESSAGE);
   }
 
   async addPongEvent(): void {
@@ -371,9 +397,8 @@ export class SpotifyWatcher extends EventEmitter {
   async load(): Promise<void> {
     await this.registerFlux();
     await this.addPongEvent();
-    this.on("pong", (accountId: string): void => {
-      this.handlers.SPOTIFY_UPDATE({ accountId });
-    });
+    if (!this._events?.pong || !(this._events.pong === this.handlers.PONG_UPDATE || this._events.pong.has(this.handlers.PONG_UPDATE)))
+      this.on("pong", this.handlers.PONG_UPDATE);
   }
 
   unload(): void {
@@ -420,6 +445,7 @@ export class SpotifyModal {
   };
   #componentsReady: boolean;
   #injected: boolean;
+  #fluxDispatcherFallback: boolean;
   #panel: undefined | Element;
   #modalAnimations: {
     titleElement: undefined | Animation;
@@ -434,7 +460,6 @@ export class SpotifyModal {
       name: string;
     },
     additionalLinkElementClasses: string | undefined,
-    // onRightClick: Function | undefined,
     enableTooltip?: boolean,
   ): Array<Text | HTMLAnchorElement> {
     const res: Array<Text | HTMLAnchorElement> = [];
@@ -457,7 +482,6 @@ export class SpotifyModal {
           );
           // @ts-expect-error - In this case .title does exist on element
           if (enableTooltip) element.title = name;
-          // if (typeof onRightClick === "function") element.oncontextmenu = onRightClick;
           element.appendChild(document.createTextNode(name));
         } else {
           element.nodeValue = name;
@@ -525,40 +549,44 @@ export class SpotifyModal {
     };
     this.handlers = {
       MODAL_UPDATE: async (): Promise<void> => {
-        this.icons.playPauseIcon.replaceChildren(this.#status.playing ? this.icons.playPath : this.icons.pausePath);
-        this.icons.repeatIcon.replaceChildren(this.#status.repeat === "off" || this.#status.repeat === "context" ? this.icons.repeatAllPath : this.icons.repeatOnePath);
-        this.icons.repeatIcon.style.color = this.#status.repeat === "off" ? "var(--text-normal)" : "var(--brand-experiment-500)";
-        this.icons.shuffleIcon.style.color = this.#status.shuffle ? "var(--brand-experiment-500)" : "var(--text-normal)";
-
-        if (!this.#status.playing || !this.#status.active) {
-          if (!this.#status.active) {
-            clearInterval(this.#modalUpdateSetIntervalID);
-            this.#modalUpdateSetIntervalID = undefined;
-            this.components.progressBarInnerElement.style.width = "0%";
-            this.components.playbackTimeCurrentElement.innerText = "0:00";
-            this.components.playbackTimeDurationElement.innerText = "0:00";
-            if (this.components.modalElement.style.display !== "none") this.components.modalAnimations.fadeout();
-            if (this.components.dockElement.style.display !== "none") this.components.dockAnimations.fadeout();
-            if (this.#modalAnimations.titleElement) {
-              this.#modalAnimations.titleElement.cancel();
-              this.#modalAnimations.titleElement = undefined;
-            }
-            if (this.#modalAnimations.artistsElement) {
-              this.#modalAnimations.artistsElement.cancel();
-              this.#modalAnimations.artistsElement = undefined;
-            }
+        if (!this.#status.active) {
+          clearInterval(this.#modalUpdateSetIntervalID);
+          this.#modalUpdateSetIntervalID = undefined;
+          this.components.progressBarInnerElement.style.width = "0%";
+          this.components.playbackTimeCurrentElement.innerText = "0:00";
+          this.components.playbackTimeDurationElement.innerText = "0:00";
+          if (this.components.modalElement.style.display !== "none") this.components.modalAnimations.fadeout();
+          if (this.components.dockElement.style.display !== "none") this.components.dockAnimations.fadeout();
+          if (this.#modalAnimations.titleElement) {
+            this.#modalAnimations.titleElement.cancel();
+            this.#modalAnimations.titleElement = undefined;
           }
+          if (this.#modalAnimations.artistsElement) {
+            this.#modalAnimations.artistsElement.cancel();
+            this.#modalAnimations.artistsElement = undefined;
+          }
+          this.watcher.accountId = "";
         } else {
           if (this.components.modalElement.style.display === "none") this.components.modalAnimations.fadein();
           if (this.components.dockElement.style.display === "none") this.components.dockAnimations.fadein();
-          this.#status.progress.passed += this.#modalUpdateRate;
-          this.components.playbackTimeCurrentElement.innerText = SpotifyModal.parseTime(this.#status.progress.passed);
-          if (this.components.playbackTimeDurationElement.innerText !== SpotifyModal.parseTime(this.#status.progress.duration))
-            this.components.playbackTimeDurationElement.innerText = SpotifyModal.parseTime(this.#status.progress.duration);
-          this.components.progressBarInnerElement.style.width = `${((this.#status.progress.passed / this.#status.progress.duration) * 100).toFixed(4)}%`;
+          if (this.#status.playing) {
+            this.#status.progress.passed += this.#modalUpdateRate;
+            this.components.playbackTimeCurrentElement.innerText = SpotifyModal.parseTime(this.#status.progress.passed);
+            if (this.components.playbackTimeDurationElement.innerText !== SpotifyModal.parseTime(this.#status.progress.duration));
+              this.components.playbackTimeDurationElement.innerText = SpotifyModal.parseTime(this.#status.progress.duration);
+            this.components.progressBarInnerElement.style.width = `${((this.#status.progress.passed / this.#status.progress.duration) * 100).toFixed(4)}%`;
+          }
         }
       },
+      FLUX_DISPATCHER_PLAYER_STATE_FALLBACK: async (): Promise<void> => {
+        if (!this.#fluxDispatcherFallback) return;
+        const playerData = await SpotifyControls.getPlayerState(this.watcher.accountId);
+        this.handlers.PLAYER_STATE_CHANGED(playerData, true);
+        this.#fluxDispatcherFallback = false;
+        this.watcher.dispatcher.unsubscribe("SPOTIFY_PLAYER_STATE", this.handlers.FLUX_DISPATCHER_PLAYER_STATE_FALLBACK);
+      },
       PLAYER_STATE_CHANGED: async (data: unknown): Promise<void> => {
+        this.#status.active = data?.device ? data.device.is_active : false;
         this.#status.state = data;
         this.#status.playing = data.is_playing;
         this.#status.progress.passed = typeof data?.progress_ms === "number" ? data.progress_ms : 0;
@@ -574,10 +602,11 @@ export class SpotifyModal {
           this.active = false;
         else
           this.active = true;
-        this.#updateModal()
+        this.#updateModal();
       },
     }
     this.watcher = new SpotifyWatcher;
+    this.#fluxDispatcherFallback = true;
     this.#componentsReady = false;
     this.#injected = false;
     this.#panel = undefined;
@@ -633,9 +662,9 @@ export class SpotifyModal {
   }
 
   async getPanel(): Promise<void> {
-    if (!this.classes?.panels)
+    if (!this.#classes?.panels)
       await this.getClasses();
-    this.#panel = document.body.getElementsByClassName(this.classes.panels)[0];
+    this.#panel = document.body.getElementsByClassName(this.#classes.panels)[0];
     if (!this.#panel) {
       log.error(`${this.constructor.name}@getPanel`,"Panel not found");
       return;
@@ -659,11 +688,42 @@ export class SpotifyModal {
         this.#classes["text-sm/semibold"],
         ...this.#classes.nameNormal.split(" ").filter((classes) => !classes.match(/^ellipsis/)),
       );
-    this.components.coverArtElement.onclick = () => {
+
+    this.components.coverArtElement.onclick = (): void => {
       if (!this.#status.album) return;
       window.open(this.#status.album, "_blank");
     };
 
+    // Buttons
+    this.icons.playPauseIcon.onclick = (): void => {
+      SpotifyControls.setPlaybackState(!this.#status.playing, this.watcher.accountId);
+    };
+    this.icons.repeatIcon.onclick = (): void => {
+      const nextModes = { off: "context", context: "track", track: "off" };
+      SpotifyControls.setRepeatMode(nextModes[this.#status.repeat], this.watcher.accountId);
+    };
+    this.icons.shuffleIcon.onclick = (): void => {
+      SpotifyControls.setShuffleState(!this.#status.shuffle, this.watcher.accountId);
+    };
+    this.icons.skipPreviousIcon.onclick = (): void => {
+      SpotifyControls.skipTrack(false, this.watcher.accountId, "POST");
+    };
+    this.icons.skipNextIcon.onclick = (): void => {
+      SpotifyControls.skipTrack(true, this.watcher.accountId, "POST");
+    };
+    this.icons.repeatIcon.onmouseenter = (): void => {
+      this.icons.repeatIcon.style.color = "var(--brand-experiment-400)";
+    };
+    this.icons.repeatIcon.onmouseleave = (): void => {
+      this.icons.repeatIcon.style.color = this.#status.repeat === "off" ? "var(--text-normal)" : "var(--brand-experiment-500)";
+    };
+    this.icons.shuffleIcon.onmouseenter = (): void => {
+      this.icons.shuffleIcon.style.color = "var(--brand-experiment-400)";
+    };
+    this.icons.shuffleIcon.onmouseleave = (): void => {
+      this.icons.shuffleIcon.style.color = this.#status.shuffle ? "var(--brand-experiment-500)" : "var(--text-normal)";
+    };
+    
     this.#componentsReady = true;
   }
 
@@ -680,6 +740,8 @@ export class SpotifyModal {
     }
     if (!this.#componentsReady)
       await this.initializeComponents();
+    this.components.modalElement.style.display = "none";
+    this.components.dockElement.style.display = "none";
     this.#panel.insertAdjacentElement("afterBegin", this.components.modalElement);
     this.components.modalElement.insertAdjacentElement("afterEnd", this.components.dockElement);
     this.#injected = true;
@@ -691,21 +753,32 @@ export class SpotifyModal {
       log.warn(`${this.constructor.name}@uninjectModal`, "Already uninjected");
       return;
     }
+
+    if (this.#modalUpdateSetIntervalID) {
+      clearInterval(this.#modalUpdateSetIntervalID);
+      this.#modalUpdateSetIntervalID = undefined;
+    }
+
     this.#panel.removeChild(this.components.modalElement);
     this.#panel.removeChild(this.components.dockElement);
     this.#injected = false;
     log.log(`${this.constructor.name}@uninjectModal`, "Succeeded");
   }
 
-  async #updateModal(data?: unknown): Promise<void> {
+  async #updateModal(data?: unknown, fallback: boolean = false): Promise<void> {
     if (!Object.keys(this.#classes).length)
       await this.getClasses();
     if (!this.#injected)
       await this.injectModal();
 
+    this.icons.playPauseIcon.replaceChildren(this.#status.playing ? this.icons.pausePath : this.icons.playPath);
+    this.icons.shuffleIcon.style.color = this.#status.shuffle ? "var(--brand-experiment-500)" : "var(--text-normal)";
+    this.icons.repeatIcon.style.color = this.#status.repeat === "off" ? "var(--text-normal)" : "var(--brand-experiment-500)";
+    this.icons.repeatIcon.replaceChildren(this.#status.repeat === "track" ? this.icons.repeatOnePath : this.icons.repeatAllPath);
+
     if (data) {
-      if (!this.#modalUpdateRate)
-        this.#modalUpdateRate = setInterval(this.handlers.MODAL_UPDATE, this.#modalUpdateRate);
+      if (!this.#modalUpdateSetIntervalID)
+        this.#modalUpdateSetIntervalID = setInterval(this.handlers.MODAL_UPDATE, this.#modalUpdateRate);
 
       if (data?.item?.is_local) {
         this.components.titleElement.href = "";
@@ -723,9 +796,14 @@ export class SpotifyModal {
         this.components.coverArtElement.style.cursor = "pointer";
       }
 
+      this.components.playbackTimeCurrentElement.innerText = SpotifyModal.parseTime(this.#status.progress.passed);
+      if (this.components.playbackTimeDurationElement.innerText !== SpotifyModal.parseTime(this.#status.progress.duration));
+        this.components.playbackTimeDurationElement.innerText = SpotifyModal.parseTime(this.#status.progress.duration);
+      this.components.progressBarInnerElement.style.width = `${((this.#status.progress.passed / this.#status.progress.duration) * 100).toFixed(4)}%`;
+
       this.components.titleElement.innerText = typeof data?.item?.name === "string" ? data.item.name : "Unknown";
       this.components.titleElement.title = typeof data?.item?.name === "string" ? data.item.name : "Unknown";
-      if (this.components.titleElement.scrollWidth > this.components.titleElement.offsetWidth + 20) {
+      if (this.components.titleElement.scrollWidth > this.components.titleElement.offsetWidth + 10) {
         if (this.components.titleElement.className.includes(this.#classes.ellipsis))
           this.components.titleElement.classList.remove(this.#classes.ellipsis);
         this.#modalAnimations.titleElement = SpotifyModal.getTextScrollingAnimation(this.components.titleElement);
@@ -745,7 +823,7 @@ export class SpotifyModal {
           `${this.#classes.bodyLink} ` +
           `${this.#classes.ellipsis}`,
       ));
-      if (this.components.artistsElement.scrollWidth > this.components.artistsElement.offsetWidth + 20) {
+      if (this.components.artistsElement.scrollWidth > this.components.artistsElement.offsetWidth + 10) {
         if (this.components.artistsElement.className.includes(this.#classes.ellipsis))
           this.components.artistsElement.classList.remove(this.#classes.ellipsis);
         this.#modalAnimations.artistsElement = SpotifyModal.getTextScrollingAnimation(this.components.artistsElement);
@@ -762,7 +840,14 @@ export class SpotifyModal {
 
   async load() {
     await this.watcher.load();
+    this.watcher.dispatcher.subscribe("SPOTIFY_PLAYER_STATE", this.handlers.FLUX_DISPATCHER_PLAYER_STATE_FALLBACK);
     await this.getClasses();
     await this.injectModal();
+  }
+
+  unload() {
+    this.watcher.unload();
+    this.watcher.dispatcher.unsubscribe("SPOTIFY_PLAYER_STATE", this.handlers.FLUX_DISPATCHER_PLAYER_STATE_FALLBACK);
+    this.uninjectModal();
   }
 }

@@ -1,16 +1,21 @@
 import { common, webpack, logger } from "replugged";
-import { getSpotifySocket, getAllSpotifySockets, SpotifyWatcher, SpotifyModal } from "./utils";
+import { getSpotifySocket, getAllSpotifySockets, SpotifyWatcher, SpotifyControls, SpotifyModal } from "./utils";
 
-const watcher = new SpotifyWatcher();
+const modal = new SpotifyModal();
 
 window.SpotifyModal = {
   getSpotifySocket,
   getAllSpotifySockets,
-  watcher,
+  SpotifyWatcher,
+  SpotifyControls,
+  SpotifyModal,
+  modal,
 }
 
 export async function start() {
-  await watcher.load();
+  await modal.load();
 }
 
-export const stop = watcher.unload;
+export async function stop() {
+  modal.unload();
+}
