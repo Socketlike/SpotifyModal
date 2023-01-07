@@ -348,6 +348,7 @@ export class SpotifyWatcher extends EventEmitter {
       if (!id) {
         this.#accountId = "";
         this.removeSocketEvent();
+	this.#socket.ws = undefined;
       }
     }
   }
@@ -375,7 +376,6 @@ export class SpotifyWatcher extends EventEmitter {
   removeSocketEvent(): void {
     if (!this.#socket.ws) return;
     this.#socket.ws.removeEventListener("message", this.handlers.SPOTIFY_WEBSOCKET_MESSAGE);
-    this.#socket.ws = undefined;
   }
 
   async addPongEvent(): Promise<void> {
