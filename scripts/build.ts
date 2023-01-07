@@ -15,6 +15,7 @@ const globalModules = {
     varName: "replugged",
     namedExports: [
       "Injector",
+      "Logger",
       "webpack",
       "common",
       "notices",
@@ -76,7 +77,7 @@ const common: esbuild.BuildOptions = {
   plugins: [install],
 };
 
-const targets = [];
+const targets: Array<Promise<esbuild.BuildResult>> = [];
 
 if ("renderer" in manifest) {
   targets.push(
