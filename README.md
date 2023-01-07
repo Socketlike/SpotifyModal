@@ -42,6 +42,11 @@ UI elements are also exposed to CSS via these classes:
         - Repeat all SVG path: `spotify-modal-repeat-all-path`
         - Repeat one SVG path: `spotify-modal-repeat-one-path`
 
+# Miscellaneous
+  - Right clicking on the cover art copies the currently playing album URL, if there's any
+  - Right clicking on the song title copies the currently playing song's URL
+  - Right clicking on an artist's name copies the artist's user URL
+
 # Roadmap
   - [X] Add basic functionality
   - [X] Song progress bar
