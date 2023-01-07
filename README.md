@@ -1,5 +1,5 @@
 # SpotifyModal
-A bad WIP reimplementation of the spotify-modal Powercord coremod for the post-SWC era of Replugged, I think
+A Post-SWC Replugged plugin that shows a little modal on your user dock that lets you see & control what you're playing on Spotify.  
   
 # Install
   - [Download plugin ASAR file from releases](https://github.com/Socketlike/SpotifyModal/releases)  
@@ -24,14 +24,23 @@ UI elements are also exposed to CSS via these classes:
     - Time display container: `spotify-modal-playback-time`
       - Current time display: `spotify-modal-playback-time-current`
       - Duration time display: `spotify-modal-playback-time-duration`
-    - Timebar: `spotify-modal-timebar`
-      - Inner timebar: `spotify-modal-timebar-inner`
+    - Progress bar: `spotify-modal-progressbar`
+      - Inner progress bar: `spotify-modal-progressbar-inner`
     - Dock icons container: `spotify-modal-dock-icons`
-      - Shuffle icon: `shuffleIcon`
-      - Skip previous icon: `skipPreviousIcon`
-      - Play/pause icon: `playPauseIcon`
-      - Skip next icon: `skipNextIcon`
-      - Repeat icon: `repeatIcon`
+      - Shuffle icon: `spotify-modal-shuffle-icon`
+        - Shuffle icon SVG title: `spotify-modal-shuffle-icon-title`
+        - Shuffle icon SVG path: `spotify-modal-shuffle-icon-path`
+      - Skip previous icon: `spotify-modal-skip-previous-icon`
+        - Skip previous SVG path: `spotify-modal-skip-previous-icon-path`
+      - Play/pause icon: `spotify-modal-play-pause-icon`
+        - Play SVG path: `spotify-modal-play-icon-path`
+        - Pause SVG path: `spotify-modal-pause-icon-path`
+      - Skip next icon: `spotify-modal-skip-next-icon`
+        - Skip next SVG path: `spotify-modal-skip-next-icon-path`
+      - Repeat icon: `spotify-modal-repeat-icon`
+        - Repeat icon SVG title: `spotify-modal-repeat-icon-title`
+        - Repeat all SVG path: `spotify-modal-repeat-all-path`
+        - Repeat one SVG path: `spotify-modal-repeat-one-path`
 
 # Roadmap
   - [X] Add basic functionality
@@ -44,3 +53,4 @@ UI elements are also exposed to CSS via these classes:
     - [ ] Track seeking
     - [ ] Volume control
   - [X] Styling improvements
+
