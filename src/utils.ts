@@ -995,7 +995,7 @@ export class SpotifyModal {
         typeof data?.item?.name === "string" ? data.item.name : "Unknown";
       this.components.titleElement.title =
         typeof data?.item?.name === "string" ? data.item.name : "Unknown";
-      if (this.components.titleElement.scrollWidth > this.components.titleElement.offsetWidth + 6) {
+      if (this.components.titleElement.scrollWidth > this.components.titleElement.offsetWidth + 10) {
         if (this.components.titleElement.className.includes(this.#classes.ellipsis))
           this.components.titleElement.classList.remove(this.#classes.ellipsis);
         this.#modalAnimations.titleElement = SpotifyModal.getTextScrollingAnimation(
@@ -1027,7 +1027,7 @@ export class SpotifyModal {
       );
       if (
         this.components.artistsElement.scrollWidth >
-        this.components.artistsElement.offsetWidth + 6
+        this.components.artistsElement.offsetWidth + 10
       ) {
         if (this.components.artistsElement.className.includes(this.#classes.ellipsis))
           this.components.artistsElement.classList.remove(this.#classes.ellipsis);
