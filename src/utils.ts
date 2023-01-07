@@ -375,6 +375,7 @@ export class SpotifyWatcher extends EventEmitter {
   removeSocketEvent(): void {
     if (!this.#socket.ws) return;
     this.#socket.ws.removeEventListener("message", this.handlers.SPOTIFY_WEBSOCKET_MESSAGE);
+    this.#socket.ws = undefined;
   }
 
   async addPongEvent(): Promise<void> {
@@ -692,10 +693,6 @@ export class SpotifyModal {
           }
           this.watcher.accountId = "";
         } else {
-          if (this.components.modalElement.style.display === "none")
-            this.components.modalAnimations.fadein();
-          if (this.components.dockElement.style.display === "none")
-            this.components.dockAnimations.fadein();
           if (this.#status.playing) {
             this.#status.progress.passed += this.#modalUpdateRate;
             this.components.playbackTimeCurrentElement.innerText = SpotifyModal.parseTime(
@@ -761,7 +758,7 @@ export class SpotifyModal {
     };
     this.#modalUpdateSetIntervalID = undefined;
     this.#modalUpdateRate = typeof modalUpdateRate === "number" ? modalUpdateRate : 500;
-    this.watcher.on("message", (type: string, message: unknown) => {
+    this.watcher.on("message", (type: string, message: SpotifyWebSocketState | SpotifyWebSocketDevices) => {
       if (["PLAYER_STATE_CHANGED", "DEVICE_STATE_CHANGED"].includes(type))
         this.handlers[type](message);
       else
@@ -957,6 +954,11 @@ export class SpotifyModal {
           this.handlers.MODAL_UPDATE,
           this.#modalUpdateRate,
         ) as unknown as number;
+
+        if (this.components.modalElement.style.display === "none")
+          this.components.modalAnimations.fadein();
+        if (this.components.dockElement.style.display === "none")
+          this.components.dockAnimations.fadein();
 
       if (data?.item?.is_local) {
         this.components.titleElement.href = "";
