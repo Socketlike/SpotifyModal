@@ -13,7 +13,7 @@ A Post-SWC Replugged plugin that shows a little modal on your user dock that let
   ![Preview](Preview.gif)
   
 # Customization & debugging
-UI elements and the modal manager are both exposed via window.SpotifyModal.  
+UI elements, utility functions and custom classes are exposed via `replugged.plugins.getExports('lib.evelyn.SpotifyModal')`.  
 UI elements are also exposed to CSS via these classes:  
   - Main modal:  `spotify-modal`
     - Cover art: `spotify-modal-cover-art`
