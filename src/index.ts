@@ -1,40 +1,23 @@
 import {
   ElementBuilders,
-  SpotifyControls,
   SpotifyModal,
   SpotifyWatcher,
   getAllSpotifySockets,
   getSpotifySocket,
+  spotifyControls,
 } from "./utils";
 
-export const modal = new SpotifyModal();
+export const modal = new SpotifyModal(500, true);
 export const classes = {
   SpotifyModal,
   SpotifyWatcher,
 };
 export const functions = {
   ElementBuilders,
-  SpotifyControls,
+  spotifyControls,
   getAllSpotifySockets,
   getSpotifySocket,
 };
-
-/* For debugging purposes only
-window.SpotifyModal = {
-  components,
-  classes: {
-    SpotifyWatcher,
-    SpotifyControls,
-    SpotifyModal,
-  },
-  icons,
-  modal,
-  sockets: {
-    getSpotifySocket,
-    getAllSpotifySockets,
-  },
-};
-*/
 
 export async function start(): Promise<void> {
   await modal.load();
