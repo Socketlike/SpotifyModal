@@ -29,11 +29,13 @@ declare const DiscordNative: {
 };
 
 const logger = Logger.plugin("SpotifyModal");
+let store: void | SpotifySocketModule;
 
 export async function getSpotifyAccount(accountId?: string): Promise<void | SpotifySocket> {
-  const store = (await webpack.waitForModule(
-    webpack.filters.byProps("getActiveSocketAndDevice"),
-  )) as unknown as SpotifySocketModule;
+  if (!store)
+    store = (await webpack.waitForModule(
+      webpack.filters.byProps("getActiveSocketAndDevice"),
+    )) as unknown as SpotifySocketModule;
 
   if (!store) {
     logger.error("[Utils @ getSpotifyAccount]: Cannot find SpotifyStore");
@@ -57,9 +59,10 @@ export async function getSpotifyAccount(accountId?: string): Promise<void | Spot
 }
 
 export async function getSpotifySocket(accountId?: string): Promise<void | WebSocket> {
-  const store = (await webpack.waitForModule(
-    webpack.filters.byProps("getActiveSocketAndDevice"),
-  )) as unknown as SpotifySocketModule;
+  if (!store)
+    store = (await webpack.waitForModule(
+      webpack.filters.byProps("getActiveSocketAndDevice"),
+    )) as unknown as SpotifySocketModule;
 
   if (!store) {
     logger.error("[Utils @ getSpotifySocket]: Cannot find SpotifyStore");
@@ -85,9 +88,10 @@ export async function getSpotifySocket(accountId?: string): Promise<void | WebSo
 }
 
 export async function getAllSpotifySockets(): Promise<void | Record<string, WebSocket>> {
-  const store = (await webpack.waitForModule(
-    webpack.filters.byProps("getActiveSocketAndDevice"),
-  )) as unknown as SpotifySocketModule;
+  if (!store)
+    store = (await webpack.waitForModule(
+      webpack.filters.byProps("getActiveSocketAndDevice"),
+    )) as unknown as SpotifySocketModule;
 
   if (!store) {
     logger.error("[Utils @ getAllSpotifySockets]: Cannot find SpotifyStore");
