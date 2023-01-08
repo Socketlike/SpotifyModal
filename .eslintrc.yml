@@ -33,7 +33,7 @@ rules:
   no-process-exit: off
   no-undef: off
   no-unused-vars: off
-  "@typescript-eslint/prefer-optional-chain": off
+  prefer-destructuring: off
   "@typescript-eslint/no-unused-vars": error
 
 overrides:

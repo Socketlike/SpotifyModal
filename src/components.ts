@@ -151,56 +151,56 @@ export const ElementBuilders = {
 };
 
 /* Play & pause icon */
-const playPath: SVGPathElement = ElementBuilders.createPathElement(
+const play: SVGPathElement = ElementBuilders.createPathElement(
   "spotify-modal-play-icon-path",
   "M8,5.14V19.14L19,12.14L8,5.14Z",
 );
-const pausePath: SVGPathElement = ElementBuilders.createPathElement(
+const pause: SVGPathElement = ElementBuilders.createPathElement(
   "spotify-modal-pause-icon-path",
   "M14,19H18V5H14M6,19H10V5H6V19Z",
 );
-const playPauseIcon: SVGSVGElement = ElementBuilders.createSVGElement(
+const playPause: SVGSVGElement = ElementBuilders.createSVGElement(
   "spotify-modal-play-pause-icon",
   "color: var(--text-normal); margin: 0px 10px",
   undefined,
-  [playPath],
+  [play],
 );
-playPauseIcon.onmouseenter = () => {
-  playPauseIcon.style.color = "var(--brand-experiment-500)";
+playPause.onmouseenter = () => {
+  playPause.style.color = "var(--brand-experiment-500)";
 };
-playPauseIcon.onmouseleave = () => {
-  playPauseIcon.style.color = "var(--text-normal)";
+playPause.onmouseleave = () => {
+  playPause.style.color = "var(--text-normal)";
 };
 
 /* Repeat icon */
-const repeatAllPath: SVGPathElement = ElementBuilders.createPathElement(
+const repeatAll: SVGPathElement = ElementBuilders.createPathElement(
   "spotify-modal-repeat-all-path",
   "M17,17H7V14L3,18L7,22V19H19V13H17M7,7H17V10L21,6L17,2V5H5V11H7V7Z",
 );
-const repeatOnePath: SVGPathElement = ElementBuilders.createPathElement(
+const repeatOne: SVGPathElement = ElementBuilders.createPathElement(
   "spotify-modal-repeat-one-path",
   "M13,15V9H12L10,10V11H11.5V15M17,17H7V14L3,18L7,22V19H19V13H17M7,7H17V10L21,6L17,2V5H5V11H7V7Z",
 );
-const repeatIconTitle: SVGTitleElement = ElementBuilders.createTitleElement(
+const repeatTitle: SVGTitleElement = ElementBuilders.createTitleElement(
   "spotify-modal-repeat-icon-title",
 );
-const repeatIcon: SVGSVGElement = ElementBuilders.createSVGElement(
+const repeat: SVGSVGElement = ElementBuilders.createSVGElement(
   "spotify-modal-repeat-icon",
   "color: var(--text-normal); margin: 0px 10px 0px auto",
   undefined,
-  [repeatIconTitle, repeatAllPath],
+  [repeatTitle, repeatAll],
 );
 
 /* Shuffle icon */
-const shuffleIconTitle: SVGTitleElement = ElementBuilders.createTitleElement(
+const shuffleTitle: SVGTitleElement = ElementBuilders.createTitleElement(
   "spotify-modal-shuffle-icon-title",
 );
-const shuffleIcon: SVGSVGElement = ElementBuilders.createSVGElement(
+const shuffle: SVGSVGElement = ElementBuilders.createSVGElement(
   "spotify-modal-shuffle-icon",
   "color: var(--text-normal);",
   undefined,
   [
-    shuffleIconTitle,
+    shuffleTitle,
     ElementBuilders.createPathElement(
       "spotify-modal-shuffle-icon-path",
       "M14.83,13.41L13.42,14.82L16.55,17.95L14.5,20H20V14.5L17.96,16.54L14.83,13.41M14.5,4L16.54,6.04L4,18.59L5.41,20L17.96,7.46L20,9.5V4M10.59,9.17L5.41,4L4,5.41L9.17,10.58L10.59,9.17Z",
@@ -209,7 +209,7 @@ const shuffleIcon: SVGSVGElement = ElementBuilders.createSVGElement(
 );
 
 /* Skip previous icon */
-export const skipPreviousIcon: SVGSVGElement = ElementBuilders.createSVGElement(
+export const skipPrevious: SVGSVGElement = ElementBuilders.createSVGElement(
   "spotify-modal-skip-previous-icon",
   "color: var(--text-normal); margin-left: auto",
   undefined,
@@ -220,15 +220,15 @@ export const skipPreviousIcon: SVGSVGElement = ElementBuilders.createSVGElement(
     ),
   ],
 );
-skipPreviousIcon.onmouseenter = () => {
-  skipPreviousIcon.style.color = "var(--brand-experiment-400)";
+skipPrevious.onmouseenter = () => {
+  skipPrevious.style.color = "var(--brand-experiment-400)";
 };
-skipPreviousIcon.onmouseleave = () => {
-  skipPreviousIcon.style.color = "var(--text-normal)";
+skipPrevious.onmouseleave = () => {
+  skipPrevious.style.color = "var(--text-normal)";
 };
 
 /* Skip next icon */
-export const skipNextIcon = ElementBuilders.createSVGElement(
+export const skipNext = ElementBuilders.createSVGElement(
   "spotify-modal-skip-next-icon",
   "color: var(--text-normal)",
   undefined,
@@ -239,29 +239,29 @@ export const skipNextIcon = ElementBuilders.createSVGElement(
     ),
   ],
 );
-skipNextIcon.onmouseenter = () => {
-  skipNextIcon.style.color = "var(--brand-experiment-400)";
+skipNext.onmouseenter = () => {
+  skipNext.style.color = "var(--brand-experiment-400)";
 };
-skipNextIcon.onmouseleave = () => {
-  skipNextIcon.style.color = "var(--text-normal)";
+skipNext.onmouseleave = () => {
+  skipNext.style.color = "var(--text-normal)";
 };
 
 export const icons = {
-  playPath,
-  pausePath,
-  playPauseIcon,
-  repeatIconTitle,
-  repeatAllPath,
-  repeatOnePath,
-  repeatIcon,
-  shuffleIconTitle,
-  shuffleIcon,
-  skipPreviousIcon,
-  skipNextIcon,
+  play,
+  pause,
+  playPause,
+  repeatTitle,
+  repeatAll,
+  repeatOne,
+  repeat,
+  shuffleTitle,
+  shuffle,
+  skipPrevious,
+  skipNext,
 };
 
 /* Dock icons container */
-const _dockIconsElement: HTMLDivElement = ElementBuilders.createDivElement(
+const _dockIcons: HTMLDivElement = ElementBuilders.createDivElement(
   "spotify-modal-dock-icons",
   "padding-top: 5px; " +
     "padding-left: 5px; " +
@@ -270,24 +270,24 @@ const _dockIconsElement: HTMLDivElement = ElementBuilders.createDivElement(
     "display: flex; " +
     "flex-direction: row",
   undefined,
-  [shuffleIcon, skipPreviousIcon, playPauseIcon, skipNextIcon, repeatIcon],
+  [shuffle, skipPrevious, playPause, skipNext, repeat],
 );
 
 /* Song title */
-const titleElement: HTMLAnchorElement = ElementBuilders.createAnchorElement(
+const title: HTMLAnchorElement = ElementBuilders.createAnchorElement(
   "spotify-modal-song-title",
   "font-size: 14px",
   { target: "_blank" },
 );
 
 /* Artist list */
-const artistsElement: HTMLDivElement = ElementBuilders.createDivElement(
+const artists: HTMLDivElement = ElementBuilders.createDivElement(
   "spotify-modal-song-artists",
   "color: var(--header-secondary); font-size: 13px",
 );
 
 /* Song title & Artists container */
-const _metadataElement: HTMLDivElement = ElementBuilders.createDivElement(
+const _metadata: HTMLDivElement = ElementBuilders.createDivElement(
   "spotify-modal-metadata",
   "margin: 10px; " +
     "display: flex; " +
@@ -296,22 +296,22 @@ const _metadataElement: HTMLDivElement = ElementBuilders.createDivElement(
     "overflow: hidden; " +
     "white-space: nowrap",
   undefined,
-  [titleElement, artistsElement],
+  [title, artists],
 );
 
 /* Current playback time element */
-const playbackTimeCurrentElement: HTMLSpanElement = ElementBuilders.createSpanElement(
+const playbackTimeCurrent: HTMLSpanElement = ElementBuilders.createSpanElement(
   "spotify-modal-playback-time-current",
 );
 
 /* Playback duration element */
-const playbackTimeDurationElement: HTMLSpanElement = ElementBuilders.createSpanElement(
+const playbackTimeDuration: HTMLSpanElement = ElementBuilders.createSpanElement(
   "spotify-modal-playback-time-duration",
   "margin-left: auto; margin-right: 16px",
 );
 
 /* Playback time display container */
-const _playbackTimeDisplayElement: HTMLDivElement = ElementBuilders.createDivElement(
+const _playbackTimeDisplay: HTMLDivElement = ElementBuilders.createDivElement(
   "spotify-modal-playback-time",
   "display: flex; " +
     "position: relative; " +
@@ -321,11 +321,11 @@ const _playbackTimeDisplayElement: HTMLDivElement = ElementBuilders.createDivEle
     "color: var(--text-normal); " +
     "font-size: 12px",
   undefined,
-  [playbackTimeCurrentElement, playbackTimeDurationElement],
+  [playbackTimeCurrent, playbackTimeDuration],
 );
 
 /* Progress bar inner */
-const progressBarInnerElement: HTMLDivElement = ElementBuilders.createDivElement(
+const progressBarInner: HTMLDivElement = ElementBuilders.createDivElement(
   "spotify-modal-progressbar-inner",
   "background-color: var(--text-normal); " +
     "height: 4px; " +
@@ -335,7 +335,7 @@ const progressBarInnerElement: HTMLDivElement = ElementBuilders.createDivElement
 );
 
 /* Progress bar */
-const _progressBarElement: HTMLDivElement = ElementBuilders.createDivElement(
+const _progressBar: HTMLDivElement = ElementBuilders.createDivElement(
   "spotify-modal-progressbar",
   "height: 4px; " +
     "border-radius: 8px; " +
@@ -346,21 +346,21 @@ const _progressBarElement: HTMLDivElement = ElementBuilders.createDivElement(
     "top: -5px; " +
     "margin: 0px",
   undefined,
-  [progressBarInnerElement],
+  [progressBarInner],
 );
 
 /* Cover art */
-const coverArtElement: HTMLImageElement = ElementBuilders.createImageElement(
+const coverArt: HTMLImageElement = ElementBuilders.createImageElement(
   "spotify-modal-cover-art",
   "max-height: 80%; max-width: 80%; border-radius: 8px; object-fit: contain",
 );
 
 /* Playback time & Icons container */
-const dockElement: HTMLDivElement = ElementBuilders.createDivElement(
+const dock: HTMLDivElement = ElementBuilders.createDivElement(
   "spotify-modal-dock",
   "display: flex; flex-direction: column; padding-bottom: 4px",
   undefined,
-  [_playbackTimeDisplayElement, _progressBarElement, _dockIconsElement],
+  [_playbackTimeDisplay, _progressBar, _dockIcons],
 );
 let dockAnimations: {
   animations: {
@@ -372,11 +372,11 @@ let dockAnimations: {
 };
 dockAnimations = {
   animations: {
-    fadein: dockElement.animate({ opacity: [0, 1] }, 700),
-    fadeout: dockElement.animate({ opacity: [1, 0] }, 700),
+    fadein: dock.animate({ opacity: [0, 1] }, 700),
+    fadeout: dock.animate({ opacity: [1, 0] }, 700),
   },
   fadein: (): void => {
-    dockElement.style.display = "";
+    dock.style.display = "";
     dockAnimations.animations.fadein.play();
   },
   fadeout: (): void => {
@@ -384,15 +384,15 @@ dockAnimations = {
   },
 };
 dockAnimations.animations.fadeout.addEventListener("finish", () => {
-  dockElement.style.display = "none";
+  dock.style.display = "none";
 });
 
 /* Main modal */
-const modalElement = ElementBuilders.createDivElement(
+const modal = ElementBuilders.createDivElement(
   "spotify-modal",
   "display: flex; height: 60px; padding-bottom: 8px; padding-top: 4px",
   undefined,
-  [coverArtElement, _metadataElement],
+  [coverArt, _metadata],
 );
 let modalAnimations: {
   animations: {
@@ -404,11 +404,11 @@ let modalAnimations: {
 };
 modalAnimations = {
   animations: {
-    fadein: modalElement.animate({ opacity: [0, 1] }, 700),
-    fadeout: modalElement.animate({ opacity: [1, 0] }, 700),
+    fadein: modal.animate({ opacity: [0, 1] }, 700),
+    fadeout: modal.animate({ opacity: [1, 0] }, 700),
   },
   fadein: (): void => {
-    modalElement.style.display = "flex";
+    modal.style.display = "flex";
     modalAnimations.animations.fadein.play();
   },
   fadeout: (): void => {
@@ -416,22 +416,22 @@ modalAnimations = {
   },
 };
 modalAnimations.animations.fadeout.addEventListener("finish", () => {
-  modalElement.style.display = "none";
+  modal.style.display = "none";
 });
 
 export const components = {
-  _dockIconsElement,
-  titleElement,
-  artistsElement,
-  _metadataElement,
-  playbackTimeCurrentElement,
-  playbackTimeDurationElement,
-  _playbackTimeDisplayElement,
-  progressBarInnerElement,
-  _progressBarElement,
-  coverArtElement,
-  dockElement,
+  _dockIcons,
+  title,
+  artists,
+  _metadata,
+  playbackTimeCurrent,
+  playbackTimeDuration,
+  _playbackTimeDisplay,
+  progressBarInner,
+  _progressBar,
+  coverArt,
+  dock,
   dockAnimations,
-  modalElement,
+  modal,
   modalAnimations,
 };
