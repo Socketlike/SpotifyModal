@@ -31,6 +31,12 @@ declare const DiscordNative: {
 const logger = Logger.plugin("SpotifyModal");
 let store: void | SpotifySocketModule;
 
+(async () => {
+  store = (await webpack.waitForModule(
+    webpack.filters.byProps("getActiveSocketAndDevice"),
+  )) as unknown as SpotifySocketModule;
+})();
+
 export async function getSpotifyAccount(accountId?: string): Promise<void | SpotifySocket> {
   if (!store)
     store = (await webpack.waitForModule(
