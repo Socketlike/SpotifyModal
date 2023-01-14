@@ -4,11 +4,12 @@
   @typescript-eslint/no-floating-promises,
   @typescript-eslint/no-explicit-any,
   @typescript-eslint/require-await,
-  @typescript-eslint/no-dynamic-delete,
   new-cap
 */
-import { Logger, common, types, webpack } from "replugged";
+import { Logger, common, webpack } from "replugged";
+import { EventEmitter, SpotifyAPI, SpotifySocketFunctions, elementUtilities } from "./common";
 import {
+  FadeAnimations,
   FluxDispatcher,
   SpotifyDevice,
   SpotifySocket,
@@ -19,8 +20,7 @@ import {
   SpotifyWebSocketRawParsedMessage,
   SpotifyWebSocketState,
 } from "./types";
-import { components, icons } from "./components";
-export { ElementBuilders } from "./components";
+import { animations, components, icons } from "./components";
 
 declare const DiscordNative: {
   clipboard: {
@@ -28,228 +28,222 @@ declare const DiscordNative: {
   };
 };
 
-const logger = Logger.plugin("SpotifyModal");
-let store: void | SpotifySocketModule;
-
-(async () => {
-  store = (await webpack.waitForModule(
-    webpack.filters.byProps("getActiveSocketAndDevice"),
-  )) as unknown as SpotifySocketModule;
-})();
-
-export async function getSpotifyAccount(accountId?: string): Promise<void | SpotifySocket> {
-  if (!store)
-    store = (await webpack.waitForModule(
-      webpack.filters.byProps("getActiveSocketAndDevice"),
-    )) as unknown as SpotifySocketModule;
-
-  if (!store) {
-    logger.error("[Utils @ getSpotifyAccount]: Cannot find SpotifyStore");
-    return;
-  }
-
-  if (!accountId) {
-    if (Object.keys(store.__getLocalVars().accounts).length)
-      return Object.values(store.__getLocalVars().accounts)[0];
-    else {
-      logger.warn("[Utils @ getSpotifyAccount] SpotifyStore contains no accounts");
-    }
-  } else if (accountId in store.__getLocalVars().accounts) {
-    return store.__getLocalVars().accounts[accountId];
-  } else {
-    logger.error(
-      "[Utils @ getSpotifyAccount] No such account ID exists in SpotifyStore:",
-      accountId,
-    );
-  }
-}
-
-export async function getSpotifySocket(accountId?: string): Promise<void | WebSocket> {
-  if (!store)
-    store = (await webpack.waitForModule(
-      webpack.filters.byProps("getActiveSocketAndDevice"),
-    )) as unknown as SpotifySocketModule;
-
-  if (!store) {
-    logger.error("[Utils @ getSpotifySocket]: Cannot find SpotifyStore");
-    return;
-  }
-
-  // Method I: Get from .getActiveSocketAndDevice
-  let activeSocketAndDevice = store.getActiveSocketAndDevice();
-  if (activeSocketAndDevice && activeSocketAndDevice.socket.accountId === accountId)
-    return activeSocketAndDevice.socket.socket;
-
-  // Method II: Get from .__getLocalVars().accounts[accountId]
-  const accounts = store.__getLocalVars().accounts;
-  if (accountId in accounts) return accounts[accountId].socket;
-
-  // Method III: Get without accountId through both getActiveSocketAndDevice & accounts
-  // (bruteforcing --- may cause inaccuracy with accountId if accountId is provided)
-  activeSocketAndDevice = store.getActiveSocketAndDevice();
-  if (activeSocketAndDevice) return activeSocketAndDevice.socket.socket;
-  return Object.values(accounts).length ? Object.values(accounts)[0].socket : undefined;
-
-  logger.error("[Utils @ getSpotifySocket]: Cannot find socket");
-}
-
-export async function getAllSpotifySockets(): Promise<void | Record<string, WebSocket>> {
-  if (!store)
-    store = (await webpack.waitForModule(
-      webpack.filters.byProps("getActiveSocketAndDevice"),
-    )) as unknown as SpotifySocketModule;
-
-  if (!store) {
-    logger.error("[Utils @ getAllSpotifySockets]: Cannot find SpotifyStore");
-    return;
-  }
-
-  const accounts = store.__getLocalVars().accounts;
-  if (!Object.keys(accounts).length) {
-    logger.warn("[Utils @ getAllSpotifySockets]: SpotifyStore contains no accounts");
-  } else {
-    const sockets: Record<string, WebSocket> = {};
-    Object.entries(accounts).forEach(([accountId, socket]: [string, SpotifySocket]): void => {
-      sockets[accountId] = socket.socket;
-    });
-    return sockets;
-  }
-}
-
-async function sendSpotifyAPI(
-  endpoint: string,
-  accountId?: string,
-  method: string = "PUT",
-  query?: Record<string, string>,
-  body?: string,
-): Promise<void | Response> {
-  const account = await getSpotifyAccount(accountId);
-
-  if (!account) {
-    logger.error("[Utils @ sendSpotifyAPI] Spotify account not found");
-    return;
-  }
-
-  let uri = `https://api.spotify.com/v1/${endpoint}`;
-
-  if (typeof query === "object" && !Array.isArray(query)) {
-    Object.entries(query).forEach(([key, value]: [string, string]): void => {
-      uri += uri.match(/\?/)
-        ? `&${encodeURIComponent(key)}=${encodeURIComponent(value)}`
-        : `?${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
-    });
-  }
-
-  return fetch(uri, {
-    mode: "cors",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${account?.accessToken}`,
+export class SpotifyWatcher extends EventEmitter {
+  public readonly name = this.constructor.name;
+  public readonly handlers = {
+    pong: (accountId: string): void => {
+      this.handlers.spotifyUpdate({ accountId });
     },
-    method,
-    body,
-  });
-}
+    spotifyAccessTokenRevoked: (accountId: string): void => {
+      this.accountId = "";
+    },
+    spotifyUpdate: async (data: { accountId: string }): Promise<void> => {
+      if (this.#accountId === data?.accountId) return;
 
-export const spotifyControls = {
-  sendSpotifyAPI,
-  async getPlayerState(accountId?: string): Promise<void | Response> {
-    const res = await sendSpotifyAPI("me/player", accountId, "GET");
-    // @ts-expect-error - .json() exists
-    return res.json();
-  },
-  async setPlaybackState(state: boolean, accountId?: string): Promise<void | Response> {
-    return sendSpotifyAPI(`me/player/${state ? "play" : "pause"}`, accountId);
-  },
-  async setRepeatMode(mode: string, accountId?: string): Promise<void | Response> {
-    const modes = ["off", "context", "track"];
-    if (!modes.includes(mode)) return;
-    return sendSpotifyAPI(`me/player/repeat`, accountId, undefined, { state: mode });
-  },
-  async setShuffleState(state: boolean, accountId?: string): Promise<void | Response> {
-    return sendSpotifyAPI("me/player/shuffle", accountId, undefined, {
-      state: `${state ? "true" : "false"}`,
-    });
-  },
-  async seekToPosition(position: number, accountId?: string): Promise<void | Response> {
-    if (typeof position !== "number") return;
-    return sendSpotifyAPI("me/player/seek", accountId, undefined, {
-      position_ms: position.toString(),
-    });
-  },
-  async setPlaybackVolume(percent: number, accountId?: string): Promise<void | Response> {
-    if (typeof percent !== "number") return;
-    return sendSpotifyAPI("me/player/volume", accountId, undefined, {
-      volume_percent: percent.toString(),
-    });
-  },
-  async skipTrack(forward: boolean = true, accountId?: string): Promise<void | Response> {
-    return sendSpotifyAPI(`me/player/${forward ? "next" : "previous"}`, accountId, "POST");
-  },
-};
+      await this.#getAccountAndSocket(data?.accountId);
+    },
+    websocketListener: async (message: SpotifyWebSocketRawMessage): Promise<void> => {
+      if (!message?.data) return;
+      const parsed = JSON.parse(message.data) as unknown as SpotifyWebSocketRawParsedMessage;
 
-export class EventEmitter {
-  public _events: Record<string, Set<(...args: any) => any>>;
-  public silent: boolean;
+      if (parsed?.type && parsed.type !== "pong") {
+        if (!parsed?.payloads) return;
 
-  public constructor(silent?: boolean) {
-    this._events = {};
-    this.silent = Boolean(silent);
+        if (parsed.payloads[0].events[0].type === "PLAYER_STATE_CHANGED")
+          this.#state = parsed.payloads[0].events[0].event.state;
+        else if (parsed.payloads[0].events[0].type === "DEVICE_STATE_CHANGED")
+          this.#devices = parsed.payloads[0].events[0].event.devices;
+
+        this.emit(
+          parsed.payloads[0].events[0].type === "PLAYER_STATE_CHANGED" ? "player" : "devices",
+          { state: this.#state, devices: this.#devices },
+        );
+      }
+    },
+  };
+
+  #account: undefined | SpotifySocket = undefined;
+  #accountId = "";
+  #api: undefined | SpotifyAPI = undefined;
+  #devices: undefined | SpotifyDevices[] = undefined;
+  #dispatcher: undefined | FluxDispatcher = undefined;
+  #dispatcherStatus = false;
+  #logger = new Logger("SpotifyModal", this.name);
+  #state: undefined | SpotifyWebSocketState = undefined;
+  #socketFunctions = new SpotifySocketFunctions();
+  #websocket: undefined | WebSocket = undefined;
+
+  public constructor(): void {
+    super();
+    this.getFluxDispatcher();
   }
 
-  #fixEventsList(): void {
-    Object.entries(this._events).forEach(
-      ([name, set]: [string, Set<(...args: any) => any>]): void => {
-        if (!set?.size) delete this._events[name];
-      },
+  public get account(): undefined | SpotifySocket {
+    return this.#account;
+  }
+
+  public get accountId(): string {
+    return this.#accountId;
+  }
+
+  public set accountId(accountId: string) {
+    if (typeof accountId !== "string") return;
+    if (!accountId) {
+      this.#removeSocketListener();
+      this.#websocket = undefined;
+      this.#account = undefined;
+      this.#api = undefined;
+      this.#accountId = undefined;
+      this.#logger.log("Removed current account");
+    } else if (!this.#socketFunctions.accountList) {
+      this.#socketFunctions.getAccounts().then((accounts: Record<string, SpotifySocket>): void => {
+        if (accountId in accounts) {
+          this.#accountId = accountId;
+          this.#getAccountAndSocket(this.#accountId);
+          this.#logger.log("Registered new account:", this.#accountId);
+        }
+      });
+    } else if (accountId in this.#socketFunctions.accountList) {
+      this.#accountId = accountId;
+      this.#getAccountAndSocket(this.#accountId);
+      this.#logger.log("Registered new account:", this.#accountId);
+    }
+  }
+
+  public get api(): undefined | SpotifyAPI {
+    return this.#api;
+  }
+
+  public get dispatcher(): undefined | FluxDispatcher {
+    return this.#dispatcher;
+  }
+
+  public get websocket(): undefined | WebSocket {
+    return this.#websocket;
+  }
+
+  public async getFluxDispatcher(): Promise<void> {
+    if (common.fluxDispatcher)
+      this.#dispatcher = common.fluxDispatcher as unknown as FluxDispatcher;
+    else {
+      const dispatcher = await webpack.waitForModule(
+        webpack.filters.byProps("_subscriptions", "subscribe", "unsubscribe"),
+      );
+
+      if (dispatcher) this.#dispatcher = dispatcher as unknown as FluxDispatcher;
+    }
+  }
+
+  async #setupDispatcherHooks(): Promise<void> {
+    if (!this.#dispatcher) await this.getFluxDispatcher();
+    if (this.#dispatcherStatus) return;
+
+    this.#dispatcher.subscribe("SPOTIFY_PROFILE_UPDATE", this.handlers.spotifyUpdate);
+    this.#dispatcher.subscribe("SPOTIFY_SET_DEVICES", this.handlers.spotifyUpdate);
+    this.#dispatcher.subscribe(
+      "SPOTIFY_ACCOUNT_ACCESS_TOKEN_REVOKE",
+      this.handlers.spotifyAccessTokenRevoked,
     );
+    this.#dispatcher.subscribe("SPOTIFY_SET_ACTIVE_DEVICES", this.handlers.spotifyUpdate);
+    this.#dispatcher.subscribe("SPOTIFY_PLAYER_STATE", this.handlers.spotifyUpdate);
+
+    this.#dispatcherStatus = true;
+    this.#logger.log("Dispatcher hooks setup");
   }
 
-  public on(name: string, callback: (...args: any) => any): void {
-    if (typeof name !== "string" || typeof callback !== "function") return;
-    if (!this._events[name]) this._events[name] = new Set();
-    this._events[name].add(callback);
+  #removeDispatcherHooks(): void {
+    if (!this.#dispatcher || !this.#dispatcherStatus) return;
+
+    this.#dispatcher.unsubscribe("SPOTIFY_PROFILE_UPDATE", this.handlers.spotifyUpdate);
+    this.#dispatcher.unsubscribe("SPOTIFY_SET_DEVICES", this.handlers.spotifyUpdate);
+    this.#dispatcher.unsubscribe(
+      "SPOTIFY_ACCOUNT_ACCESS_TOKEN_REVOKE",
+      this.handlers.spotifyAccessTokenRevoked,
+    );
+    this.#dispatcher.unsubscribe("SPOTIFY_SET_ACTIVE_DEVICES", this.handlers.spotifyUpdate);
+    this.#dispatcher.unsubscribe("SPOTIFY_PLAYER_STATE", this.handlers.spotifyUpdate);
+
+    this.#dispatcherStatus = false;
+    this.#logger.log("Dispatcher hooks removed");
   }
 
-  public once(name: string, callback: (...args: any) => any): void {
-    if (typeof name !== "string" || typeof callback !== "function") return;
-    const replacedFunction = (...args: any): void => {
-      callback(...args);
-      this._events[name].delete(replacedFunction);
-      this.#fixEventsList();
-    };
-    if (!this._events[name]) this._events[name] = new Set();
-    this._events[name].add(replacedFunction);
+  #removeSocketListener(): void {
+    if (this.#websocket) {
+      this.#websocket.removeEventListener("message", this.handlers.websocketListener);
+      this.#logger.log("Socket listener removed for account:", this.#accountId);
+    }
   }
 
-  public removeAllListeners(name?: string): void {
-    if (typeof name === "string" && name in this._events) delete this._events[name];
-    else this._events = {};
+  async #getAccountAndSocket(accountId?: string): Promise<void> {
+    if (this.#accountId && this.#accountId !== accountId) this.#removeSocketListener();
+
+    this.#account = await this.#socketFunctions.getAccount(accountId);
+    this.#websocket = await this.#socketFunctions.getWebSocket(accountId);
+    this.#api = await this.#socketFunctions.getAPI(accountId);
+
+    if (typeof accountId === "string" && this.#account) this.#accountId = accountId;
+    else if (this.#account) this.#accountId = this.#account.accountId;
+
+    if (this.#websocket instanceof WebSocket)
+      this.#websocket.addEventListener("message", this.handlers.websocketListener);
+
+    this.#logger.log("Got account:", this.#accountId);
   }
 
-  public emit(name: string, ...data: any): void {
-    if (name in this._events) {
-      const listeners = this._events[name];
-      for (const listener of listeners) listener(...data);
-    } else if (!this.silent) logger.warn("[EventEmitter @ emit] No event listeners for", name);
+  async #tryGetStateAndDevices(): Promise<void> {
+    if (!this.#accountId) await this.#getAccountAndSocket();
+    if (!this.#socketFunctions.userHasSpotifyAccounts) return;
+    const req = [this.#api.getPlayerState(), this.#api.getDevices()];
+
+    const res = await Promise.all(req);
+    const state = res[0];
+    const devices = res[1];
+    if (state) {
+      const data = await state.text();
+      if (data) {
+        this.#state = JSON.parse(data) as SpotifyWebSocketState;
+        this.emit("player", { state: this.#state, devices: this.#devices });
+      }
+    }
+
+    if (devices) {
+      const data = await devices.text();
+      if (data) {
+        const parsedDevices = JSON.parse(data) as SpotifyWebSocketDevices;
+        if (Array.isArray(parsedDevices?.devices)) {
+          this.#devices = parsedDevices?.devices;
+          this.emit("devices", { state: this.#state, devices: this.#devices });
+        }
+      }
+    }
+  }
+
+  public async load(): Promise<void> {
+    await this.#setupDispatcherHooks();
+    await this.#tryGetStateAndDevices();
+    this.#logger.log("Loaded");
+  }
+
+  public unload(): void {
+    this.#removeDispatcherHooks();
+    this.#removeSocketListener();
+    this.#logger.log("Unloaded");
   }
 }
 
+/*
 export class SpotifyWatcher extends EventEmitter {
   #accountId: string;
-  public dispatcher: FluxDispatcher | undefined;
-  #devices: undefined | SpotifyDevice[];
-  #modalAnimations: {
-    titleElement: undefined | Animation;
-    artistsElement: undefined | Animation;
+  #data: {
+    devices: undefined | SpotifyDevice[];
+    state: undefined | SpotifyWebSocketState;
   };
-  public silent: boolean;
-  #state: undefined | SpotifyWebSocketState;
-  #sockets: undefined | Record<string, WebSocket>;
-  #socketsPongHandlers: Record<string, (message: SpotifyWebSocketRawMessage) => void>;
+  public dispatcher: FluxDispatcher | undefined;
+  #silent: boolean;
+  #sockets: Map<string, Array<WebSocket, (message: SpotifyWebSocketRawMessage) => void>>;
   #socket: {
     accountId: string;
-    ws: undefined | void | WebSocket;
+    ws: undefined | WebSocket;
   };
   public handlers: {
     REGISTER_PONG_EVENT: () => void;
@@ -257,45 +251,53 @@ export class SpotifyWatcher extends EventEmitter {
     SPOTIFY_UPDATE: (data: { accountId: string }) => void;
     SPOTIFY_WEBSOCKET_MESSAGE: (message: SpotifyWebSocketRawMessage) => void;
   };
-  #registered: boolean;
-  #pongListenerRegistered: boolean;
+  #statuses: {
+    registered: boolean;
+    pongFluxListener: boolean;
+    loaded: boolean;
+  };
+
+  #logger(level: "log" | "warn" | "error", ...data: unknown): void {
+    if (typeof level !== "string" || this.#silent)
+      return;
+
+    logger[level](...data);
+  }
 
   public constructor(silent?: boolean) {
     super(Boolean(silent));
     this.#accountId = "";
-    this.dispatcher = undefined;
-    this.#devices = undefined;
-    this.#modalAnimations = {
-      titleElement: undefined,
-      artistsElement: undefined,
+    this.#data = {
+      devices: undefined,
+      state: undefined,
     };
-    this.silent = Boolean(silent);
-    this.#state = undefined;
-    this.#sockets = undefined;
-    this.#socketsPongHandlers = {};
+    this.dispatcher = undefined;
+    this.#silent = Boolean(silent);
+    this.#sockets = new Map;
     this.#socket = {
       accountId: "",
       ws: undefined,
     };
+
     this.handlers = {
       REGISTER_PONG_EVENT: (): void => {
         this.addPongEvent();
         this.dispatcher.unsubscribe("GAMES_DATABASE_UPDATE", this.handlers.REGISTER_PONG_EVENT);
-        if (!this.silent)
-          logger.log(
-            "[SpotifyWatcher @ handlers#REGISTER_PONG_EVENT] Pong event registered at GAMES_DATABASE_UPDATE",
-          );
+        this.#logger(
+          "log",
+          `[${this.#name} @ handlers#REGISTER_PONG_EVENT] Pong event registered at GAMES_DATABASE_UPDATE`,
+        );
       },
       PONG_UPDATE: (accountId: string): void => {
         this.handlers.SPOTIFY_UPDATE({ accountId });
-        if (!this.silent)
-          logger.log("[SpotifyWatcher @ handlers#PONG_UPDATE] Pong update dispatched");
+        this.#logger("log", `[${this.#name} @ handlers#PONG_UPDATE] Pong update dispatched`);
       },
       SPOTIFY_UPDATE: (data: { accountId: string }): void => {
         if (!this.#accountId) this.#accountId = data.accountId;
+
         if (this.#accountId !== data.accountId) {
           logger.warn(
-            "[SpotifyWatcher @ handlers#SPOTIFY_UPDATE]",
+            `[${this.#name} @ handlers#SPOTIFY_UPDATE]"`
             "New account ID",
             `(${data.accountId})`,
             "differs from registered account ID",
@@ -306,22 +308,32 @@ export class SpotifyWatcher extends EventEmitter {
         }
 
         this.emit("update", data.accountId, this.#accountId);
-        if (!this.silent)
-          logger.log("[SpotifyWatcher @ handlers#SPOTIFY_UPDATE] Update event dispatched");
+        this.#logger("log", `[${this.#name} @ handlers#SPOTIFY_UPDATE] Update event dispatched`);
         this.#afterSpotifyUpdate();
       },
       SPOTIFY_WEBSOCKET_MESSAGE: (message: SpotifyWebSocketRawMessage): void => {
-        if (!this.silent)
-          logger.log(
-            "[SpotifyWatcher @ handlers#SPOTIFY_WEBSOCKET_MESSAGE] Recieved WebSocket message",
-            message,
+        this.#logger(
+          "log",
+          `[${this.#name} @ handlers#SPOTIFY_WEBSOCKET_MESSAGE] Recieved WebSocket message`,
+          message,
+        );
+
+        if (!message.data) {
+          this.#logger(
+            "warn",
+            `[${this.#name} @ handlers#SPOTIFY_WEBSOCKET_MESSAGE] WebSocket message is empty`,
           );
+          return;
+        }
+
         const data = JSON.parse(message.data) as SpotifyWebSocketRawParsedMessage;
+
         if (data?.type && data?.payloads && data.type !== "pong") {
           if (data.payloads[0].events[0].type === "PLAYER_STATE_CHANGED")
             this.#state = data.payloads[0].events[0].event.state;
           else if (data.payloads[0].events[0].type === "DEVICE_STATE_CHANGED")
             this.#devices = data.payloads[0].events[0].event.devices;
+
           this.emit(
             "message",
             data.payloads[0].events[0].type,
@@ -329,21 +341,40 @@ export class SpotifyWatcher extends EventEmitter {
               ? this.#state
               : this.#devices,
           );
-          if (!this.silent)
-            logger.log(
-              "[SpotifyWatcher @ handlers#SPOTIFY_WEBSOCKET_MESSAGE] Dispatched",
-              data.payloads[0].events[0].type,
-              "event",
-            );
+
+          this.#logger(
+            "log",
+            `[${this.#name} @ handlers#SPOTIFY_WEBSOCKET_MESSAGE] Dispatched`,
+            data.payloads[0].events[0].type,
+            "event",
+          );
         }
       },
     };
-    this.#registered = false;
-    this.#pongListenerRegistered = false;
+
+    this.#statuses = {
+      registered: false,
+      pongFluxListener: false,
+      loaded: false,
+    };
+  }
+
+  get #name(): string {
+    return this.constructor.name;
   }
 
   public get registered(): boolean {
     return this.#registered;
+  }
+
+  public get silent(): boolean {
+    return this.#silent;
+  }
+
+  public set silent(state: boolean) {
+    if (typeof state !== "boolean")
+      return;
+    this.#silent = state;
   }
 
   public get state(): unknown {
@@ -367,11 +398,11 @@ export class SpotifyWatcher extends EventEmitter {
       this.#accountId = "";
       this.removeSocketEvent();
       this.#socket.ws = undefined;
-      if (!this.silent) logger.log("[SpotifyWatcher @ accountId (set)] Account ID unset");
+      this.#logger("log", `[${this.#name} @ accountId (set)] Account ID unset`);
     }
   }
 
-  public get socket(): { accountId: string; ws: void | undefined | WebSocket } {
+  public get socket(): { accountId: string; ws: undefined | WebSocket } {
     return {
       accountId: this.#socket.accountId,
       ws: this.#socket.ws,
@@ -381,63 +412,73 @@ export class SpotifyWatcher extends EventEmitter {
   async #afterSpotifyUpdate(): Promise<void> {
     if (this.#socket.ws && this.#socket.accountId !== this.#accountId) this.removeSocketEvent();
     else if (this.#socket.ws && this.#socket.accountId === this.#accountId) {
-      if (!this.silent)
-        logger.warn(
-          "[SpotifyWatcher @ #afterSpotifyUpdate] Ignored change due to WebSocket not changing",
-        );
+      this.#logger(
+        "log",
+        `[${this.#name} @ #afterSpotifyUpdate] Ignored change due to WebSocket not changing`,
+      );
       return;
     }
 
     this.#socket.accountId = this.#accountId;
     this.#socket.ws = await getSpotifySocket(this.#accountId);
-    if (this.#socket.ws) {
+
+    if (this.#socket.ws)
       this.#socket.ws.addEventListener("message", this.handlers.SPOTIFY_WEBSOCKET_MESSAGE);
-      this.emit("websocket", this.#socket.ws);
-    } else this.emit("error", "websocket");
+    else
+      this.#logger("error", `[${this.#name} @ #afterSpotifyUpdate] Cannot get WebSocket`);
   }
 
-  public removeSocketEvent(): void {
+  public removeSocketEventListener(): void {
     if (!this.#socket.ws) {
-      if (!this.silent)
-        logger.error("[SpotifyWatcher @ removeSocketEvent] Current WebSocket is nullish");
+      this.#logger("error", `[${this.#name} @ removeSocketEvent] There is no WebSocket in use`);
       return;
     }
+
     this.#socket.ws.removeEventListener("message", this.handlers.SPOTIFY_WEBSOCKET_MESSAGE);
-    if (!this.silent)
-      logger.log("[SpotifyWatcher @ removeSocketEvent] Removed socket event handler");
+    this.#logger("log", `[${this.#name} @ removeSocketEvent] WebSocket event listener removed`);
   }
 
-  public async addPongEvent(): Promise<void> {
+  public async addPongEventListeners(): Promise<void> {
     // @ts-expect-error - We already have a catch for when this.#sockets is undefined
-    this.#sockets = await getAllSpotifySockets();
-    if (this.#sockets) {
-      Object.entries(this.#sockets).forEach(([accountId, socket]: [string, WebSocket]): void => {
-        if (this.#socketsPongHandlers[accountId] === undefined) {
-          this.#socketsPongHandlers[accountId] = (message: SpotifyWebSocketRawMessage): void => {
-            const data = JSON.parse(message.data) as unknown as { type: string };
+    const sockets = await getAllSpotifySockets();
 
-            if (data?.type && data?.type === "pong") this.emit("pong", accountId);
-          };
-          socket.addEventListener("message", this.#socketsPongHandlers[accountId]);
-        }
-      });
-    } else if (!this.#pongListenerRegistered) {
+    if (sockets && Object.keys(sockets).length) {
+      for (const [accountId, socket] of Object.entries(sockets)) {
+        if (!this.#sockets.has(accountId))
+          this.#sockets.set(accountId, [socket, (message: SpotifyWebSocketRawMessage): void => {
+            if (!message.data) {
+              this.#logger("warn", `[${this.#name} @ ${accountId} (listener)] Message empty`);
+              return;
+            }
+
+            const data = JSON.parse(message.data) as unknown as { type: string };
+            if (data?.type && data.type === "pong") this.emit("pong", accountId);
+          }]);
+      }
+    } else if (!this.#statuses.pongFluxListener) {
       this.dispatcher.subscribe("SPOTIFY_PROFILE_UPDATE", this.handlers.REGISTER_PONG_EVENT);
-      this.#pongListenerRegistered = true;
+      this.#statuses.pongFluxListener = true;
     }
   }
 
-  public removePongEvent(): void {
-    if (!this.#sockets) return;
-    Object.entries(this.#sockets).forEach(([accountId, socket]: [string, WebSocket]): void => {
-      if (this.#socketsPongHandlers[accountId] !== undefined) {
-        socket.removeEventListener("message", this.#socketsPongHandlers[accountId]);
-        delete this.#socketsPongHandlers[accountId];
-      }
-    });
+  public removePongEventListeners(): void {
+    if (!this.#sockets || !Object.keys(this.#sockets).length) {
+      this.#logger("error", `[${this.#name} @ removePongEvent] Sockets list empty`);
+      return;
+    }
+
+    for (const [accountId, [socket, listener]] of this.#socket) {
+      socket.removeEventListener(listener);
+      this.#socket.delete(accountId);
+    }
   }
 
-  public async registerFlux(): Promise<void> {
+  public async registerFluxListener(): Promise<void> {
+    if (this.#statuses.registered) {
+      logger.warn(`[${this.#name} @ registerFluxListener] Already registered`);
+      return;
+    }
+
     if (common?.fluxDispatcher)
       this.dispatcher = common.fluxDispatcher as unknown as FluxDispatcher;
     else
@@ -446,12 +487,7 @@ export class SpotifyWatcher extends EventEmitter {
       )) as unknown as FluxDispatcher;
 
     if (!this.dispatcher) {
-      logger.error("[SpotifyWatcher @ registerFlux] FluxDispatcher not found");
-      return;
-    }
-
-    if (this.registered) {
-      logger.warn("[SpotifyWatcher @ registerFlux] Already registered");
+      logger.error(`[${this.#name} @ registerFluxListener] FluxDispatcher not found`);
       return;
     }
 
@@ -460,14 +496,13 @@ export class SpotifyWatcher extends EventEmitter {
     this.dispatcher.subscribe("SPOTIFY_ACCOUNT_ACCESS_TOKEN", this.handlers.SPOTIFY_UPDATE);
     this.dispatcher.subscribe("SPOTIFY_SET_ACTIVE_DEVICES", this.handlers.SPOTIFY_UPDATE);
     this.dispatcher.subscribe("SPOTIFY_PLAYER_STATE", this.handlers.SPOTIFY_UPDATE);
-    this.#registered = true;
-    this.emit("registered");
-    if (!this.silent) logger.log("[SpotifyWatcher @ registerFlux] Registered");
+    this.#statuses.registered = true;
+    this.#logger("log", `[${this.#name} @ registerFluxListener] Registered`);
   }
 
-  public removeFlux(): void {
+  public removeFluxListener(): void {
     if (!this.dispatcher || !this.registered) {
-      logger.error("[SpotifyWatcher @ removeFlux] Already removed");
+      logger.error(`[${this.#name} @ removeFluxListener] Already removed`);
       return;
     }
 
@@ -476,56 +511,55 @@ export class SpotifyWatcher extends EventEmitter {
     this.dispatcher.unsubscribe("SPOTIFY_ACCOUNT_ACCESS_TOKEN", this.handlers.SPOTIFY_UPDATE);
     this.dispatcher.unsubscribe("SPOTIFY_SET_ACTIVE_DEVICES", this.handlers.SPOTIFY_UPDATE);
     this.dispatcher.unsubscribe("SPOTIFY_PLAYER_STATE", this.handlers.SPOTIFY_UPDATE);
-    this.#registered = false;
-    this.emit("unregistered");
-    if (!this.silent) logger.log("[SpotifyWatcher @ removeFlux] Removed");
+    this.#statuses.registered = false;
+    this.#logger("log", `[${this.#name} @ removeFluxListener] Removed`);
   }
 
   public async load(): Promise<void> {
+    if (this.#statuses.loaded) return;
     await this.registerFlux();
     await this.addPongEvent();
-    if (!this._events?.pong || !this._events.pong.has(this.handlers.PONG_UPDATE))
-      this.on("pong", this.handlers.PONG_UPDATE);
+    this.on("pong", this.handlers.PONG_UPDATE);
+    this.#statuses.loaded = true;
   }
 
   public unload(): void {
+    if (!this.#statuses.loaded) return;
     this.removeFlux();
     this.removePongEvent();
     this.removeAllListeners("pong");
     this.removeSocketEvent();
+    this.#statuses.loaded = false;
   }
 }
 
 export class SpotifyModal {
+  public animations: {
+    artists: undefined | Animation;
+    dock: ElementUtilitiesFadeAnimations;
+    dockIcons: ElementUtilitiesFadeAnimations;
+    metadata: ElementUtilitiesFadeAnimations;
+    modal: ElementUtilitiesFadeAnimations;
+    modalContainer: ElementUtilitiesFadeAnimations;
+    playbackTimeDisplay: ElementUtilitiesFadeAnimations;
+    progressBar: ElementUtilitiesFadeAnimations;
+    title: undefined | Animation;
+  };
   public components: {
-    _dockIcons: HTMLDivElement;
-    title: HTMLAnchorElement;
     artists: HTMLDivElement;
-    _metadata: HTMLDivElement;
-    playbackTimeCurrent: HTMLSpanElement;
-    playbackTimeDuration: HTMLSpanElement;
-    _playbackTimeDisplay: HTMLDivElement;
-    progressBarInner: HTMLDivElement;
-    _progressBar: HTMLDivElement;
     coverArt: HTMLImageElement;
     dock: HTMLDivElement;
-    dockAnimations: {
-      animations: {
-        fadein: Animation;
-        fadeout: Animation;
-      };
-      fadein: () => void;
-      fadeout: () => void;
-    };
+    dockIcons: HTMLDivElement;
+    metadata: HTMLDivElement;
     modal: HTMLDivElement;
-    modalAnimations: {
-      animations: {
-        fadein: Animation;
-        fadeout: Animation;
-      };
-      fadein: () => void;
-      fadeout: () => void;
-    };
+    modalContainer: HTMLDivElement;
+    playbackTimeCurrent: HTMLSpanElement;
+    playbackTimeDuration: HTMLSpanElement;
+    playbackTimeDisplay: HTMLDivElement;
+    progressBarInner: HTMLDivElement;
+    progressBar: HTMLDivElement;
+    title: HTMLAnchorElement;
+    dockIcons: HTMLDivElement;
   };
   public icons: {
     play: SVGPathElement;
@@ -559,7 +593,7 @@ export class SpotifyModal {
     panels: string;
     "text-sm/semibold": string;
   };
-  public silent: boolean;
+  #silent: boolean;
   #status: {
     active: boolean;
     album: string;
@@ -575,14 +609,18 @@ export class SpotifyModal {
   };
   #componentsReady: boolean;
   #injected: boolean;
+  #loaded: boolean;
   #fluxDispatcherFallback: boolean;
   #panel: undefined | Element;
-  #modalAnimations: {
-    title: undefined | Animation;
-    artists: undefined | Animation;
-  };
   #modalUpdateSetIntervalID: undefined | number;
   #modalUpdateRate: number;
+
+  #logger(level: string, ...data: unknown[]): void {
+    if (typeof level !== "string" || this.#silent)
+      return;
+
+    logger[level](...data);
+  }
 
   public static parseArtists(
     track: SpotifyTrack,
@@ -644,27 +682,12 @@ export class SpotifyModal {
     }:${raw.seconds < 10 ? `0${raw.seconds}` : raw.seconds}`;
   }
 
-  public static getTextScrollingAnimation(element: HTMLElement): Animation {
-    const animations = element.getAnimations();
-    if (animations.length)
-      animations.forEach((animation: Animation): void => {
-        animation.cancel();
-      });
-    return element.animate(
-      [
-        { transform: "translateX(0)" },
-        { transform: `translateX(-${element.scrollWidth - element.offsetWidth}px)` },
-      ],
-      {
-        iterations: Infinity,
-        duration: (element.scrollWidth - element.offsetWidth) * 50,
-        direction: "alternate-reverse",
-        easing: "linear",
-      },
-    );
-  }
-
   public constructor(modalUpdateRate?: number, silent?: boolean) {
+    this.animations = {
+      artists: undefined,
+      ...animations,
+      title: undefined,
+    };
     this.components = components;
     this.icons = icons;
     this.#classes = {
@@ -679,7 +702,7 @@ export class SpotifyModal {
       panels: "",
       "text-sm/semibold": "",
     };
-    this.silent = Boolean(silent);
+    this.#silent = Boolean(silent);
     this.#status = {
       active: false,
       album: "",
@@ -693,31 +716,29 @@ export class SpotifyModal {
       devices: undefined,
       state: undefined,
     };
+
     this.handlers = {
       MODAL_UPDATE: async (): Promise<void> => {
         if (!this.#status.active) {
-          if (!this.silent)
-            logger.log("[SpotifyModal @ handlers#MODAL_UPDATE] Spotify is not active");
+          this.#logger("log", `[${this.#name} @ handlers#MODAL_UPDATE] Spotify is not active`);
           clearInterval(this.#modalUpdateSetIntervalID);
           this.#modalUpdateSetIntervalID = undefined;
-          if (this.components.modal.style.display !== "none")
-            this.components.modalAnimations.fadeout();
-          if (this.components.dock.style.display !== "none")
-            this.components.dockAnimations.fadeout();
-          if (this.#modalAnimations.title) {
-            this.#modalAnimations.title.cancel();
-            this.#modalAnimations.title = undefined;
-            if (!this.silent)
-              logger.log(
-                "[SpotifyModal @ handlers#MODAL_UPDATE] Title element animation cancelled",
-              );
+          this.animations.modalContainer.fadeout();
+          if (this.animations.title) {
+            this.animations.title.cancel();
+            this.animations.title = undefined;
+            this.#logger(
+              "log",
+              `[${this.#name} @ handlers#MODAL_UPDATE] Title element animation cancelled`,
+            );
           }
-          if (this.#modalAnimations.artists) {
-            this.#modalAnimations.artists.cancel();
-            this.#modalAnimations.artists = undefined;
+          if (this.animations.artists) {
+            this.animations.artists.cancel();
+            this.animations.artists = undefined;
             if (!this.silent)
               logger.log(
-                "[SpotifyModal @ handlers#MODAL_UPDATE] Artists element animation cancelled",
+                "log",
+                `[${this.#name} @ handlers#MODAL_UPDATE] Artists element animation cancelled`,
               );
           }
           this.components.progressBarInner.style.width = "0%";
@@ -742,19 +763,29 @@ export class SpotifyModal {
             (this.#status.progress.passed / this.#status.progress.duration) *
             100
           ).toFixed(4)}%`;
-          if (!this.silent) logger.log("[SpotifyModal @ handlers#MODAL_UPDATE] Updated timebar");
+          this.#logger("log", `[${this.#name} @ handlers#MODAL_UPDATE] Updated timebar`);
         }
       },
       // Fallback for when SpotifyWatcher is not active
       FLUX_DISPATCHER_PLAYER_STATE_FALLBACK: async (): Promise<void> => {
         if (!this.#fluxDispatcherFallback) return;
-        if (!this.silent)
-          logger.log(
-            "[SpotifyModal @ handlers#FLUX_DISPATCHER_PLAYER_STATE_FALLBACK] Fallback triggered",
-          );
+
+        this.#logger(
+          "log",
+          `[${this.#name} @ handlers#FLUX_DISPATCHER_PLAYER_STATE_FALLBACK] Fallback triggered`,
+        );
         const playerData = (await spotifyControls.getPlayerState(
           this.watcher.accountId,
         )) as unknown as SpotifyWebSocketState;
+
+        if (!playerData) {
+          this.#logger(
+            "error",
+            `[${this.#name} @ handlers#FLUX_DISPATCHER_PLAYER_STATE_FALLBACK] Message empty`,
+          );
+          return;
+        }
+
         this.handlers.PLAYER_STATE_CHANGED(playerData);
         this.#fluxDispatcherFallback = false;
         this.watcher.dispatcher.unsubscribe(
@@ -763,8 +794,7 @@ export class SpotifyModal {
         );
       },
       PLAYER_STATE_CHANGED: async (data: SpotifyWebSocketState): Promise<void> => {
-        if (!this.silent)
-          logger.log("[SpotifyModal @ handlers#PLAYER_STATE_CHANGED] State update", data);
+        this.#logger("log", `[${this.#name} @ handlers#PLAYER_STATE_CHANGED] State update`, data);
         this.#status.active = data?.device ? data.device.is_active : false;
         this.#status.state = data;
         this.#status.playing = data.is_playing;
@@ -780,23 +810,20 @@ export class SpotifyModal {
         this.#updateModal(data);
       },
       DEVICE_STATE_CHANGED: async (data: SpotifyWebSocketDevices): Promise<void> => {
-        if (!this.silent)
-          logger.log("[SpotifyModal @ handlers#DEVICE_STATE_CHANGED] Devices list update", data);
+        this.#logger("log", `[${this.#name} @ handlers#DEVICE_STATE_CHANGED] Devices list update`, data);
         this.#status.devices = data;
         if (!data.length) this.#status.active = false;
         else this.#status.active = true;
         this.#updateModal();
       },
     };
+
     this.watcher = new SpotifyWatcher(this.silent);
     this.#fluxDispatcherFallback = true;
     this.#componentsReady = false;
     this.#injected = false;
+    this.#loaded = false;
     this.#panel = undefined;
-    this.#modalAnimations = {
-      title: undefined,
-      artists: undefined,
-    };
     this.#modalUpdateSetIntervalID = undefined;
     this.#modalUpdateRate = typeof modalUpdateRate === "number" ? modalUpdateRate : 500;
     this.watcher.on(
@@ -806,13 +833,27 @@ export class SpotifyModal {
           this.handlers[type](message);
         else
           logger.warn(
-            "[SpotifyModal @ watcher#message",
+            `[${this.#name} @ watcher#message`,
             "Unknown event type recieved:",
             type,
             message,
           );
       },
     );
+  }
+
+  get #name(): string {
+    return this.constructor.name;
+  }
+
+  get silent(): boolean {
+    return this.#silent;
+  }
+
+  set silent(state: boolean) {
+    if (typeof silent !== "boolean") return;
+    this.#silent = state;
+    this.#watcher.silent = state;
   }
 
   public async getClasses(): Promise<void> {
@@ -851,18 +892,18 @@ export class SpotifyModal {
       "text-sm/semibold": this.#classes?.["text-sm/semibold"] || colorClasses["text-sm/semibold"],
     };
 
-    if (!this.silent) logger.log("[SpotifyModal @ getClasses] Succeeded");
+    this.#logger("log", `[${this.#name} @ getClasses] Succeeded`);
   }
 
   public async getPanel(): Promise<void> {
     if (!this.#classes?.panels) await this.getClasses();
     this.#panel = document.body.getElementsByClassName(this.#classes.panels)[0];
-    if (!this.#panel) logger.error("[SpotifyModal @ getPanel] Panel not found");
+    if (!this.#panel) logger.error(`[${this.#name} @ getPanel] Panel not found`);
   }
 
   public async initializeComponents(): Promise<void> {
     if (this.#componentsReady) {
-      logger.warn("[SpotifyModal @ initializeComponents] Components already initialized");
+      logger.warn(`[${this.#name} @ initializeComponents] Components already initialized`);
       return;
     }
     if (
@@ -913,52 +954,58 @@ export class SpotifyModal {
     this.icons.skipNext.onclick = (): void => {
       spotifyControls.skipTrack(true, this.watcher.accountId);
     };
-    this.icons.repeat.onmouseenter = (): void => {
-      this.icons.repeat.style.color = "var(--brand-experiment-400)";
-    };
-    this.icons.repeat.onmouseleave = (): void => {
-      this.icons.repeat.style.color =
-        this.#status.repeat === "off" ? "var(--text-normal)" : "var(--brand-experiment-500)";
-    };
-    this.icons.shuffle.onmouseenter = (): void => {
-      this.icons.shuffle.style.color = "var(--brand-experiment-400)";
-    };
-    this.icons.shuffle.onmouseleave = (): void => {
-      this.icons.shuffle.style.color = this.#status.shuffle
-        ? "var(--brand-experiment-500)"
-        : "var(--text-normal)";
-    };
+    elementUtilities.createHoverEffect(
+      this.icons.repeat,
+      (): void => {
+        this.icons.repeat.style.color = "var(--brand-experiment-400)";
+      },
+      (): void => {
+        this.icons.repeat.style.color =
+          this.#status.repeat === "off" ? "var(--text-normal)" : "var(--brand-experiment-500)";
+      },
+      400,
+    );
+    elementUtilities.createHoverEffect(
+      this.icons.shuffle,
+      (): void => {
+        this.icons.shuffle.style.color = "var(--brand-experiment-400)";
+      },
+      (): void => {
+        this.icons.shuffle.style.color = this.#status.shuffle
+          ? "var(--brand-experiment-500)"
+          : "var(--text-normal)";
+      },
+      400,
+    );
 
     this.#componentsReady = true;
-    if (!this.silent) logger.log("[SpotifyModal @ initializeComponents] Succeeded");
+    this.#logger("log", `[${this.#name} @ initializeComponents] Succeeded`);
   }
 
   public async injectModal(): Promise<void> {
     if (this.#injected) {
-      logger.warn("[SpotifyModal @ injectModal] Already injected");
+      logger.warn(`[${this.#name} @ injectModal] Already injected`);
       return;
     }
     if (!this.#panel) await this.getPanel();
     if (!this.#panel) {
-      logger.error("[SpotifyModal @ injectModal] Panel not found");
+      logger.error(`[${this.#name} @ injectModal] Panel not found`);
       return;
     }
     if (!this.#componentsReady) await this.initializeComponents();
-    this.components.modal.style.display = "none";
-    this.components.dock.style.display = "none";
-    this.#panel.insertAdjacentElement("afterbegin", this.components.modal);
-    this.components.modal.insertAdjacentElement("afterend", this.components.dock);
+    this.components.modalContainer.style.display = "none";
+    this.#panel.insertAdjacentElement("afterbegin", this.components.modalContainer);
     this.#injected = true;
-    logger.log("[SpotifyModal @ injectModal] Succeeded");
+    logger.log(`[${this.#name} @ injectModal] Succeeded`);
   }
 
   public uninjectModal(): void {
     if (!this.#panel) {
-      logger.warn("[SpotifyModal @ uninjectModal] Panel not found");
+      logger.warn(`[${this.#name} @ uninjectModal] Panel not found`);
       return;
     }
     if (!this.#injected) {
-      logger.warn("[SpotifyModal @ uninjectModal] Already uninjected");
+      logger.warn(`[${this.#name} @ uninjectModal] Already uninjected`);
       return;
     }
 
@@ -967,10 +1014,9 @@ export class SpotifyModal {
       this.#modalUpdateSetIntervalID = undefined;
     }
 
-    this.#panel.removeChild(this.components.modal);
-    this.#panel.removeChild(this.components.dock);
+    this.#panel.removeChild(this.components.modalContainer);
     this.#injected = false;
-    logger.log("[SpotifyModal @ uninjectModal] Succeeded");
+    logger.log(`[${this.#name} @ uninjectModal] Succeeded`);
   }
 
   async #updateModal(data?: SpotifyWebSocketState): Promise<void> {
@@ -1001,8 +1047,7 @@ export class SpotifyModal {
           this.#modalUpdateRate,
         ) as unknown as number;
 
-      if (this.components.modal.style.display === "none") this.components.modalAnimations.fadein();
-      if (this.components.dock.style.display === "none") this.components.dockAnimations.fadein();
+      this.animations.modalContainer.fadein();
 
       if (data?.item?.is_local) {
         this.components.title.href = "";
@@ -1042,11 +1087,13 @@ export class SpotifyModal {
       if (this.components.title.scrollWidth > (this.components.title.offsetWidth as number) + 10) {
         if (this.components.title.className.includes(this.#classes.ellipsis))
           this.components.title.classList.remove(this.#classes.ellipsis);
-        this.#modalAnimations.title = SpotifyModal.getTextScrollingAnimation(this.components.title);
+        this.animations.title = elementUtilities.createTextScrollingAnimation(
+          this.components.title,
+        );
       } else {
-        if (this.#modalAnimations.title) {
-          this.#modalAnimations.title.cancel();
-          this.#modalAnimations.title = undefined;
+        if (this.animations.title) {
+          this.animations.title.cancel();
+          this.animations.title = undefined;
         }
         if (!this.components.title.className.includes(this.#classes.ellipsis))
           this.components.title.classList.add(this.#classes.ellipsis);
@@ -1073,13 +1120,13 @@ export class SpotifyModal {
       ) {
         if (this.components.artists.className.includes(this.#classes.ellipsis))
           this.components.artists.classList.remove(this.#classes.ellipsis);
-        this.#modalAnimations.artists = SpotifyModal.getTextScrollingAnimation(
+        this.animations.artists = elementUtilities.createTextScrollingAnimation(
           this.components.artists,
         );
       } else {
-        if (this.#modalAnimations.artists) {
-          this.#modalAnimations.artists.cancel();
-          this.#modalAnimations.artists = undefined;
+        if (this.animations.artists) {
+          this.animations.artists.cancel();
+          this.animations.artists = undefined;
         }
         if (!this.components.artists.className.includes(this.#classes.ellipsis))
           this.components.artists.classList.add(this.#classes.ellipsis);
@@ -1088,6 +1135,7 @@ export class SpotifyModal {
   }
 
   public async load(): Promise<void> {
+    if (this.#loaded) return;
     await this.watcher.load();
     this.watcher.dispatcher.subscribe(
       "SPOTIFY_PLAYER_STATE",
@@ -1095,14 +1143,17 @@ export class SpotifyModal {
     );
     await this.getClasses();
     await this.injectModal();
+    this.#loaded = true;
   }
 
   public unload(): void {
+    if (!this.#loaded) return;
     this.watcher.unload();
     this.watcher.dispatcher.unsubscribe(
       "SPOTIFY_PLAYER_STATE",
       this.handlers.FLUX_DISPATCHER_PLAYER_STATE_FALLBACK,
     );
     this.uninjectModal();
+    this.#loaded = false;
   }
-}
+} */
