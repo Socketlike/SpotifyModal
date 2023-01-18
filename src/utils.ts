@@ -6,8 +6,8 @@
   @typescript-eslint/require-await,
   new-cap
 */
-import { Logger, common, webpack } from "replugged";
-import { EventEmitter, SpotifyAPI, SpotifySocketFunctions, elementUtilities } from "./common";
+import { Logger, common, webpack } from 'replugged';
+import { EventEmitter, SpotifyAPI, SpotifySocketFunctions, elementUtilities } from './common';
 import {
   FadeAnimations,
   FluxDispatcher,
@@ -19,14 +19,8 @@ import {
   SpotifyWebSocketRawMessage,
   SpotifyWebSocketRawParsedMessage,
   SpotifyWebSocketState,
-} from "./types";
-import { animations, components, icons } from "./components";
-
-declare const DiscordNative: {
-  clipboard: {
-    copy: (value: string) => void;
-  };
-};
+} from './types';
+import { animations, components, icons } from '../unstaged/components';
 
 export class SpotifyWatcher extends EventEmitter {
   public readonly name = this.constructor.name;
@@ -35,7 +29,7 @@ export class SpotifyWatcher extends EventEmitter {
       this.handlers.spotifyUpdate({ accountId });
     },
     spotifyAccessTokenRevoked: (accountId: string): void => {
-      this.accountId = "";
+      this.accountId = '';
     },
     spotifyUpdate: async (data: { accountId: string }): Promise<void> => {
       if (this.#accountId === data?.accountId) return;
@@ -46,16 +40,16 @@ export class SpotifyWatcher extends EventEmitter {
       if (!message?.data) return;
       const parsed = JSON.parse(message.data) as unknown as SpotifyWebSocketRawParsedMessage;
 
-      if (parsed?.type && parsed.type !== "pong") {
+      if (parsed?.type && parsed.type !== 'pong') {
         if (!parsed?.payloads) return;
 
-        if (parsed.payloads[0].events[0].type === "PLAYER_STATE_CHANGED")
+        if (parsed.payloads[0].events[0].type === 'PLAYER_STATE_CHANGED')
           this.#state = parsed.payloads[0].events[0].event.state;
-        else if (parsed.payloads[0].events[0].type === "DEVICE_STATE_CHANGED")
+        else if (parsed.payloads[0].events[0].type === 'DEVICE_STATE_CHANGED')
           this.#devices = parsed.payloads[0].events[0].event.devices;
 
         this.emit(
-          parsed.payloads[0].events[0].type === "PLAYER_STATE_CHANGED" ? "player" : "devices",
+          parsed.payloads[0].events[0].type === 'PLAYER_STATE_CHANGED' ? 'player' : 'devices',
           { state: this.#state, devices: this.#devices },
         );
       }
@@ -63,12 +57,12 @@ export class SpotifyWatcher extends EventEmitter {
   };
 
   #account: undefined | SpotifySocket = undefined;
-  #accountId = "";
+  #accountId = '';
   #api: undefined | SpotifyAPI = undefined;
   #devices: undefined | SpotifyDevices[] = undefined;
   #dispatcher: undefined | FluxDispatcher = undefined;
   #dispatcherStatus = false;
-  #logger = new Logger("SpotifyModal", this.name);
+  #logger = new Logger('SpotifyModal', this.name);
   #state: undefined | SpotifyWebSocketState = undefined;
   #socketFunctions = new SpotifySocketFunctions();
   #websocket: undefined | WebSocket = undefined;
@@ -87,26 +81,26 @@ export class SpotifyWatcher extends EventEmitter {
   }
 
   public set accountId(accountId: string) {
-    if (typeof accountId !== "string") return;
+    if (typeof accountId !== 'string') return;
     if (!accountId) {
       this.#removeSocketListener();
       this.#websocket = undefined;
       this.#account = undefined;
       this.#api = undefined;
       this.#accountId = undefined;
-      this.#logger.log("Removed current account");
+      this.#logger.log('Removed current account');
     } else if (!this.#socketFunctions.accountList) {
       this.#socketFunctions.getAccounts().then((accounts: Record<string, SpotifySocket>): void => {
         if (accountId in accounts) {
           this.#accountId = accountId;
           this.#getAccountAndSocket(this.#accountId);
-          this.#logger.log("Registered new account:", this.#accountId);
+          this.#logger.log('Registered new account:', this.#accountId);
         }
       });
     } else if (accountId in this.#socketFunctions.accountList) {
       this.#accountId = accountId;
       this.#getAccountAndSocket(this.#accountId);
-      this.#logger.log("Registered new account:", this.#accountId);
+      this.#logger.log('Registered new account:', this.#accountId);
     }
   }
 
@@ -127,7 +121,7 @@ export class SpotifyWatcher extends EventEmitter {
       this.#dispatcher = common.fluxDispatcher as unknown as FluxDispatcher;
     else {
       const dispatcher = await webpack.waitForModule(
-        webpack.filters.byProps("_subscriptions", "subscribe", "unsubscribe"),
+        webpack.filters.byProps('_subscriptions', 'subscribe', 'unsubscribe'),
       );
 
       if (dispatcher) this.#dispatcher = dispatcher as unknown as FluxDispatcher;
@@ -138,39 +132,39 @@ export class SpotifyWatcher extends EventEmitter {
     if (!this.#dispatcher) await this.getFluxDispatcher();
     if (this.#dispatcherStatus) return;
 
-    this.#dispatcher.subscribe("SPOTIFY_PROFILE_UPDATE", this.handlers.spotifyUpdate);
-    this.#dispatcher.subscribe("SPOTIFY_SET_DEVICES", this.handlers.spotifyUpdate);
+    this.#dispatcher.subscribe('SPOTIFY_PROFILE_UPDATE', this.handlers.spotifyUpdate);
+    this.#dispatcher.subscribe('SPOTIFY_SET_DEVICES', this.handlers.spotifyUpdate);
     this.#dispatcher.subscribe(
-      "SPOTIFY_ACCOUNT_ACCESS_TOKEN_REVOKE",
+      'SPOTIFY_ACCOUNT_ACCESS_TOKEN_REVOKE',
       this.handlers.spotifyAccessTokenRevoked,
     );
-    this.#dispatcher.subscribe("SPOTIFY_SET_ACTIVE_DEVICES", this.handlers.spotifyUpdate);
-    this.#dispatcher.subscribe("SPOTIFY_PLAYER_STATE", this.handlers.spotifyUpdate);
+    this.#dispatcher.subscribe('SPOTIFY_SET_ACTIVE_DEVICES', this.handlers.spotifyUpdate);
+    this.#dispatcher.subscribe('SPOTIFY_PLAYER_STATE', this.handlers.spotifyUpdate);
 
     this.#dispatcherStatus = true;
-    this.#logger.log("Dispatcher hooks setup");
+    this.#logger.log('Dispatcher hooks setup');
   }
 
   #removeDispatcherHooks(): void {
     if (!this.#dispatcher || !this.#dispatcherStatus) return;
 
-    this.#dispatcher.unsubscribe("SPOTIFY_PROFILE_UPDATE", this.handlers.spotifyUpdate);
-    this.#dispatcher.unsubscribe("SPOTIFY_SET_DEVICES", this.handlers.spotifyUpdate);
+    this.#dispatcher.unsubscribe('SPOTIFY_PROFILE_UPDATE', this.handlers.spotifyUpdate);
+    this.#dispatcher.unsubscribe('SPOTIFY_SET_DEVICES', this.handlers.spotifyUpdate);
     this.#dispatcher.unsubscribe(
-      "SPOTIFY_ACCOUNT_ACCESS_TOKEN_REVOKE",
+      'SPOTIFY_ACCOUNT_ACCESS_TOKEN_REVOKE',
       this.handlers.spotifyAccessTokenRevoked,
     );
-    this.#dispatcher.unsubscribe("SPOTIFY_SET_ACTIVE_DEVICES", this.handlers.spotifyUpdate);
-    this.#dispatcher.unsubscribe("SPOTIFY_PLAYER_STATE", this.handlers.spotifyUpdate);
+    this.#dispatcher.unsubscribe('SPOTIFY_SET_ACTIVE_DEVICES', this.handlers.spotifyUpdate);
+    this.#dispatcher.unsubscribe('SPOTIFY_PLAYER_STATE', this.handlers.spotifyUpdate);
 
     this.#dispatcherStatus = false;
-    this.#logger.log("Dispatcher hooks removed");
+    this.#logger.log('Dispatcher hooks removed');
   }
 
   #removeSocketListener(): void {
     if (this.#websocket) {
-      this.#websocket.removeEventListener("message", this.handlers.websocketListener);
-      this.#logger.log("Socket listener removed for account:", this.#accountId);
+      this.#websocket.removeEventListener('message', this.handlers.websocketListener);
+      this.#logger.log('Socket listener removed for account:', this.#accountId);
     }
   }
 
@@ -181,13 +175,13 @@ export class SpotifyWatcher extends EventEmitter {
     this.#websocket = await this.#socketFunctions.getWebSocket(accountId);
     this.#api = await this.#socketFunctions.getAPI(accountId);
 
-    if (typeof accountId === "string" && this.#account) this.#accountId = accountId;
+    if (typeof accountId === 'string' && this.#account) this.#accountId = accountId;
     else if (this.#account) this.#accountId = this.#account.accountId;
 
     if (this.#websocket instanceof WebSocket)
-      this.#websocket.addEventListener("message", this.handlers.websocketListener);
+      this.#websocket.addEventListener('message', this.handlers.websocketListener);
 
-    this.#logger.log("Got account:", this.#accountId);
+    this.#logger.log('Got account:', this.#accountId);
   }
 
   async #tryGetStateAndDevices(): Promise<void> {
@@ -202,7 +196,7 @@ export class SpotifyWatcher extends EventEmitter {
       const data = await state.text();
       if (data) {
         this.#state = JSON.parse(data) as SpotifyWebSocketState;
-        this.emit("player", { state: this.#state, devices: this.#devices });
+        this.emit('player', { state: this.#state, devices: this.#devices });
       }
     }
 
@@ -212,7 +206,7 @@ export class SpotifyWatcher extends EventEmitter {
         const parsedDevices = JSON.parse(data) as SpotifyWebSocketDevices;
         if (Array.isArray(parsedDevices?.devices)) {
           this.#devices = parsedDevices?.devices;
-          this.emit("devices", { state: this.#state, devices: this.#devices });
+          this.emit('devices', { state: this.#state, devices: this.#devices });
         }
       }
     }
@@ -221,13 +215,13 @@ export class SpotifyWatcher extends EventEmitter {
   public async load(): Promise<void> {
     await this.#setupDispatcherHooks();
     await this.#tryGetStateAndDevices();
-    this.#logger.log("Loaded");
+    this.#logger.log('Loaded');
   }
 
   public unload(): void {
     this.#removeDispatcherHooks();
     this.#removeSocketListener();
-    this.#logger.log("Unloaded");
+    this.#logger.log('Unloaded');
   }
 }
 

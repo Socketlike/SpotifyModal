@@ -104,3 +104,6 @@ dist
 .tern-port
 
 /*.asar
+
+# Folders to contain "not ready for prod" things
+unstaged/
