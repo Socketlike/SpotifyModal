@@ -3,11 +3,11 @@ extends:
   - eslint-config-dmitmel/presets/node
 env:
   browser: true
-parser: "@typescript-eslint/parser"
+parser: '@typescript-eslint/parser'
 parserOptions:
   sourceType: module
 plugins:
-  - "@typescript-eslint"
+  - '@typescript-eslint'
 rules:
   func-names: off
   node/no-unsupported-features/es-syntax:
@@ -24,6 +24,7 @@ rules:
     - ignores:
         - fs.promises
 
+  constructor-super: error
   node/no-missing-require: off
   node/no-missing-import: off
   node/no-unpublished-import: off
@@ -34,10 +35,10 @@ rules:
   no-undef: off
   no-unused-vars: off
   prefer-destructuring: off
-  "@typescript-eslint/no-unused-vars": error
+  '@typescript-eslint/no-unused-vars': error
 
 overrides:
-  - files: "**/*.ts"
+  - files: '**/*.ts'
     extends: eslint-config-dmitmel/presets/typescript-addon
     rules:
       node/no-missing-import: off
@@ -47,13 +48,13 @@ overrides:
       no-void: off
       consistent-return: off
 
-  - files: "**/src/**/*.ts"
+  - files: '**/src/**/*.ts'
     extends: eslint-config-dmitmel/rules/typescript/with-type-checking
 
-  - files: "**/*.d.ts"
+  - files: '**/*.d.ts'
     rules:
       no-var: off
 
-  - files: "src/**/*.ts"
+  - files: 'src/**/*.ts'
     parserOptions:
       project: tsconfig.json
