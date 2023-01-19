@@ -1,4 +1,5 @@
 import { Component } from './common';
+import { SpotifyTrack } from './types';
 
 /*
 const a = elementUtilities.attributes;
@@ -6,277 +7,897 @@ const e = elementUtilities.element;
 const f = elementUtilities.effects;
 */
 
-const pathProps = {
-  fill: 'currentColor',
+declare const DiscordNative: {
+  clipboard: {
+    copy: (content: string) => void;
+  };
 };
 
-const play = new Component('path', 'play-icon-path', {
-  svg: true,
-  classes: ['spotify-modal-play-icon-path'],
-  children: undefined,
-  props: { ...pathProps, d: 'M8,5.14V19.14L19,12.14L8,5.14Z' },
-});
+class PlayPauseIcon extends Component {
+  public play = new Component('path', {
+    classes: 'play-path',
+    props: { fill: 'currentColor', d: 'M14,19H18V5H14M6,19H10V5H6V19Z' },
+  });
 
-const pause = new Component('path', 'pause-icon-path', {
-  svg: true,
-  classes: ['spotify-modal-play-icon-path'],
-  children: undefined,
-  props: { ...pathProps, d: 'M14,19H18V5H14M6,19H10V5H6V19Z' },
-});
+  public pause = new Component('path', {
+    classes: 'pause-path',
+    props: { fill: 'currentColor', d: 'M14,19H18V5H14M6,19H10V5H6V19Z' },
+  });
 
-/* Play & pause icon */
-const play = e('path', 'spotify-modal-play-icon-path', undefined, {
-  ...a.path,
-  d: 'M8,5.14V19.14L19,12.14L8,5.14Z',
-}) as SVGPathElement;
-const pause = e('path', 'spotify-modal-pause-icon-path', undefined, {
-  ...a.path,
-  d: 'M14,19H18V5H14M6,19H10V5H6V19Z',
-}) as SVGPathElement;
-const playPause = e(
-  'svg',
-  'spotify-modal-play-pause-icon',
-  'color: var(--text-normal); margin: 0px 10px',
-  a.svg,
-  [play],
-) as SVGSVGElement;
-f('hover', playPause, {
-  hover: { duration: 400, onhover: 'var(--brand-experiment-500)', onleave: 'var(--text-normal)' },
-});
+  public defaultColor = 'var(--text-normal)';
+  public hoverColor = 'var(--brand-experiment-500)';
+  #state = false;
 
-/* Repeat icon */
-const repeatAll = e('path', 'spotify-modal-repeat-all-path', undefined, {
-  ...a.path,
-  d: 'M17,17H7V14L3,18L7,22V19H19V13H17M7,7H17V10L21,6L17,2V5H5V11H7V7Z',
-}) as SVGPathElement;
-const repeatOne = e('path', 'spotify-modal-repeat-one-path', undefined, {
-  ...a.path,
-  d: 'M13,15V9H12L10,10V11H11.5V15M17,17H7V14L3,18L7,22V19H19V13H17M7,7H17V10L21,6L17,2V5H5V11H7V7Z',
-}) as SVGPathElement;
-const repeatTitle = e(
-  { name: 'title', svg: true },
-  'spotify-modal-repeat-icon-title',
-) as SVGTitleElement;
-const repeat = e(
-  'svg',
-  'spotify-modal-repeat-icon',
-  'color: var(--text-normal); margin: 0px 10px 0px auto',
-  a.svg,
-  [repeatTitle, repeatAll],
-) as SVGSVGElement;
+  public constructor(
+    defaultColor = 'var(--text-normal)',
+    hoverColor = 'var(--brand-experiment-500)',
+  ) {
+    super('svg', {
+      classes: 'play-pause-icon',
+      props: { viewBox: '0 0 24 24' },
+      style: { minWidth: '24px', height: '24px', margin: '0px 10px', transitionDuration: '400ms' },
+    });
 
-/* Shuffle icon */
-const shuffleTitle = e(
-  { name: 'title', svg: true },
-  'spotify-modal-shuffle-icon-title',
-) as SVGTitleElement;
-const shuffle = e('svg', 'spotify-modal-shuffle-icon', 'color: var(--text-normal)', a.svg, [
-  shuffleTitle,
-  e('path', 'spotify-modal-shuffle-icon-path', undefined, {
-    ...a.path,
-    d: 'M14.83,13.41L13.42,14.82L16.55,17.95L14.5,20H20V14.5L17.96,16.54L14.83,13.41M14.5,4L16.54,6.04L4,18.59L5.41,20L17.96,7.46L20,9.5V4M10.59,9.17L5.41,4L4,5.41L9.17,10.58L10.59,9.17Z',
-  }),
-]) as SVGSVGElement;
+    this.addChildren(this.play);
 
-/* Skip previous icon */
-const skipPrevious = e(
-  'svg',
-  'spotify-modal-skip-previous-icon',
-  'color: var(--text-normal); margin-left: auto',
-  a.svg,
-  [
-    e('path', 'spotify-modal-skip-previous-icon-path', undefined, {
-      ...a.path,
-      d: 'M6,18V6H8V18H6M9.5,12L18,6V18L9.5,12Z',
-    }),
-  ],
-) as SVGSVGElement;
-f('hover', skipPrevious, {
-  hover: { duration: 400, onhover: 'var(--brand-experiment-400)', onleave: 'var(--text-normal)' },
-});
+    this.defaultColor = typeof defaultColor === 'string' ? defaultColor : this.defaultColor;
+    this.hoverColor = typeof hoverColor === 'string' ? hoverColor : this.hoverColor;
 
-/* Skip next icon */
-const skipNext = e('svg', 'spotify-modal-skip-next-icon', 'color: var(--text-normal)', a.svg, [
-  e('path', 'spotify-modal-skip-next-icon-path', undefined, {
-    ...a.path,
-    d: 'M16,18H18V6H16M6,18L14.5,12L6,6V18Z',
-  }),
-]) as SVGSVGElement;
-f('hover', skipNext, {
-  hover: { duration: 400, onhover: 'var(--brand-experiment-400)', onleave: 'var(--text-normal)' },
-});
+    this.setStyle({ color: this.defaultColor });
+
+    this.on('mouseenter', (): void => this.setStyle({ color: this.hoverColor }));
+    this.on('mouseleave', (): void => this.setStyle({ color: this.defaultColor }));
+  }
+
+  get state(): boolean {
+    return this.#state;
+  }
+
+  set state(state: boolean) {
+    if (this.#state === state) return;
+    this.#state = Boolean(state);
+    this.updateIcon();
+  }
+
+  updateIcon(): void {
+    if ([...this.children.values()][0].classes.contains('play-path') && !this.#state) return;
+    if ([...this.children.values()][0].classes.contains('pause-path') && this.#state) return;
+
+    this.replaceChildren(this.#state ? this.pause : this.play);
+  }
+
+  flipState(): void {
+    this.state = !this.#state;
+  }
+}
+
+class RepeatIcon extends Component {
+  public all = new Component('path', {
+    classes: 'repeat-all-path',
+    props: {
+      fill: 'currentColor',
+      d: 'M17,17H7V14L3,18L7,22V19H19V13H17M7,7H17V10L21,6L17,2V5H5V11H7V7Z',
+    },
+  });
+
+  public one = new Component('path', {
+    classes: 'repeat-one-path',
+    props: {
+      fill: 'currentColor',
+      d: 'M13,15V9H12L10,10V11H11.5V15M17,17H7V14L3,18L7,22V19H19V13H17M7,7H17V10L21,6L17,2V5H5V11H7V7Z',
+    },
+  });
+
+  public title = new Component('title', {
+    classes: 'repeat-icon-title',
+  });
+
+  public defaultColor = 'var(--text-normal)';
+  public hoverColor = 'var(--brand-experiment-300)';
+  public onColor = 'var(--brand-experiment-500)';
+  #state = false;
+  #mode = 'all';
+
+  public constructor(
+    defaultColor = 'var(--text-normal)',
+    hoverColor = 'var(--brand-experiment-300)',
+    onColor = 'var(--brand-experiment-500)',
+  ) {
+    super('svg', {
+      classes: 'repeat-icon',
+      props: { viewBox: '0 0 24 24' },
+      style: {
+        minWidth: '24px',
+        height: '24px',
+        margin: '0px 10px 0px auto',
+        transitionDuration: '400ms',
+      },
+    });
+
+    this.addChildren(this.title, this.all);
+
+    this.defaultColor = typeof defaultColor === 'string' ? defaultColor : this.defaultColor;
+    this.hoverColor = typeof hoverColor === 'string' ? hoverColor : this.hoverColor;
+    this.onColor = typeof onColor === 'string' ? onColor : this.onColor;
+
+    this.setStyle({ color: this.defaultColor });
+
+    this.on('mouseenter', (): void => {
+      this.setStyle({ color: this.hoverColor });
+    });
+    this.on('mouseleave', (): void => {
+      this.setStyle({ color: this.#state ? this.onColor : this.defaultColor });
+    });
+  }
+
+  public get state(): boolean {
+    return this.#state;
+  }
+
+  public set state(state: boolean) {
+    if (this.#state === state) return;
+    this.#state = state;
+    this.updateIconState();
+  }
+
+  public get mode(): string {
+    return this.#mode;
+  }
+
+  public set mode(mode: 'all' | 'one') {
+    if (!['all', 'one'].includes(mode) || this.#mode === mode) return;
+    this.#mode = mode;
+    this.updateIconMode();
+  }
+
+  public set titleText(title: string) {
+    if (typeof title !== 'string') return;
+    this.title.replaceChildren(document.createTextNode(title));
+  }
+
+  public updateIconState(): void {
+    this.setStyle({ color: this.#state ? this.onColor : this.defaultColor });
+  }
+
+  public updateIconMode(): void {
+    if ([...this.children.values()][0].classes.contains('repeat-all-path') && this.#mode === 'all')
+      return;
+    if ([...this.children.values()][0].classes.contains('repeat-one-path') && this.#mode === 'one')
+      return;
+
+    this.replaceChildren(this.#mode === 'all' ? this.all : this.one);
+  }
+
+  public flipState(): void {
+    this.state = !this.#state;
+  }
+
+  public flipMode(): void {
+    this.mode = this.#mode === 'all' ? 'one' : 'all';
+  }
+}
+
+class ShuffleIcon extends Component {
+  public path = new Component('path', {
+    classes: 'shuffle-icon-path',
+    props: {
+      fill: 'currentColor',
+      d: 'M14.83,13.41L13.42,14.82L16.55,17.95L14.5,20H20V14.5L17.96,16.54L14.83,13.41M14.5,4L16.54,6.04L4,18.59L5.41,20L17.96,7.46L20,9.5V4M10.59,9.17L5.41,4L4,5.41L9.17,10.58L10.59,9.17Z',
+    },
+  });
+
+  public title = new Component('title', {
+    classes: 'shuffle-icon-title',
+  });
+
+  public defaultColor = 'var(--text-normal)';
+  public hoverColor = 'var(--brand-experiment-300)';
+  public onColor = 'var(--brand-experiment-500)';
+  #state = false;
+
+  public constructor(
+    defaultColor = 'var(--text-normal)',
+    hoverColor = 'var(--brand-experiment-300)',
+    onColor: 'var(--brand-experiment-500)',
+  ) {
+    super('svg', {
+      classes: 'shuffle-icon',
+      props: { viewBox: '0 0 24 24' },
+      style: { minWidth: '24px', height: '24px', transitionDuration: '400ms' },
+    });
+
+    this.addChildren(this.title, this.path);
+
+    this.defaultColor = typeof defaultColor === 'string' ? defaultColor : this.defaultColor;
+    this.hoverColor = typeof hoverColor === 'string' ? hoverColor : this.hoverColor;
+    this.onColor = typeof onColor === 'string' ? onColor : this.onColor;
+
+    this.setStyle({ color: this.defaultColor });
+
+    this.on('mouseenter', (): void => {
+      this.setStyle({ color: this.hoverColor });
+    });
+    this.on('mouseleave', (): void => {
+      this.setStyle({ color: this.#state ? this.onColor : this.defaultColor });
+    });
+  }
+
+  public get state(): boolean {
+    return this.#state;
+  }
+
+  public set state(state: boolean) {
+    if (this.#state === state) return;
+    this.#state = state;
+    this.updateIcon();
+  }
+
+  public set titleText(title: string) {
+    if (typeof title !== 'string') return;
+    this.title.replaceChildren(document.createTextNode(title));
+  }
+
+  public updateIcon(): void {
+    this.setStyle({ color: this.#state ? this.onColor : this.defaultColor });
+  }
+
+  public flipState(): void {
+    this.state = !this.#state;
+  }
+}
+
+class SkipPrevIcon extends Component {
+  public path = new Component('path', {
+    classes: 'skip-previous-icon-path',
+    props: { fill: 'currentColor', d: 'M6,18V6H8V18H6M9.5,12L18,6V18L9.5,12Z' },
+  });
+
+  public defaultColor = 'var(--text-normal)';
+  public hoverColor = 'var(--brand-experiment-500)';
+
+  public constructor(
+    defaultColor = 'var(--text-normal)',
+    hoverColor = 'var(--brand-experiment-500)',
+  ) {
+    super('svg', {
+      classes: 'skip-previous-icon',
+      props: { viewBox: '0 0 24 24' },
+      style: { minWidth: '24px', height: '24px', marginLeft: 'auto', transitionDuration: '400ms' },
+    });
+
+    this.addChildren(this.path);
+
+    this.defaultColor = typeof defaultColor === 'string' ? defaultColor : this.defaultColor;
+    this.hoverColor = typeof hoverColor === 'string' ? hoverColor : this.hoverColor;
+
+    this.setStyle({ color: this.defaultColor });
+
+    this.on('mouseenter', (): void => this.setStyle({ color: this.hoverColor }));
+    this.on('mouseleave', (): void => this.setStyle({ color: this.defaultColor }));
+  }
+}
+
+class SkipNextIcon extends Component {
+  public path = new Component('path', {
+    classes: 'skip-next-icon-path',
+    props: { fill: 'currentColor', d: 'M16,18H18V6H16M6,18L14.5,12L6,6V18Z' },
+  });
+
+  public defaultColor = 'var(--text-normal)';
+  public hoverColor = 'var(--brand-experiment-500)';
+
+  public constructor(
+    defaultColor = 'var(--text-normal)',
+    hoverColor = 'var(--brand-experiment-500)',
+  ) {
+    super('svg', {
+      classes: 'skip-next-icon',
+      props: { viewBox: '0 0 24 24' },
+      style: { minWidth: '24px', height: '24px', transitionDuration: '400ms' },
+    });
+
+    this.addChildren(this.path);
+
+    this.defaultColor = typeof defaultColor === 'string' ? defaultColor : this.defaultColor;
+    this.hoverColor = typeof hoverColor === 'string' ? hoverColor : this.hoverColor;
+
+    this.setStyle({ color: this.defaultColor });
+
+    this.on('mouseenter', (): void => this.setStyle({ color: this.hoverColor }));
+    this.on('mouseleave', (): void => this.setStyle({ color: this.defaultColor }));
+  }
+}
 
 export const icons = {
-  play,
-  pause,
-  playPause,
-  repeatTitle,
-  repeatAll,
-  repeatOne,
-  repeat,
-  shuffleTitle,
-  shuffle,
-  skipPrevious,
-  skipNext,
+  PlayPauseIcon,
+  RepeatIcon,
+  ShuffleIcon,
+  SkipPrevIcon,
+  SkipNextIcon,
 };
 
-/* Dock icons container */
-const dockIcons = e(
-  'div',
-  'spotify-modal-dock-icons',
-  'padding-top: 5px; ' +
-    'padding-left: 5px; ' +
-    'height: 24px; ' +
-    'width: 100%; ' +
-    'display: flex; ' +
-    'flex-direction: row',
-  undefined,
-  [shuffle, skipPrevious, playPause, skipNext, repeat],
-) as HTMLDivElement;
-const dockIconsFade = f('fade', dockIcons) as FadeAnimations;
+class DockIcons extends Component {
+  public shuffle = new ShuffleIcon();
+  public skipPrevious = new SkipPrevIcon();
+  public playPause = new PlayPauseIcon();
+  public skipNext = new SkipNextIcon();
+  public repeat = new RepeatIcon();
 
-/* Song title */
-const title = e('a', 'spotify-modal-song-title', 'font-size: 14px', {
-  target: '_blank',
-}) as HTMLAnchorElement;
+  public fade = {
+    _: {
+      display: 'flex',
+      fadein: this.addAnimation({ opacity: [0, 1] }, 700),
+      fadeout: this.addAnimation({ opacity: [1, 0] }, 700),
+    },
+    fadein: (): void => {
+      if (this.element.style.display === 'none') {
+        this.setStyle({ display: this.fade._.display });
+        this.fade._.fadein.play();
+      }
+    },
+    fadeout: (): void => {
+      if (this.element.style.display !== 'none') {
+        this.fade._.fadeout.play();
+        this.fade._.fadeout.onfinish = (): void => {
+          this.setStyle({ display: 'none' });
+        };
+      }
+    },
+  };
 
-/* Artist list */
-const artists = e(
-  'div',
-  'spotify-modal-song-artists',
-  'color: var(--header-secondary); font-size: 13px',
-) as HTMLDivElement;
+  public constructor() {
+    super('div', {
+      classes: 'dock-icons',
+      style: {
+        paddingTop: '5px',
+        paddingLeft: '5px',
+        height: '24px',
+        width: '100%',
+        display: 'flex',
+        flexDirection: 'row',
+      },
+    });
 
-/* Song title & Artists container */
-const metadata = e(
-  'div',
-  'spotify-modal-metadata',
-  'margin: 10px; ' +
-    'display: flex; ' +
-    'flex-direction: column; ' +
-    'max-width: 145px; ' +
-    'overflow: hidden; ' +
-    'white-space: nowrap',
-  undefined,
-  [title, artists],
-) as HTMLDivElement;
-const metadataFade = f('fade', metadata) as FadeAnimations;
+    this.addChildren(this.shuffle, this.skipPrevious, this.playPause, this.skipNext, this.repeat);
+  }
+}
 
-/* Current playback time element */
-const playbackTimeCurrent = e('span', 'spotify-modal-playback-time-current') as HTMLSpanElement;
+class Title extends Component {
+  public scrollingAnimation = this.addAnimation(
+    [
+      { transform: 'translateX(0)' },
+      { transform: 'translateX(0)', offset: 0.2 },
+      {
+        transform: `translateX(-${this.element.scrollWidth - this.element.offsetWidth}px)`,
+        offset: 0.8,
+      },
+      { transform: `translateX(-${this.element.scrollWidth - this.element.offsetWidth}px)` },
+    ],
+    {
+      iterations: Infinity,
+      duration: (this.element.scrollWidth - this.element.offsetWidth) * 50,
+      direction: 'alternate-reverse',
+      easing: 'linear',
+    },
+  );
 
-/* Playback duration element */
-const playbackTimeDuration = e(
-  'span',
-  'spotify-modal-playback-time-duration',
-  'margin-left: auto; margin-right: 16px',
-) as HTMLSpanElement;
+  public color = 'var(--text-normal)';
+  public textOverflowClass = '';
 
-/* Playback time display container */
-const playbackTimeDisplay = e(
-  'div',
-  'spotify-modal-playback-time',
-  'display: flex; ' +
-    'position: relative; ' +
-    'top: -7px; ' +
-    'left: 8px; ' +
-    'height: 16px; ' +
-    'color: var(--text-normal); ' +
-    'font-size: 12px',
-  undefined,
-  [playbackTimeCurrent, playbackTimeDuration],
-) as HTMLDivElement;
-const playbackTimeDisplayFade = f('fade', playbackTimeDisplay) as FadeAnimations;
+  public constructor(color = 'var(--text-normal)', textOverflowClass?: string) {
+    super('a', {
+      classes: 'song-title',
+      props: { target: '_blank' },
+      style: { fontSize: '14px' },
+    });
 
-/* Progress bar inner */
-const progressBarInner = e(
-  'div',
-  'spotify-modal-progressbar-inner',
-  'background-color: var(--text-normal); ' +
-    'height: 4px; ' +
-    'width: 0%; ' +
-    'max-width: 100%; ' +
-    'border-radius: 8px',
-) as HTMLDivElement;
+    this.color = typeof color === 'string' ? color : this.color;
+    this.textOverflowClass = typeof textOverflowClass === 'string' ? textOverflowClass : '';
 
-/* Progress bar */
-const progressBar = e(
-  'div',
-  'spotify-modal-progressbar',
-  'height: 4px; ' +
-    'border-radius: 8px; ' +
-    'background-color: var(--background-modifier-accent); ' +
-    'width: calc(100% - 10px); ' +
-    'position: relative; ' +
-    'left: 5px; ' +
-    'top: -5px; ' +
-    'margin: 0px',
-  undefined,
-  [progressBarInner],
-) as HTMLDivElement;
-const progressBarFade = f('fade', progressBar) as FadeAnimations;
+    this.setStyle({ color: this.color });
 
-/* Cover art */
-const coverArt = e(
-  'image',
-  'spotify-modal-cover-art',
-  'max-height: 80%; max-width: 80%; border-radius: 8px; object-fit: contain',
-) as HTMLImageElement;
-const coverArtFade = f('fade', coverArt) as FadeAnimations;
+    this.on('contextmenu', () => {
+      if (this.element.href) DiscordNative.clipboard.copy(this.element.href);
+    });
+  }
 
-/* Playback time & Icons container */
-const dock = e(
-  'div',
-  'spotify-modal-dock',
-  'display: flex; flex-direction: column; padding-bottom: 4px',
-  undefined,
-  [playbackTimeDisplay, progressBar, dockIcons],
-) as HTMLDivElement;
-const dockFade = f('fade', dock) as FadeAnimations;
+  public setInnerText(text: string, url?: string) {
+    if (typeof text !== 'string') return;
+    this.setProps({ innerText: text, href: typeof url === 'string' ? url : '' });
+    this.setStyle({
+      textDecoration: typeof url === 'string' ? '' : 'none',
+      cursor: typeof url === 'string' ? '' : 'default',
+    });
+    if (this.element.scrollWidth > (this.element.offsetWidth as number) + 10) {
+      this.removeClasses(this.rtetextOverflowClass);
+      this.scrollingAnimation.play();
+    } else {
+      this.addClasses(this.textOverflowClass);
+      this.scrollingAnimation.cancel();
+    }
+  }
+}
 
-/* Main modal */
-const modal = e(
-  'div',
-  'spotify-modal',
-  'display: flex; height: 60px; padding-bottom: 8px; padding-top: 4px',
-  undefined,
-  [coverArt, metadata],
-) as HTMLDivElement;
-const modalFade = f('fade', modal) as FadeAnimations;
+class Artists extends Component {
+  public scrollingAnimation = this.addAnimation(
+    [
+      { transform: 'translateX(0)' },
+      { transform: 'translateX(0)', offset: 0.2 },
+      {
+        transform: `translateX(-${this.element.scrollWidth - this.element.offsetWidth}px)`,
+        offset: 0.8,
+      },
+      { transform: `translateX(-${this.element.scrollWidth - this.element.offsetWidth}px)` },
+    ],
+    {
+      iterations: Infinity,
+      duration: (this.element.scrollWidth - this.element.offsetWidth) * 50,
+      direction: 'alternate-reverse',
+      easing: 'linear',
+    },
+  );
 
-/* Modal container */
-const modalContainer = e(
-  'div',
-  'spotify-modal-container',
-  'display: flex; flex-direction: column',
-  undefined,
-  [modal, dock],
-) as HTMLDivElement;
-const modalContainerFade = f('fade', modalContainer) as FadeAnimations;
+  public textOverflowClass = '';
+  public color = 'var(--header-secondary)';
+
+  public constructor(color = 'var(--header-secondary)', textOverflowClass?: string) {
+    super('span', {
+      classes: 'song-artists',
+      props: { target: '_blank' },
+      style: { fontSize: '13px' },
+    });
+
+    this.color = typeof color === 'string' ? color : this.color;
+
+    this.setStyle({ color: this.color });
+
+    this.textOverflowClass = typeof textOverflowClass === 'string' ? textOverflowClass : '';
+  }
+
+  public setInnerText(
+    track: SpotifyTrack,
+    anchorClasses?: string,
+    enableTooltip?: boolean,
+    onRightClick?: (mouseEvent: MouseEvent) => any,
+  ): void {
+    if (typeof track !== 'object' || Array.isArray(track) || !track?.artists) return;
+    const elements = [] as Array<HTMLAnchorElement | Node>;
+
+    track.artists.forEach(({ name, id }, index) => {
+      let el: Node | HTMLAnchorElement;
+
+      if (typeof id === 'string') {
+        el = document.createElement('a') as HTMLAnchorElement;
+
+        el.target = '_blank';
+        el.href = `https://open.spotify.com/artist/${id}`;
+        el.style.color = 'var(--header-secondary)';
+        if (typeof anchorClasses === 'string') el.classList.add(...anchorClasses.split(' '));
+        if (enableTooltip) el.title = name;
+        if (typeof onRightClick === 'function') el.onrightclick = onRightClick;
+        el.appendChild(document.createTextNode(name));
+      } else {
+        el = document.createTextNode(name) as Node;
+      }
+
+      elements.push(el);
+      if (track.artists.length - 1 !== index) elements.push(document.createTextNode(', '));
+    });
+
+    if (!elements.length) elements.push(document.createTextNode('Unknown'));
+
+    this.replaceChildren(...elements);
+
+    if (this.element.scrollWidth > (this.element.offsetWidth as number) + 10) {
+      this.removeClasses(this.textOverflowClass);
+      this.scrollingAnimation.play();
+    } else {
+      this.addClasses(this.textOverflowClass);
+      this.scrollingAnimation.cancel();
+    }
+  }
+}
+
+class Metadata extends Component {
+  public title = new Title();
+  public artists = new Artists();
+
+  public fade = {
+    _: {
+      display: 'flex',
+      fadein: this.addAnimation({ opacity: [0, 1] }, 700),
+      fadeout: this.addAnimation({ opacity: [1, 0] }, 700),
+    },
+    fadein: (): void => {
+      if (this.element.style.display === 'none') {
+        this.setStyle({ display: this.fade._.display });
+        this.fade._.fadein.play();
+      }
+    },
+    fadeout: (): void => {
+      if (this.element.style.display !== 'none') {
+        this.fade._.fadeout.play();
+        this.fade._.fadeout.onfinish = (): void => {
+          this.setStyle({ display: 'none' });
+        };
+      }
+    },
+  };
+
+  public constructor() {
+    super('div', {
+      classes: 'metadata',
+      style: {
+        margin: '10px',
+        display: 'flex',
+        flexDirection: 'column',
+        maxWidth: '145px',
+        overflow: 'hidden',
+        whiteSpace: 'nowrap',
+      },
+    });
+
+    this.addChildren(this.title, this.artists);
+  }
+}
+
+function parseTime(ms: number): string {
+  if (typeof ms !== 'number') return '';
+  const dateObject = new Date(ms);
+  const raw = {
+    month: dateObject.getUTCMonth(),
+    day: dateObject.getUTCDate(),
+    hours: dateObject.getUTCHours(),
+    minutes: dateObject.getUTCMinutes(),
+    seconds: dateObject.getUTCSeconds(),
+  };
+  const parsedHours = raw.hours + (raw.day - 1) * 24 + raw.month * 30 * 24;
+
+  return `${parsedHours > 0 ? `${parsedHours}:` : ''}${
+    raw.minutes < 10 && parsedHours > 0 ? `0${raw.minutes}` : raw.minutes
+  }:${raw.seconds < 10 ? `0${raw.seconds}` : raw.seconds}`;
+}
+
+class PlaybackTimeCurrent extends Component {
+  public constructor() {
+    super('span', {
+      classes: 'playback-time-current',
+    });
+
+    this.setProps({ innerText: '0:00' });
+  }
+
+  public update(timeInMS: number): void {
+    if (typeof timeInMS !== 'number') return;
+    const time = parseTime(timeInMS);
+    this.setProps({ innerText: time });
+  }
+}
+
+class PlaybackTimeDuration extends Component {
+  public constructor() {
+    super('span', {
+      classes: 'playback-time-duration',
+      style: { marginLeft: 'auto', marginRight: '16px' },
+    });
+
+    this.setProps({ innerText: '0:00' });
+  }
+
+  public update(timeInMS: number): void {
+    if (typeof timeInMS !== 'number') return;
+    const time = parseTime(timeInMS);
+    this.setProps({ innerText: time });
+  }
+}
+
+class PlaybackTimeDisplay extends Component {
+  public current = new PlaybackTimeCurrent();
+  public duration = new PlaybackTimeDuration();
+
+  public fade = {
+    _: {
+      display: 'flex',
+      fadein: this.addAnimation({ opacity: [0, 1] }, 700),
+      fadeout: this.addAnimation({ opacity: [1, 0] }, 700),
+    },
+    fadein: (): void => {
+      if (this.element.style.display === 'none') {
+        this.setStyle({ display: this.fade._.display });
+        this.fade._.fadein.play();
+      }
+    },
+    fadeout: (): void => {
+      if (this.element.style.display !== 'none') {
+        this.fade._.fadeout.play();
+        this.fade._.fadeout.onfinish = (): void => {
+          this.setStyle({ display: 'none' });
+        };
+      }
+    },
+  };
+
+  public color = 'var(--text-normal)';
+
+  public constructor(color = 'var(--text-normal)') {
+    super('div', {
+      classes: 'playback-time',
+      style: {
+        display: 'flex',
+        position: 'relative',
+        top: '-7px',
+        left: '8px',
+        height: '16px',
+        fontSize: '12px',
+      },
+    });
+
+    this.addChildren(this.current, this.duration);
+
+    this.color = typeof color === 'string' ? color : this.color;
+
+    this.setStyle({ color: this.color });
+  }
+}
+
+class ProgressBarInner extends Component {
+  public color = 'var(--text-normal)';
+
+  public constructor(color = 'var(--text-normal)') {
+    super('div', {
+      classes: 'progressbar-inner',
+      style: {
+        height: '4px',
+        width: '0%',
+        maxWidth: '100%',
+        borderRadius: '8px',
+      },
+    });
+
+    this.color = typeof color === 'string' ? color : this.color;
+
+    this.setStyle({ backgroundColor: this.color });
+  }
+
+  public update(current: number, end: number): void {
+    if (typeof current !== 'number' || typeof end !== 'number') return;
+    this.setStyle({ width: `${((current / end) * 100).toFixed(4)}%` });
+  }
+}
+
+class ProgressBar extends Component {
+  public inner = new ProgressBarInner();
+
+  public fade = {
+    _: {
+      display: '',
+      fadein: this.addAnimation({ opacity: [0, 1] }, 700),
+      fadeout: this.addAnimation({ opacity: [1, 0] }, 700),
+    },
+    fadein: (): void => {
+      if (this.element.style.display === 'none') {
+        this.setStyle({ display: this.fade._.display });
+        this.fade._.fadein.play();
+      }
+    },
+    fadeout: (): void => {
+      if (this.element.style.display !== 'none') {
+        this.fade._.fadeout.play();
+        this.fade._.fadeout.onfinish = (): void => {
+          this.setStyle({ display: 'none' });
+        };
+      }
+    },
+  };
+
+  public color = 'var(--background-modifier-accent)';
+
+  public constructor(color = 'var(--background-modifier-accent)') {
+    super('div', {
+      classes: 'progressbar',
+      style: {
+        height: '4px',
+        borderRadius: '8px',
+        width: 'calc(100% - 10px)',
+        position: 'relative',
+        left: '5px',
+        top: '-5px',
+      },
+    });
+
+    this.addChildren(this.inner);
+
+    this.color = typeof color === 'string' ? color : this.color;
+
+    this.setStyle({ backgroundColor: this.color });
+  }
+}
+
+class CoverArt extends Component {
+  public fade = {
+    _: {
+      display: '',
+      fadein: this.addAnimation({ opacity: [0, 1] }, 700),
+      fadeout: this.addAnimation({ opacity: [1, 0] }, 700),
+    },
+    fadein: (): void => {
+      if (this.element.style.display === 'none') {
+        this.setStyle({ display: this.fade._.display });
+        this.fade._.fadein.play();
+      }
+    },
+    fadeout: (): void => {
+      if (this.element.style.display !== 'none') {
+        this.fade._.fadeout.play();
+        this.fade._.fadeout.onfinish = (): void => {
+          this.setStyle({ display: 'none' });
+        };
+      }
+    },
+  };
+
+  #albumUrl = '';
+
+  public constructor() {
+    super('img', {
+      classes: 'cover-art',
+      style: {
+        maxHeight: '80%',
+        maxWidth: '80%',
+        borderRadius: '8px',
+        objectFit: 'contain',
+      },
+    });
+
+    this.on('click', () => {
+      if (this.#albumUrl) window.open(this.#albumUrl, '_blank');
+    });
+    this.on('contextmenu', () => {
+      if (this.#albumUrl) DiscordNative.clipboard.copy(this.#albumUrl);
+    });
+  }
+
+  public update(url: string, albumUrl?: string): void {
+    if (typeof url !== 'string') return;
+    this.setProps({ src: url });
+    this.#albumUrl = typeof albumUrl === 'string' ? albumUrl : '';
+  }
+}
+
+class Dock extends Component {
+  public playbackTimeDisplay = new PlaybackTimeDisplay();
+  public progressBar = new ProgressBar();
+  public dockIcons = new DockIcons();
+
+  public fade = {
+    _: {
+      display: 'flex',
+      fadein: this.addAnimation({ opacity: [0, 1] }, 700),
+      fadeout: this.addAnimation({ opacity: [1, 0] }, 700),
+    },
+    fadein: (): void => {
+      if (this.element.style.display === 'none') {
+        this.setStyle({ display: this.fade._.display });
+        this.fade._.fadein.play();
+      }
+    },
+    fadeout: (): void => {
+      if (this.element.style.display !== 'none') {
+        this.fade._.fadeout.play();
+        this.fade._.fadeout.onfinish = (): void => {
+          this.setStyle({ display: 'none' });
+        };
+      }
+    },
+  };
+
+  public constructor() {
+    super('div', {
+      classes: 'dock',
+      style: {
+        display: 'flex',
+        flexDirection: 'column',
+        paddingBottom: '4px',
+      },
+    });
+
+    this.addChildren(this.playbackTimeDisplay, this.progressBar, this.dockIcons);
+  }
+}
+
+class ModalHeader extends Component {
+  public coverArt = new CoverArt();
+  public metadata = new Metadata();
+
+  public fade = {
+    _: {
+      display: 'flex',
+      fadein: this.addAnimation({ opacity: [0, 1] }, 700),
+      fadeout: this.addAnimation({ opacity: [1, 0] }, 700),
+    },
+    fadein: (): void => {
+      if (this.element.style.display === 'none') {
+        this.setStyle({ display: this.fade._.display });
+        this.fade._.fadein.play();
+      }
+    },
+    fadeout: (): void => {
+      if (this.element.style.display !== 'none') {
+        this.fade._.fadeout.play();
+        this.fade._.fadeout.onfinish = (): void => {
+          this.setStyle({ display: 'none' });
+        };
+      }
+    },
+  };
+
+  public constructor() {
+    super('div', {
+      classes: 'modal-header',
+      style: {
+        display: 'flex',
+        height: '60px',
+        paddingBottom: '8px',
+        paddingLeft: '8px',
+        paddingTop: '10px',
+      },
+    });
+
+    this.addChildren(this.coverArt, this.metadata);
+  }
+}
+
+class ModalContainer extends Component {
+  public header = new ModalHeader();
+  public dock = new Dock();
+
+  public fade = {
+    _: {
+      display: 'flex',
+      fadein: this.addAnimation({ opacity: [0, 1] }, 700),
+      fadeout: this.addAnimation({ opacity: [1, 0] }, 700),
+    },
+    fadein: (): void => {
+      if (this.element.style.display === 'none') {
+        this.setStyle({ display: this.fade._.display });
+        this.fade._.fadein.play();
+      }
+    },
+    fadeout: (): void => {
+      if (this.element.style.display !== 'none') {
+        this.fade._.fadeout.play();
+        this.fade._.fadeout.onfinish = (): void => {
+          this.setStyle({ display: 'none' });
+        };
+      }
+    },
+  };
+
+  public constructor() {
+    super('div', {
+      classes: 'spotify-modal',
+      style: {
+        display: 'flex',
+        flexDirection: 'column',
+      },
+    });
+
+    this.addChildren(this.header, this.dock);
+  }
+}
 
 export const components = {
-  artists,
-  coverArt,
-  dock,
-  dockIcons,
-  metadata,
-  modal,
-  modalContainer,
-  playbackTimeCurrent,
-  playbackTimeDuration,
-  playbackTimeDisplay,
-  progressBarInner,
-  progressBar,
-  title,
-};
-
-export const animations = {
-  coverArt: coverArtFade,
-  dock: dockFade,
-  dockIcons: dockIconsFade,
-  metadata: metadataFade,
-  modal: modalFade,
-  modalContainer: modalContainerFade,
-  playbackTimeDisplay: playbackTimeDisplayFade,
-  progressBar: progressBarFade,
+  Artists,
+  CoverArt,
+  Dock,
+  DockIcons,
+  Metadata,
+  ModalHeader,
+  ModalContainer,
+  PlaybackTimeCurrent,
+  PlaybackTimeDuration,
+  PlaybackTimeDisplay,
+  ProgressBarInner,
+  ProgressBar,
+  Title,
 };

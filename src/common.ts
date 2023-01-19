@@ -294,37 +294,6 @@ export class SpotifySocketFunctions extends EventEmitter {
   }
 }
 
-const svgTags = [
-  /^altGlyph(|Def|Item)$/,
-  /^animate(|Motion|Transform)$/,
-  /^(circle|ellipse|line|poly(gon|line)|rect)$/,
-  /^(clipPath|(|m)path)$/,
-  /^de(fs|sc)$/,
-  /^(set|stop)$/,
-  'color-profile',
-  'cursor',
-  /^fe[A-Z].*$/,
-  'filter',
-  /^font(|-face(|-format|-name|-src|-uri))$/,
-  'foreignObject',
-  'g',
-  /^glyph(|Ref)$/,
-  /^(h|v)kern$/,
-  /^(linear|radial)Gradient$/,
-  'marker',
-  'mask',
-  'metadata',
-  'missing-glyph',
-  'svg',
-  'switch',
-  'symbol',
-  /^text(|Path)$/,
-  'title',
-  /^t(ref|span)$/,
-  'use',
-  'view',
-];
-
 /** Get all property descriptors of an object, including those on the prototype chain */
 export function getAllPropDescriptors(object: unknown): void | Record<
   string,
@@ -386,31 +355,92 @@ export class Component {
     return element;
   }
 
-  public on = this.addEventListener;
+  public static constructFromElement(element: HTMLElement | SVGElement): void | Component {
+    if (!(element instanceof HTMLElement) && !(element instanceof SVGElement)) return;
+    const instance = new Component('div');
+    this.#replaceElement(instance, element);
 
-  #animations: Animation[] = [];
+    return instance;
+  }
+
+  /**
+   * This method gaslights a provided Component instance to make it believe our newly provided element is its own element all along
+   * @param {Component}               instance
+   * @param {HTMLElement|SVGElement}  element
+   */
+  static #replaceElement(instance: Component, element: HTMLElement | SVGElement): void {
+    if (
+      (!(element instanceof HTMLElement) && !(element instanceof SVGElement)) ||
+      !(instance instanceof Component)
+    )
+      return;
+    instance.#svg = element instanceof SVGElement;
+    instance.#element = element;
+    instance.animations = element.getAnimations();
+    instance.parents = new Set<Component | HTMLElement | SVGElement>();
+    instance.children = new Set<Component | HTMLElement | SVGElement>(element.children);
+  }
+
+  public static svgTags = [
+    /^altGlyph(|Def|Item)$/,
+    /^animate(|Motion|Transform)$/,
+    /^(circle|ellipse|line|poly(gon|line)|rect)$/,
+    /^(clipPath|(|m)path)$/,
+    /^de(fs|sc)$/,
+    /^(set|stop)$/,
+    'color-profile',
+    'cursor',
+    /^fe[A-Z].*$/,
+    'filter',
+    /^font(|-face(|-format|-name|-src|-uri))$/,
+    'foreignObject',
+    'g',
+    /^glyph(|Ref)$/,
+    /^(h|v)kern$/,
+    /^(linear|radial)Gradient$/,
+    'marker',
+    'mask',
+    'metadata',
+    'missing-glyph',
+    'svg',
+    'switch',
+    'symbol',
+    /^text(|Path)$/,
+    'title',
+    /^t(ref|span)$/,
+    'use',
+    'view',
+  ];
+
+  public animations: Animation[] = [];
+  public children = new Set<Component | Node>();
   #element: HTMLElement | SVGElement;
-  #listeners: Record<string, Set<(...args: unknown) => void>> = {};
-  #parents: Component[] = [];
+  public parents = new Set<Component | HTMLElement | SVGElement>();
   #svg: boolean;
 
-  #setAttribute(name: string, value: unknown): void {
-    if (this.#svg) this.#element.setAttributeNS(undefined, name, value);
+  public _setAttribute(name: string, value: unknown): void {
+    if (this.isSVG) this.#element.setAttributeNS(undefined, name, value);
     else this.#element.setAttribute(name, value);
   }
 
   public constructor(
     tag: string,
     options?: {
-      children?: Array<Component | HTMLElement | SVGElement>;
+      children?: Array<Component | Node>;
       classes?: string;
       props?: Record<string, unknown>;
+      style?: CSSStyleProperties;
       svg?: boolean;
     },
   ) {
+    Object.defineProperty(this, 'on', {
+      configurable: true,
+      value: this.addEventListener,
+    });
+
     if (typeof tag !== 'string') return;
 
-    this.#svg = svgTags.some((match) => {
+    this.#svg = Component.svgTags.some((match) => {
       if (match instanceof RegExp) return match.test(tag);
       else return match === tag;
     });
@@ -420,27 +450,25 @@ export class Component {
     this.#element = Component.createElement(this.#svg, tag) as HTMLElement | SVGElement;
 
     if (typeof options === 'object' && !Array.isArray(options)) {
-      if (Array.isArray(options?.children)) this.addChildren(...options?.children);
-      if (typeof options?.classes === 'string') this.addClasses(options?.classes);
+      if (Array.isArray(options?.children)) this.addChildren(...options.children);
+      if (typeof options?.classes === 'string') this.addClasses(options.classes);
       if (typeof options?.props === 'object' && !Array.isArray(options?.props))
-        this.setProps(options?.props);
+        this.setProps(options.props);
+      if (typeof options?.style === 'object' && !Array.isArray(options?.style))
+        this.setStyle(options.style);
     }
   }
 
-  public get animations(): Animation[] {
-    return this.#animations;
+  public get isSVG(): boolean {
+    return this.#svg;
   }
 
   public get element(): HTMLElement | SVGElement {
     return this.#element;
   }
 
-  public get parents(): Component[] {
-    return this.#parents;
-  }
-
-  public get isSVG(): boolean {
-    return this.#svg;
+  public get classes(): string {
+    return this.#element.classList;
   }
 
   public addEventListener(name: string, callback: (...args: unknown) => void): void {
@@ -462,6 +490,75 @@ export class Component {
     this.#element.removeEventListener(name, callback);
   }
 
+  public addChildren(...children: Array<Component | Node>): void {
+    for (const child of children) {
+      if (this.children.has(child)) continue;
+      if (child instanceof Component) this.#element.appendChild(child.element);
+      else if (child instanceof Node) this.#element.appendChild(child);
+      else continue;
+
+      this.children.add(child);
+    }
+  }
+
+  public addClasses(...classes: string[]): void {
+    const classesList = classes
+      .filter((className): boolean => typeof className === 'string')
+      .filter((className): boolean => className)
+      .map((className): string[] => className.split(' '))
+      .flat();
+    if (!classesList.length) return;
+    this.#element.classList.add(...classesList);
+  }
+
+  public removeClasses(...classes: string[]): void {
+    const classesList = classes
+      .filter((className): boolean => typeof className === 'string')
+      .filter((className): boolean => className)
+      .map((className): string[] => className.split(' '))
+      .flat();
+    if (!classesList.length) return;
+    this.#element.classList.remove(...classesList);
+  }
+
+  public addParents(...parents: Array<Component | HTMLElement | SVGElement>): void {
+    for (const parent of parents) {
+      if (this.parents.has(parent)) continue;
+      if (parent instanceof Component) parent.addChildren(this);
+      else if (parent instanceof HTMLElement || parent instanceof SVGElement)
+        parent.appendChild(this.#element);
+      else continue;
+
+      this.parents.add(parent);
+    }
+  }
+
+  public removeParents(...parents: Array<Component | HTMLElement | SVGElement>): void {
+    for (const parent of parents) {
+      if (parent instanceof Component) parent.removeChildren(this);
+      else if (parent instanceof HTMLElement || parent instanceof SVGElement)
+        parent.removeChild(this.#element);
+      else continue;
+
+      this.parents.delete(parent);
+    }
+  }
+
+  public removeChildren(...children: Array<Component | Node>): void {
+    for (const child of children) {
+      if (child instanceof Component) this.#element.removeChild(child.element);
+      else if (child instanceof Node) this.#element.removeChild(child);
+      else continue;
+
+      this.children.delete(child);
+    }
+  }
+
+  public replaceChildren(...children: Array<Component | Node>): void {
+    this.removeChildren(...[...this.children.values()]);
+    this.addChildren(...children);
+  }
+
   public getProps(...propNames: string[]): Record<string, unknown> {
     const props: Record<string, unknown> = {};
     for (const propName of propNames.filter((name): boolean => typeof name === 'string')) {
@@ -471,15 +568,50 @@ export class Component {
     return props;
   }
 
-  public setProps(props: Record<string, unknown>) {
-    const setters = getAllSetters(this.#element);
-
+  public setProps(props: Record<string, unknown>): void {
+    const setters = getAllSetters(this.element);
     for (const [name, value] of Object.entries(props).filter(
       ([name]): boolean => typeof name === 'string',
     )) {
-      if (setters.includes(name)) this.#element[name] = value;
-      else this.#setAttribute(name, value);
+      if (name === 'style') this.setStyle(value);
+      else if (setters.includes(name)) this.#element[name] = value;
+      else this._setAttribute(name, value);
     }
+  }
+
+  public setStyle(styles: string | CSSStyleProperties): void {
+    if (!['object', 'string'].includes(typeof styles) || Array.isArray(styles)) return;
+
+    if (typeof styles === 'string') this._setAttribute('style', styles);
+    else {
+      for (const [key, value] of Object.entries(styles).filter(
+        ([_key, value]: [string, string]): boolean => typeof value === 'string',
+      )) {
+        if (key in this.#element.style) this.#element.style[key] = value;
+      }
+    }
+  }
+
+  public addAnimation(
+    keyframes: Keyframes[] | PropertyIndexedKeyframes,
+    options?: number | KeyframeAnimationOptions,
+  ): void | Animation {
+    if (typeof keyframes !== 'object') return;
+    const animation = new Animation(new KeyframeEffect(this.#element, keyframes, options));
+
+    this.animations.push(animation);
+    return animation;
+  }
+
+  public playAnimation(
+    keyframes: Keyframes[] | PropertyIndexedKeyframes,
+    options?: number | KeyframeAnimationOptions,
+  ): void | Animation {
+    const animation = this.addAnimation(keyframes, options);
+
+    if (!animation) return;
+    animation.play();
+    return animation;
   }
 }
 
