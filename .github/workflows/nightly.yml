@@ -1,4 +1,4 @@
-name: Nightly Release
+name: Release (Dev/Nightly)
 
 on:
   push:
@@ -34,16 +34,23 @@ jobs:
         run: pnpm install
 
       - name: Build TypeScript and bundle into asar
-        run: pnpm run build-and-bundle
+        run: pnpm run build:dev:bundle
+
+      - name: Clear latest nightly release
+        uses: dev-drprasad/delete-tag-and-release@v0.2.0
+        with:
+          tag_name: nightly
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: ncipollo/release-action@v1
         with:
-          artifacts: "*.asar"
+          artifacts: '*.asar'
           makeLatest: true
           allowUpdates: true
           tag: nightly
-          body: "Generated at `${{ steps.date.outputs.date }}`"
-          name: "nightly (${{ github.sha }})"
+          body: 'Generated at `${{ steps.date.outputs.date }}`'
+          name: 'nightly (${{ github.sha }})'
           generateReleaseNotes: true
           replacesArtifacts: true
           prerelease: true

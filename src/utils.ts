@@ -6,8 +6,9 @@
   @typescript-eslint/require-await,
   new-cap
 */
+
 import { Logger, common, webpack } from 'replugged';
-import { EventEmitter, SpotifyAPI, SpotifySocketFunctions, elementUtilities } from './common';
+import { EventEmitter, SpotifyAPI, SpotifySocketFunctions } from './common';
 import {
   FadeAnimations,
   FluxDispatcher,
@@ -20,7 +21,7 @@ import {
   SpotifyWebSocketRawParsedMessage,
   SpotifyWebSocketState,
 } from './types';
-import { animations, components, icons } from '../unstaged/components';
+import { components } from './components';
 
 export class SpotifyWatcher extends EventEmitter {
   public readonly name = this.constructor.name;
@@ -35,6 +36,7 @@ export class SpotifyWatcher extends EventEmitter {
       if (this.#accountId === data?.accountId) return;
 
       await this.#getAccountAndSocket(data?.accountId);
+      if (!this.#state || !this.devices) await this.#tryGetStateAndDevices();
     },
     websocketListener: async (message: SpotifyWebSocketRawMessage): Promise<void> => {
       if (!message?.data) return;
@@ -59,15 +61,16 @@ export class SpotifyWatcher extends EventEmitter {
   #account: undefined | SpotifySocket = undefined;
   #accountId = '';
   #api: undefined | SpotifyAPI = undefined;
-  #devices: undefined | SpotifyDevices[] = undefined;
+  #devices: undefined | SpotifyDevice[] = undefined;
   #dispatcher: undefined | FluxDispatcher = undefined;
   #dispatcherStatus = false;
+  #loaded = false;
   #logger = new Logger('SpotifyModal', this.name);
   #state: undefined | SpotifyWebSocketState = undefined;
   #socketFunctions = new SpotifySocketFunctions();
   #websocket: undefined | WebSocket = undefined;
 
-  public constructor(): void {
+  public constructor() {
     super();
     this.getFluxDispatcher();
   }
@@ -110,6 +113,10 @@ export class SpotifyWatcher extends EventEmitter {
 
   public get dispatcher(): undefined | FluxDispatcher {
     return this.#dispatcher;
+  }
+
+  public get loaded(): boolean {
+    return this.#loaded;
   }
 
   public get websocket(): undefined | WebSocket {
@@ -195,8 +202,17 @@ export class SpotifyWatcher extends EventEmitter {
     if (state) {
       const data = await state.text();
       if (data) {
-        this.#state = JSON.parse(data) as SpotifyWebSocketState;
-        this.emit('player', { state: this.#state, devices: this.#devices });
+        const parsedData = JSON.parse(data);
+        if (typeof parsedData?.error?.status === 'number' && parsedData.error.status > 400)
+          this.#logger.error(
+            '[#tryGetStateAndDevices]',
+            'An error occurred trying to get state:',
+            parsedData?.error?.message,
+          );
+        else {
+          this.#state = parsedData as SpotifyWebSocketState;
+          this.emit('player', { state: this.#state, devices: this.#devices });
+        }
       }
     }
 
@@ -207,21 +223,263 @@ export class SpotifyWatcher extends EventEmitter {
         if (Array.isArray(parsedDevices?.devices)) {
           this.#devices = parsedDevices?.devices;
           this.emit('devices', { state: this.#state, devices: this.#devices });
-        }
+        } else
+          this.#logger.error(
+            '[#tryGetStateAndDevices]',
+            'An error occurred trying to get devices:',
+            parsedDevices?.error?.message,
+          );
       }
     }
   }
 
   public async load(): Promise<void> {
-    await this.#setupDispatcherHooks();
-    await this.#tryGetStateAndDevices();
-    this.#logger.log('Loaded');
+    if (!this.#loaded) {
+      await this.#setupDispatcherHooks();
+      await this.#tryGetStateAndDevices();
+      this.#logger.log('[@load]', 'Loaded');
+    } else this.#logger.warn('[@load]', 'Already loaded');
   }
 
   public unload(): void {
-    this.#removeDispatcherHooks();
-    this.#removeSocketListener();
-    this.#logger.log('Unloaded');
+    if (this.#loaded) {
+      this.#removeDispatcherHooks();
+      this.#removeSocketListener();
+      this.#logger.log('[@unload]', 'Unloaded');
+    } else this.#logger.warn('[@unload]', 'Already unloaded');
+  }
+}
+
+export class SpotifyModalManager {
+  public watcher = new SpotifyWatcher();
+  public modal = new components.ModalContainer();
+  public panels: HTMLElement | undefined = undefined;
+
+  #classes: {
+    anchor: string;
+    anchorUnderlineOnHover: string;
+    bodyLink: string;
+    container: string;
+    defaultColor: string;
+    ellipsis: string;
+    nameNormal: string;
+    panels: string;
+    'text-sm/semibold': string;
+  } = {
+    anchor: '',
+    anchorUnderlineOnHover: '',
+    bodyLink: '',
+    container: '',
+    defaultColor: '',
+    ellipsis: '',
+    nameNormal: '',
+    panels: '',
+    'text-sm/semibold': '',
+  };
+
+  #interval = 500;
+  #intervalId: number | undefined;
+  #trackTime = {
+    current: 0,
+    duration: 0,
+  };
+  #injected = false;
+
+  #logger = new Logger('SpotifyModal', 'SpotifyModalManager');
+
+  public constructor(progressBarUpdateInterval = 500) {
+    this.#interval =
+      typeof progressBarUpdateInterval === 'number' ? progressBarUpdateInterval : this.#interval;
+
+    Object.defineProperties(this, {
+      devicesListener: {
+        value: ({ devices }: { devices: SpotifyDevice[] }): void => {
+          if (!devices?.length) {
+            this.modal.fade.fadeout();
+            this.modal.reset();
+          } else this.modal.fade.fadein();
+        },
+      },
+      playerListener: {
+        value: ({ state }: { state: SpotifyWebSocketState }): void => {
+          if (!this.#injected) this.injectModal();
+          this.modal.dock.dockIcons.shuffle.state = state.shuffle_state;
+          this.modal.dock.dockIcons.shuffle.titleText = `Shuffle ${
+            state.shuffle_state ? 'on' : 'off'
+          }`;
+          this.modal.dock.dockIcons.repeat.state = state.repeat_state !== 'off';
+          this.modal.dock.dockIcons.repeat.mode = state.repeat_state;
+          this.modal.dock.dockIcons.repeat.titleText = `Repeat ${
+            state.repeat_state !== 'off'
+              ? { context: 'all', track: 'track' }[state.repeat_state]
+              : 'off'
+          }`;
+
+          this.#trackTime.current = typeof state?.progress_ms === 'number' ? state.progress_ms : 0;
+          this.#trackTime.duration =
+            typeof state?.item?.duration_ms === 'number' ? state.item.duration_ms : 0;
+          this.modal.dock.progressBar.inner.update(
+            this.#trackTime.current,
+            this.#trackTime.duration,
+          );
+
+          if (state.is_playing) {
+            if (!this.#intervalId)
+              this.#intervalId = setInterval(
+                this.intervalCallback,
+                this.#interval,
+              ) as unknown as number;
+            this.modal.fade.fadein();
+            const track = state.item;
+            if (track?.album?.images?.[0]?.url)
+              this.modal.header.coverArt.update(
+                track.album.images[0].url,
+                track.album.name,
+                track.album.id,
+              );
+            this.modal.header.metadata.title.setInnerText(track?.name, track?.id);
+            this.modal.header.metadata.artists.setInnerText(
+              track?.artists,
+              `${this.#classes.anchor} ${this.#classes.anchorUnderlineOnHover} ${
+                this.#classes.bodyLink
+              } ${this.#classes.ellipsis}`,
+              true,
+              (mouseEvent: MouseEvent): void => {
+                if (mouseEvent.target?.href) DiscordNative.clipboard.copy(mouseEvent.target.href);
+              },
+            );
+          } else if (this.#intervalId) {
+            clearInterval(this.#intervalId);
+            this.#intervalId = undefined;
+          }
+        },
+      },
+      intervalCallback: {
+        value: (): void => {
+          this.#trackTime.current += 500;
+          this.modal.dock.progressBar.inner.update(
+            this.#trackTime.current,
+            this.#trackTime.duration,
+          );
+          this.modal.dock.playbackTimeDisplay.update(
+            this.#trackTime.current,
+            this.#trackTime.duration,
+          );
+        },
+      },
+      progressBarListener: {
+        value: (percent: number): void => {
+          if (this.#trackTime.duration)
+            this.watcher.api.seekToPos(Math.round(this.#trackTime.duration * percent));
+        },
+      },
+    });
+
+    this.watcher.on('player', this.playerListener);
+    this.watcher.on('devices', this.devicesListener);
+    this.modal.dock.progressBar.events.on('scrub', this.progressBarListener);
+    this.modal.dock.dockIcons.shuffle.on('click', (): void => {
+      this.watcher.api.setShuffleState(!this.modal.dock.dockIcons.shuffle.state);
+    });
+    this.modal.dock.dockIcons.skipPrevious.on('click', (): void => {
+      if (this.#trackTime < 6000) this.watcher.api.seekToPos(0);
+      else this.watcher.api.skipPrevious();
+    });
+    this.modal.dock.dockIcons.playPause.on('click', (): void => {
+      this.watcher.api.setPlaybackState(!this.modal.dock.dockIcons.playPause.state);
+    });
+    this.modal.dock.dockIcons.skipNext.on('click', (): void => {
+      this.watcher.api.skipNext();
+    });
+    this.modal.dock.dockIcons.repeat.on('click', (): void => {
+      const nextMode = { off: 'context', context: 'track', track: 'off' };
+      this.watcher.api.setRepeatState(nextMode[this.modal.dock.dockIcons.repeat.realMode]);
+    });
+
+    this.modal.fade.fadeout();
+  }
+
+  public async getClasses(): Promise<void> {
+    const activityClasses = await webpack.waitForModule<{
+      activityName: string;
+      bodyLink: string;
+      ellipsis: string;
+      nameNormal: string;
+    }>(webpack.filters.byProps('activityName'));
+    const anchorClasses = await webpack.waitForModule<{
+      anchor: string;
+      anchorUnderlineOnHover: string;
+    }>(webpack.filters.byProps('anchorUnderlineOnHover'));
+    const colorClasses = await webpack.waitForModule<{
+      defaultColor: string;
+      'text-sm/semibold': string;
+    }>(webpack.filters.byProps('defaultColor'));
+    const containerClasses = await webpack.waitForModule<{
+      container: string;
+    }>(webpack.filters.byProps('avatar', 'customStatus'));
+    const panelClasses = await webpack.waitForModule<{
+      panels: string;
+    }>(webpack.filters.byProps('panels'));
+
+    this.#classes = {
+      activityName: this.#classes?.activityName || activityClasses.activityName,
+      anchor: this.#classes?.anchor || anchorClasses.anchor,
+      anchorUnderlineOnHover:
+        this.#classes?.anchorUnderlineOnHover || anchorClasses.anchorUnderlineOnHover,
+      bodyLink: this.#classes?.bodyLink || activityClasses.bodyLink,
+      container: this.#classes?.container || containerClasses.container,
+      defaultColor: this.#classes?.defaultColor || colorClasses.defaultColor,
+      ellipsis: this.#classes?.ellipsis || activityClasses.ellipsis,
+      nameNormal: this.#classes?.nameNormal || activityClasses.nameNormal,
+      panels: this.#classes?.panels || panelClasses.panels,
+      'text-sm/semibold': this.#classes?.['text-sm/semibold'] || colorClasses['text-sm/semibold'],
+    };
+
+    this.modal.header.addClasses(this.#classes.container);
+    this.modal.header.metadata.title.addClasses(
+      this.#classes.anchor,
+      this.#classes.anchorUnderlineOnHover,
+      this.#classes.defaultColor,
+      this.#classes['text-sm/semibold'],
+      ...this.#classes.nameNormal
+        .split(' ')
+        .filter((className): boolean => !className.match(/^ellipsis/)),
+    );
+    this.modal.header.metadata.title.textOverflowClass = this.#classes.ellipsis;
+    this.modal.header.metadata.artists.textOverflowClass = this.#classes.ellipsis;
+
+    this.#logger.log('[@getClasses] Succeeded');
+  }
+
+  public injectModal(): void {
+    if (!this.panels) this.panels = document.body.querySelectorAll('[class^="panels-"]')?.[0];
+    if (!this.panels) this.#logger.error('[@injectModal]', 'Cannot get panel');
+    else if (!this.#injected) {
+      this.modal.insertIntoParent('afterbegin', this.panels);
+      this.#injected = true;
+      this.#logger.log('[@injectModal]', 'Succeeded');
+    }
+  }
+
+  public uninjectModal(): void {
+    if (!this.panels) this.panels = document.body.querySelectorAll('[class^="panels-"]')?.[0];
+    if (!this.panels) this.#logger.error('[@uninjectModal]', 'Cannot get panel');
+    else if (this.#injected) {
+      this.modal.removeParents(this.panels);
+      this.#injected = false;
+      this.#logger.log('[@uninjectModal]', 'Succeeded');
+    }
+  }
+
+  public async load(): Promise<void> {
+    await this.getClasses();
+    await this.watcher.load();
+  }
+
+  public unload(): void {
+    this.watcher.unload();
+    this.watcher.removeAllListeners();
+    this.uninjectModal();
   }
 }
 
