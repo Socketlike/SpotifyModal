@@ -1,22 +1,28 @@
 import { Component, EventEmitter, SpotifyAPI, SpotifySocketFunctions } from './common';
 import { components, icons } from './components';
-import { SpotifyWatcher } from './utils';
+import { SpotifyModalManager, SpotifyWatcher } from './utils';
 
-export const watcher = new SpotifyWatcher();
+/**
+ * Issues:
+ * PlayPause button not updating state
+ * Watcher behaves weirdly on startup - investigate
+ */
+
+export const modal = new SpotifyModalManager();
 export const classes = {
   Component,
   EventEmitter,
   SpotifyAPI,
-  SpotifyWatcher,
-};
-export const functions = {
+  SpotifyModalManager,
   SpotifySocketFunctions,
+  SpotifyWatcher,
 };
 export const ui = { components, icons };
 
-export async function start(): Promise<void> {}
+export async function start(): Promise<void> {
+  await modal.load();
+}
 
 export function stop(): void {
-  watcher.removeAllListeners();
-  watcher.unload();
+  modal.unload();
 }

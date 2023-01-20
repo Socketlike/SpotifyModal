@@ -1,4 +1,4 @@
-import { Component } from './common';
+import { Component, EventEmitter } from './common';
 import { SpotifyTrack } from './types';
 
 /*
@@ -38,11 +38,9 @@ class PlayPauseIcon extends Component {
       style: { minWidth: '24px', height: '24px', margin: '0px 10px', transitionDuration: '400ms' },
     });
 
-    this.addChildren(this.play);
-
     this.defaultColor = typeof defaultColor === 'string' ? defaultColor : this.defaultColor;
     this.hoverColor = typeof hoverColor === 'string' ? hoverColor : this.hoverColor;
-
+    this.addChildren(this.play);
     this.setStyle({ color: this.defaultColor });
 
     this.on('mouseenter', (): void => this.setStyle({ color: this.hoverColor }));
@@ -59,14 +57,18 @@ class PlayPauseIcon extends Component {
     this.updateIcon();
   }
 
-  updateIcon(): void {
+  public reset(): void {
+    this.state = false;
+  }
+
+  public updateIcon(): void {
     if ([...this.children.values()][0].classes.contains('play-path') && !this.#state) return;
     if ([...this.children.values()][0].classes.contains('pause-path') && this.#state) return;
 
     this.replaceChildren(this.#state ? this.pause : this.play);
   }
 
-  flipState(): void {
+  public flipState(): void {
     this.state = !this.#state;
   }
 }
@@ -89,6 +91,7 @@ class RepeatIcon extends Component {
   });
 
   public title = new Component('title', {
+    children: [document.createTextNode('Repeat off')],
     classes: 'repeat-icon-title',
   });
 
@@ -96,7 +99,8 @@ class RepeatIcon extends Component {
   public hoverColor = 'var(--brand-experiment-300)';
   public onColor = 'var(--brand-experiment-500)';
   #state = false;
-  #mode = 'all';
+  #mode: 'one' | 'all' = 'all';
+  #realMode: 'off' | 'context' | 'track' = 'off';
 
   public constructor(
     defaultColor = 'var(--text-normal)',
@@ -114,12 +118,10 @@ class RepeatIcon extends Component {
       },
     });
 
-    this.addChildren(this.title, this.all);
-
     this.defaultColor = typeof defaultColor === 'string' ? defaultColor : this.defaultColor;
     this.hoverColor = typeof hoverColor === 'string' ? hoverColor : this.hoverColor;
     this.onColor = typeof onColor === 'string' ? onColor : this.onColor;
-
+    this.addChildren(this.title, this.all);
     this.setStyle({ color: this.defaultColor });
 
     this.on('mouseenter', (): void => {
@@ -144,15 +146,30 @@ class RepeatIcon extends Component {
     return this.#mode;
   }
 
-  public set mode(mode: 'all' | 'one') {
-    if (!['all', 'one'].includes(mode) || this.#mode === mode) return;
-    this.#mode = mode;
+  public get realMode(): string {
+    return this.#realMode;
+  }
+
+  public set mode(mode: 'off' | 'context' | 'track') {
+    if (
+      !['off', 'context', 'track'].includes(mode) ||
+      this.#mode === (mode === 'track' ? 'one' : 'all')
+    )
+      return;
+    this.#mode = mode === 'track' ? 'one' : 'all';
+    this.#realMode = mode;
     this.updateIconMode();
   }
 
   public set titleText(title: string) {
     if (typeof title !== 'string') return;
     this.title.replaceChildren(document.createTextNode(title));
+  }
+
+  public reset(): void {
+    this.state = false;
+    this.mode = 'off';
+    this.titleText = 'Repeat off';
   }
 
   public updateIconState(): void {
@@ -206,12 +223,10 @@ class ShuffleIcon extends Component {
       style: { minWidth: '24px', height: '24px', transitionDuration: '400ms' },
     });
 
-    this.addChildren(this.title, this.path);
-
     this.defaultColor = typeof defaultColor === 'string' ? defaultColor : this.defaultColor;
     this.hoverColor = typeof hoverColor === 'string' ? hoverColor : this.hoverColor;
     this.onColor = typeof onColor === 'string' ? onColor : this.onColor;
-
+    this.addChildren(this.title, this.path);
     this.setStyle({ color: this.defaultColor });
 
     this.on('mouseenter', (): void => {
@@ -235,6 +250,11 @@ class ShuffleIcon extends Component {
   public set titleText(title: string) {
     if (typeof title !== 'string') return;
     this.title.replaceChildren(document.createTextNode(title));
+  }
+
+  public reset(): void {
+    this.state = false;
+    this.titleText = 'Shuffle off';
   }
 
   public updateIcon(): void {
@@ -265,11 +285,9 @@ class SkipPrevIcon extends Component {
       style: { minWidth: '24px', height: '24px', marginLeft: 'auto', transitionDuration: '400ms' },
     });
 
-    this.addChildren(this.path);
-
     this.defaultColor = typeof defaultColor === 'string' ? defaultColor : this.defaultColor;
     this.hoverColor = typeof hoverColor === 'string' ? hoverColor : this.hoverColor;
-
+    this.addChildren(this.path);
     this.setStyle({ color: this.defaultColor });
 
     this.on('mouseenter', (): void => this.setStyle({ color: this.hoverColor }));
@@ -296,11 +314,9 @@ class SkipNextIcon extends Component {
       style: { minWidth: '24px', height: '24px', transitionDuration: '400ms' },
     });
 
-    this.addChildren(this.path);
-
     this.defaultColor = typeof defaultColor === 'string' ? defaultColor : this.defaultColor;
     this.hoverColor = typeof hoverColor === 'string' ? hoverColor : this.hoverColor;
-
+    this.addChildren(this.path);
     this.setStyle({ color: this.defaultColor });
 
     this.on('mouseenter', (): void => this.setStyle({ color: this.hoverColor }));
@@ -360,31 +376,59 @@ class DockIcons extends Component {
 
     this.addChildren(this.shuffle, this.skipPrevious, this.playPause, this.skipNext, this.repeat);
   }
+
+  public reset(): void {
+    this.shuffle.reset();
+    this.repeat.reset();
+  }
 }
 
+/**
+ * Should recieve the anchor class,
+ * anchorUnderlineOnHover class,
+ * defaultColor class,
+ * text-sm/semibold class
+ * and all other classes in nameNormal except ellipsis
+ */
 class Title extends Component {
-  public scrollingAnimation = this.addAnimation(
-    [
-      { transform: 'translateX(0)' },
-      { transform: 'translateX(0)', offset: 0.2 },
+  public _scrollingAnimation(): void {
+    if (this.#animation && this.#animation?.playState === 'running') {
+      this.animations = [] as Animations[];
+      this.#animation.cancel();
+    }
+
+    this.#animation = this.addAnimation(
+      [
+        { transform: 'translateX(0)' },
+        { transform: 'translateX(0)', offset: 0.2 },
+        {
+          transform: `translateX(-${this.element.scrollWidth - this.element.offsetWidth}px)`,
+          offset: 0.8,
+        },
+        { transform: `translateX(-${this.element.scrollWidth - this.element.offsetWidth}px)` },
+      ],
       {
-        transform: `translateX(-${this.element.scrollWidth - this.element.offsetWidth}px)`,
-        offset: 0.8,
+        iterations: Infinity,
+        duration: (this.element.scrollWidth - this.element.offsetWidth) * 50,
+        direction: 'alternate-reverse',
+        easing: 'linear',
       },
-      { transform: `translateX(-${this.element.scrollWidth - this.element.offsetWidth}px)` },
-    ],
-    {
-      iterations: Infinity,
-      duration: (this.element.scrollWidth - this.element.offsetWidth) * 50,
-      direction: 'alternate-reverse',
-      easing: 'linear',
-    },
-  );
+    );
+
+    this.#animation.play();
+  }
 
   public color = 'var(--text-normal)';
+  public defaultText = 'None';
   public textOverflowClass = '';
+  #lastScrollWidth = this.scrollWidth;
+  #animation: Animation | undefined = undefined;
 
-  public constructor(color = 'var(--text-normal)', textOverflowClass?: string) {
+  public constructor(
+    color = 'var(--text-normal)',
+    defaultText = 'None',
+    textOverflowClass?: string,
+  ) {
     super('a', {
       classes: 'song-title',
       props: { target: '_blank' },
@@ -392,8 +436,9 @@ class Title extends Component {
     });
 
     this.color = typeof color === 'string' ? color : this.color;
+    this.defaultText = typeof defaultText === 'string' ? defaultText : this.defaultText;
     this.textOverflowClass = typeof textOverflowClass === 'string' ? textOverflowClass : '';
-
+    this.addChildren(document.createTextNode(this.defaultText));
     this.setStyle({ color: this.color });
 
     this.on('contextmenu', () => {
@@ -401,46 +446,92 @@ class Title extends Component {
     });
   }
 
-  public setInnerText(text: string, url?: string) {
-    if (typeof text !== 'string') return;
-    this.setProps({ innerText: text, href: typeof url === 'string' ? url : '' });
-    this.setStyle({
-      textDecoration: typeof url === 'string' ? '' : 'none',
-      cursor: typeof url === 'string' ? '' : 'default',
-    });
-    if (this.element.scrollWidth > (this.element.offsetWidth as number) + 10) {
-      this.removeClasses(this.rtetextOverflowClass);
-      this.scrollingAnimation.play();
+  public get scrollWidth(): number {
+    return this.element.scrollWidth;
+  }
+
+  public setInnerText(text?: string, id?: string) {
+    if (typeof text !== 'string' || !text) {
+      this.setProps({ innerText: this.defaultText, title: '', href: '' });
+      this.setStyle({
+        textDecoration: 'none',
+        cursor: 'default',
+      });
+      if (this.#animation?.playState === 'running') this.#animation.cancel();
+      if (this.classes.contains(this.textOverflowClass)) this.removeClasses(this.textOverflowClass);
     } else {
-      this.addClasses(this.textOverflowClass);
-      this.scrollingAnimation.cancel();
+      this.setProps({
+        innerText: text,
+        title: text,
+        href: typeof id === 'string' ? `https://open.spotify.com/track/${id}` : '',
+      });
+      this.setStyle({
+        textDecoration: typeof id === 'string' ? '' : 'none',
+        cursor: typeof id === 'string' ? '' : 'default',
+      });
+      if (this.element.scrollWidth > (this.element.offsetWidth as number) + 10) {
+        if (this.classes.contains(this.textOverflowClass))
+          this.removeClasses(this.textOverflowClass);
+        if (this.#animation?.playState !== 'running') this._scrollingAnimation();
+        else if (
+          this.#animation?.playState === 'running' &&
+          this.#lastScrollWidth !== this.scrollWidth
+        ) {
+          this.#lastScrollWidth = this.scrollWidth;
+          this._scrollingAnimation();
+        }
+      } else {
+        this.addClasses(this.textOverflowClass);
+        if (this.#animation?.playState === 'running') this.#animation.cancel();
+      }
     }
+  }
+
+  public reset(): void {
+    this.setInnerText();
   }
 }
 
+/** Should recieve anchor class on anchor children */
 class Artists extends Component {
-  public scrollingAnimation = this.addAnimation(
-    [
-      { transform: 'translateX(0)' },
-      { transform: 'translateX(0)', offset: 0.2 },
+  public _scrollingAnimation(): void {
+    if (this.#animation && this.#animation?.playState === 'running') {
+      this.animations = [] as Animations[];
+      this.#animation.cancel();
+    }
+
+    this.#animation = this.addAnimation(
+      [
+        { transform: 'translateX(0)' },
+        { transform: 'translateX(0)', offset: 0.2 },
+        {
+          transform: `translateX(-${this.element.scrollWidth - this.element.offsetWidth}px)`,
+          offset: 0.8,
+        },
+        { transform: `translateX(-${this.element.scrollWidth - this.element.offsetWidth}px)` },
+      ],
       {
-        transform: `translateX(-${this.element.scrollWidth - this.element.offsetWidth}px)`,
-        offset: 0.8,
+        iterations: Infinity,
+        duration: (this.element.scrollWidth - this.element.offsetWidth) * 50,
+        direction: 'alternate-reverse',
+        easing: 'linear',
       },
-      { transform: `translateX(-${this.element.scrollWidth - this.element.offsetWidth}px)` },
-    ],
-    {
-      iterations: Infinity,
-      duration: (this.element.scrollWidth - this.element.offsetWidth) * 50,
-      direction: 'alternate-reverse',
-      easing: 'linear',
-    },
-  );
+    );
+
+    this.#animation.play();
+  }
 
   public textOverflowClass = '';
+  public defaultText = 'None';
   public color = 'var(--header-secondary)';
+  #animation: Animation | undefined = undefined;
+  #lastScrollWidth: number | undefined = undefined;
 
-  public constructor(color = 'var(--header-secondary)', textOverflowClass?: string) {
+  public constructor(
+    color = 'var(--header-secondary)',
+    defaultText = 'None',
+    textOverflowClass?: string,
+  ) {
     super('span', {
       classes: 'song-artists',
       props: { target: '_blank' },
@@ -448,19 +539,27 @@ class Artists extends Component {
     });
 
     this.color = typeof color === 'string' ? color : this.color;
-
-    this.setStyle({ color: this.color });
-
+    this.defaultText = typeof defaultText === 'string' ? defaultText : this.defaultText;
     this.textOverflowClass = typeof textOverflowClass === 'string' ? textOverflowClass : '';
+    this.addChildren(document.createTextNode(this.defaultText));
+    this.setStyle({ color: this.color });
+  }
+
+  public get scrollWidth(): number {
+    return this.element.scrollWidth;
   }
 
   public setInnerText(
-    track: SpotifyTrack,
+    track?: SpotifyTrack,
     anchorClasses?: string,
     enableTooltip?: boolean,
     onRightClick?: (mouseEvent: MouseEvent) => any,
   ): void {
-    if (typeof track !== 'object' || Array.isArray(track) || !track?.artists) return;
+    if (typeof track !== 'object' || Array.isArray(track) || !track?.artists) {
+      this.setInnerText({ artists: [{ name: this.default }] });
+      return;
+    }
+
     const elements = [] as Array<HTMLAnchorElement | Node>;
 
     track.artists.forEach(({ name, id }, index) => {
@@ -489,12 +588,23 @@ class Artists extends Component {
     this.replaceChildren(...elements);
 
     if (this.element.scrollWidth > (this.element.offsetWidth as number) + 10) {
-      this.removeClasses(this.textOverflowClass);
-      this.scrollingAnimation.play();
+      if (this.classes.contains(this.textOverflowClass)) this.removeClasses(this.textOverflowClass);
+      if (this.#animation?.playState !== 'running') this._scrollingAnimation();
+      else if (
+        this.#animation?.playState === 'running' &&
+        this.#lastScrollWidth !== this.scrollWidth
+      ) {
+        this.#lastScrollWidth = this.scrollWidth;
+        this._scrollingAnimation();
+      }
     } else {
       this.addClasses(this.textOverflowClass);
-      this.scrollingAnimation.cancel();
+      if (this.#animation?.playState === 'running') this.#animation.cancel();
     }
+  }
+
+  public reset(): void {
+    this.setInnerText();
   }
 }
 
@@ -539,6 +649,11 @@ class Metadata extends Component {
 
     this.addChildren(this.title, this.artists);
   }
+
+  public reset(): void {
+    this.title.reset();
+    this.artists.reset();
+  }
 }
 
 function parseTime(ms: number): string {
@@ -564,13 +679,17 @@ class PlaybackTimeCurrent extends Component {
       classes: 'playback-time-current',
     });
 
-    this.setProps({ innerText: '0:00' });
+    this.reset();
   }
 
   public update(timeInMS: number): void {
     if (typeof timeInMS !== 'number') return;
     const time = parseTime(timeInMS);
-    this.setProps({ innerText: time });
+    if (time !== this.element.innerText) this.setProps({ innerText: time });
+  }
+
+  public reset(): void {
+    this.setProps({ innerText: '0:00' });
   }
 }
 
@@ -581,13 +700,17 @@ class PlaybackTimeDuration extends Component {
       style: { marginLeft: 'auto', marginRight: '16px' },
     });
 
-    this.setProps({ innerText: '0:00' });
+    this.reset();
   }
 
   public update(timeInMS: number): void {
     if (typeof timeInMS !== 'number') return;
     const time = parseTime(timeInMS);
-    this.setProps({ innerText: time });
+    if (time !== this.element.innerText) this.setProps({ innerText: time });
+  }
+
+  public reset(): void {
+    this.setProps({ innerText: '0:00' });
   }
 }
 
@@ -625,18 +748,26 @@ class PlaybackTimeDisplay extends Component {
       style: {
         display: 'flex',
         position: 'relative',
-        top: '-7px',
+        top: '-5px',
         left: '8px',
         height: '16px',
         fontSize: '12px',
       },
     });
 
-    this.addChildren(this.current, this.duration);
-
     this.color = typeof color === 'string' ? color : this.color;
-
+    this.addChildren(this.current, this.duration);
     this.setStyle({ color: this.color });
+  }
+
+  public update(currentTime: number, durationTime: number): void {
+    this.current.update(currentTime);
+    this.duration.update(durationTime);
+  }
+
+  public reset(): void {
+    this.current.reset();
+    this.duration.reset();
   }
 }
 
@@ -655,15 +786,21 @@ class ProgressBarInner extends Component {
     });
 
     this.color = typeof color === 'string' ? color : this.color;
-
     this.setStyle({ backgroundColor: this.color });
   }
 
   public update(current: number, end: number): void {
     if (typeof current !== 'number' || typeof end !== 'number') return;
-    this.setStyle({ width: `${((current / end) * 100).toFixed(4)}%` });
+    if (!end) this.reset();
+    else this.setStyle({ width: `${((current / end) * 100).toFixed(4)}%` });
+  }
+
+  public reset(): void {
+    this.setStyle({ width: '0%' });
   }
 }
+
+class ProgressBarEventEmitter extends EventEmitter {}
 
 class ProgressBar extends Component {
   public inner = new ProgressBarInner();
@@ -691,6 +828,7 @@ class ProgressBar extends Component {
   };
 
   public color = 'var(--background-modifier-accent)';
+  public events = new ProgressBarEventEmitter();
 
   public constructor(color = 'var(--background-modifier-accent)') {
     super('div', {
@@ -701,15 +839,21 @@ class ProgressBar extends Component {
         width: 'calc(100% - 10px)',
         position: 'relative',
         left: '5px',
-        top: '-5px',
+        top: '-3px',
       },
     });
 
-    this.addChildren(this.inner);
-
     this.color = typeof color === 'string' ? color : this.color;
-
+    this.addChildren(this.inner);
     this.setStyle({ backgroundColor: this.color });
+
+    this.on('click', (mouseEvent: MouseEvent): void => {
+      this.events.emit('scrub', mouseEvent.offsetX / this.element.offsetWidth);
+    });
+  }
+
+  public reset(): void {
+    this.inner.reset();
   }
 }
 
@@ -736,7 +880,7 @@ class CoverArt extends Component {
     },
   };
 
-  #albumUrl = '';
+  #albumId = '';
 
   public constructor() {
     super('img', {
@@ -750,17 +894,25 @@ class CoverArt extends Component {
     });
 
     this.on('click', () => {
-      if (this.#albumUrl) window.open(this.#albumUrl, '_blank');
+      if (this.#albumId) window.open(`https://open.spotify.com/album/${this.#albumId}`, '_blank');
     });
+
     this.on('contextmenu', () => {
-      if (this.#albumUrl) DiscordNative.clipboard.copy(this.#albumUrl);
+      if (this.#albumId)
+        DiscordNative.clipboard.copy(`https://open.spotify.com/album/${this.#albumId}`);
     });
   }
 
-  public update(url: string, albumUrl?: string): void {
+  public update(url: string, albumName?: string, albumId?: string): void {
     if (typeof url !== 'string') return;
     this.setProps({ src: url });
-    this.#albumUrl = typeof albumUrl === 'string' ? albumUrl : '';
+    this.#albumId = typeof albumId === 'string' ? albumId : '';
+    this.setProps({ title: typeof albumName === 'string' ? albumName : '' });
+    this.setStyle({ cursor: this.#albumId ? 'pointer' : '' });
+  }
+
+  public reset(): void {
+    this.update('');
   }
 }
 
@@ -797,14 +949,21 @@ class Dock extends Component {
       style: {
         display: 'flex',
         flexDirection: 'column',
-        paddingBottom: '4px',
+        paddingBottom: '6px',
       },
     });
 
     this.addChildren(this.playbackTimeDisplay, this.progressBar, this.dockIcons);
   }
+
+  public reset(): void {
+    this.playbackTimeDisplay.reset();
+    this.progressBar.reset();
+    this.dockIcons.reset();
+  }
 }
 
+/** Should recieve container class */
 class ModalHeader extends Component {
   public coverArt = new CoverArt();
   public metadata = new Metadata();
@@ -837,13 +996,18 @@ class ModalHeader extends Component {
       style: {
         display: 'flex',
         height: '60px',
-        paddingBottom: '8px',
+        marginTop: '6px',
+        paddingBottom: '10px',
         paddingLeft: '8px',
-        paddingTop: '10px',
       },
     });
 
     this.addChildren(this.coverArt, this.metadata);
+  }
+
+  public reset(): void {
+    this.coverArt.reset();
+    this.metadata.reset();
   }
 }
 
@@ -883,6 +1047,11 @@ class ModalContainer extends Component {
     });
 
     this.addChildren(this.header, this.dock);
+  }
+
+  public reset(): void {
+    this.header.reset();
+    this.dock.reset();
   }
 }
 

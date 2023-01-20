@@ -493,8 +493,10 @@ export class Component {
   public addChildren(...children: Array<Component | Node>): void {
     for (const child of children) {
       if (this.children.has(child)) continue;
-      if (child instanceof Component) this.#element.appendChild(child.element);
-      else if (child instanceof Node) this.#element.appendChild(child);
+      if (child instanceof Component) {
+        this.#element.appendChild(child.element);
+        child.parents.add(this);
+      } else if (child instanceof Node) this.#element.appendChild(child);
       else continue;
 
       this.children.add(child);
@@ -557,6 +559,39 @@ export class Component {
   public replaceChildren(...children: Array<Component | Node>): void {
     this.removeChildren(...[...this.children.values()]);
     this.addChildren(...children);
+  }
+
+  // Inappropriate joke not intended for the next two methods starting from this line
+  public insertChildren(position: InsertPosition, child: Component | Node): void {
+    if (
+      !['beforebegin', 'afterbegin', 'beforeend', 'afterend'].includes(position) ||
+      (!(child instanceof Component) && !(child instanceof Node))
+    )
+      return;
+    this.#element.insertAdjacentElement(
+      position,
+      child instanceof Component ? child.element : child,
+    );
+    if (child instanceof Component) child.parents.add(this);
+    this.children.add(child);
+  }
+
+  public insertIntoParent(
+    position: InsertPosition,
+    parent: Component | HTMLElement | SVGElement,
+  ): void {
+    if (
+      !['beforebegin', 'afterbegin', 'beforeend', 'afterend'].includes(position) ||
+      (!(parent instanceof Component) &&
+        !(parent instanceof HTMLElement) &&
+        !(parent instanceof SVGElement))
+    )
+      return;
+    if (parent instanceof Component) parent.insertChildren(this);
+    else {
+      parent.insertAdjacentElement(position, this.element);
+      this.parents.add(parent);
+    }
   }
 
   public getProps(...propNames: string[]): Record<string, unknown> {

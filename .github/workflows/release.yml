@@ -1,9 +1,9 @@
-name: Release
+name: Release (Prod)
 
 on:
   push:
     tags:
-      - "v*"
+      - 'v*'
 
 jobs:
   release:
@@ -29,9 +29,9 @@ jobs:
         run: pnpm install
 
       - name: Build TypeScript and bundle into asar
-        run: pnpm run build-and-bundle
+        run: pnpm run build:prod:bundle
 
       - uses: ncipollo/release-action@v1
         with:
-          artifacts: "*.asar"
+          artifacts: '*.asar'
           makeLatest: true

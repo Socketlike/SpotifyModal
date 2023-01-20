@@ -1,15 +1,17 @@
 {
   "name": "SpotifyModal",
   "version": "0.3.0",
-  "description": "Spotify modal",
+  "description": "A Post-SWC Replugged plugin that shows a little modal on your user dock that lets you see & control what you're playing on Spotify.",
   "engines": {
     "node": ">=14.0.0"
   },
   "scripts": {
-    "build": "tsx scripts/build.ts",
+    "build:dev": "tsx scripts/build.ts",
+    "build:dev:bundle": "pnpm run build:dev --no-install && pnpm run bundle",
+    "build:prod": "tsx scripts/build.ts --prod",
+    "build:prod:bundle": "pnpm run build:prod --no-install && pnpm run bundle",
     "watch": "tsx scripts/build.ts --watch",
     "bundle": "tsx scripts/bundle.ts",
-    "build-and-bundle": "pnpm run build --no-install && pnpm run bundle",
     "check": "tsc --noEmit",
     "prettier:check": "prettier ./src ./scripts --check",
     "eslint:check": "eslint ./src ./scripts",
@@ -22,22 +24,18 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@electron/asar": "^3.2.2",
-    "@fal-works/esbuild-plugin-global-externals": "^2.1.2",
+    "@electron/asar": "^3.2.3",
     "@types/node": "^18.11.18",
-    "@typescript-eslint/eslint-plugin": "^5.48.1",
-    "@typescript-eslint/parser": "^5.48.1",
-    "esbuild": "^0.16.17",
+    "@typescript-eslint/eslint-plugin": "^5.48.2",
+    "@typescript-eslint/parser": "^5.48.2",
+    "esbuild": "^0.15.18",
     "eslint": "^8.32.0",
     "eslint-config-dmitmel": "github:dmitmel/eslint-config-dmitmel",
     "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-react": "^7.32.0",
+    "eslint-plugin-react": "^7.32.1",
     "prettier": "^2.8.3",
-    "replugged": "4.0.0-beta0.19",
+    "replugged": "4.0.0-beta0.21",
     "tsx": "^3.12.2",
     "typescript": "^4.9.4"
-  },
-  "dependencies": {
-    "@types/react": "^18.0.26"
   }
 }
