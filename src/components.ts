@@ -406,18 +406,23 @@ class Title extends Component {
 
     this.#animation = this.addAnimation(
       [
-        { transform: 'translateX(0)' },
-        { transform: 'translateX(0)', offset: 0.3 },
         {
-          transform: `translateX(-${
+          transform:  `translateX(-${
             this.element.scrollWidth - (this.element as HTMLElement).offsetWidth
           }px)`,
-          offset: 0.7,
+        },
+        { 
+          transform:  `translateX(-${
+            this.element.scrollWidth - (this.element as HTMLElement).offsetWidth
+          }px)`,
+          offset: 0.2,
         },
         {
-          transform: `translateX(-${
-            this.element.scrollWidth - (this.element as HTMLElement).offsetWidth
-          }px)`,
+          transform: 'translateX(0)',
+          offset: 0.8,
+        },
+        {
+          transform: 'translateX(0)',
         },
       ],
       {
@@ -517,18 +522,23 @@ class Artists extends Component {
 
     this.#animation = this.addAnimation(
       [
-        { transform: 'translateX(0)' },
-        { transform: 'translateX(0)', offset: 0.3 },
         {
-          transform: `translateX(-${
+          transform:  `translateX(-${
             this.element.scrollWidth - (this.element as HTMLElement).offsetWidth
           }px)`,
-          offset: 0.7,
         },
         {
-          transform: `translateX(-${
+          transform:  `translateX(-${
             this.element.scrollWidth - (this.element as HTMLElement).offsetWidth
           }px)`,
+          offset: 0.2,
+        },
+        {
+          transform: 'translateX(0)',
+          offset: 0.8,
+        },
+        {
+          transform: 'translateX(0)',
         },
       ],
       {

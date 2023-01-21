@@ -407,8 +407,7 @@ export class SpotifyModalManager {
       else this.watcher.api.skipPrevious();
     });
     this.modal.dock.dockIcons.playPause.on('click', (): void => {
-      this.modal.dock.dockIcons.playPause.flipState();
-      this.watcher.api.setPlaybackState(this.modal.dock.dockIcons.playPause.state);
+      this.watcher.api.setPlaybackState(!this.modal.dock.dockIcons.playPause.state);
     });
     this.modal.dock.dockIcons.skipNext.on('click', (): void => {
       this.watcher.api.skipNext();
