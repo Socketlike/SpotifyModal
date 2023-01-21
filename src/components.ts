@@ -16,7 +16,7 @@ declare const DiscordNative: {
 class PlayPauseIcon extends Component {
   public play = new Component('path', {
     classes: 'play-path',
-    props: { fill: 'currentColor', d: 'M14,19H18V5H14M6,19H10V5H6V19Z' },
+    props: { fill: 'currentColor', d: 'M8,5.14V19.14L19,12.14L8,5.14Z' },
   });
 
   public pause = new Component('path', {
@@ -151,11 +151,7 @@ class RepeatIcon extends Component {
   }
 
   public set mode(mode: 'off' | 'context' | 'track') {
-    if (
-      !['off', 'context', 'track'].includes(mode) ||
-      this.#mode === (mode === 'track' ? 'one' : 'all')
-    )
-      return;
+    if (!['off', 'context', 'track'].includes(mode)) return;
     this.#mode = mode === 'track' ? 'one' : 'all';
     this.#realMode = mode;
     this.updateIconMode();
@@ -550,19 +546,19 @@ class Artists extends Component {
   }
 
   public setInnerText(
-    track?: SpotifyTrack,
+    artists: SpotifyUser[],
     anchorClasses?: string,
     enableTooltip?: boolean,
     onRightClick?: (mouseEvent: MouseEvent) => any,
   ): void {
-    if (typeof track !== 'object' || Array.isArray(track) || !track?.artists) {
-      this.setInnerText({ artists: [{ name: this.default }] });
+    if (typeof artists !== 'object' || !Array.isArray(artists)) {
+      this.setInnerText([{ name: this.default }]);
       return;
     }
 
     const elements = [] as Array<HTMLAnchorElement | Node>;
 
-    track.artists.forEach(({ name, id }, index) => {
+    artists.forEach(({ name, id }, index) => {
       let el: Node | HTMLAnchorElement;
 
       if (typeof id === 'string') {
@@ -580,7 +576,7 @@ class Artists extends Component {
       }
 
       elements.push(el);
-      if (track.artists.length - 1 !== index) elements.push(document.createTextNode(', '));
+      if (artists.length - 1 !== index) elements.push(document.createTextNode(', '));
     });
 
     if (!elements.length) elements.push(document.createTextNode('Unknown'));
@@ -1047,6 +1043,7 @@ class ModalContainer extends Component {
     });
 
     this.addChildren(this.header, this.dock);
+    this.setStyle({ display: 'none' });
   }
 
   public reset(): void {
