@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
+import { common } from 'replugged';
 import { Component, EventEmitter } from './common';
 import { SpotifyUser } from './types';
 
@@ -454,8 +455,10 @@ class Title extends Component {
     this.setStyle({ color: this.color });
 
     this.on('contextmenu', () => {
-      if ((this.element as HTMLAnchorElement).href)
+      if ((this.element as HTMLAnchorElement).href) {
         DiscordNative.clipboard.copy((this.element as HTMLAnchorElement).href);
+        common.toast.toast('Copied Spotify track URL', 1);
+      }
     });
   }
 
@@ -916,8 +919,10 @@ class CoverArt extends Component {
     });
 
     this.on('contextmenu', () => {
-      if (this.#albumId)
+      if (this.#albumId) {
         DiscordNative.clipboard.copy(`https://open.spotify.com/album/${this.#albumId}`);
+        common.toast.toast('Copied Spotify album URL', 1);
+      }
     });
   }
 

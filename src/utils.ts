@@ -31,11 +31,20 @@ export class SpotifyWatcher extends EventEmitter {
     spotifyAccessTokenRevoked: (): void => {
       this.accountId = '';
     },
-    spotifyUpdate: async (data: { accountId: string }): Promise<void> => {
-      if (this._accountId === data?.accountId && this._websocket) return;
-
-      await this._getAccountAndSocket(data?.accountId);
-      if ((this._accountId && !this._state) || !this._devices) await this._tryGetStateAndDevices();
+    spotifyUpdate: async (data: {
+      accountId: string;
+      devices?: SpotifyDevice[];
+    }): Promise<void> => {
+      if (data?.devices && !data.devices?.length) {
+        this.accountId = '';
+        return;
+      }
+      if (this._accountId !== data?.accountId || !this._websocket)
+        await this._getAccountAndSocket(data?.accountId);
+      if (this._accountId && this._shouldFallback) {
+        this._shouldFallback = false;
+        await this._tryGetStateAndDevices();
+      }
     },
     websocketListener: async (message: SpotifyWebSocketRawMessage): Promise<void> => {
       if (!message?.data) return;
@@ -66,6 +75,7 @@ export class SpotifyWatcher extends EventEmitter {
   private _loaded = false;
   private _state: undefined | SpotifyWebSocketState = undefined;
   private _socketFunctions = new SpotifySocketFunctions();
+  private _shouldFallback = true;
   private _websocket: undefined | WebSocket = undefined;
 
   public constructor() {
@@ -89,22 +99,22 @@ export class SpotifyWatcher extends EventEmitter {
       this._account = undefined;
       this._api = undefined;
       this._accountId = undefined;
-      this._logger.log('Removed current account');
+      this._shouldFallback = true;
+      this._logger.log('[(set) accountId]', 'Removed current account');
     } else if (!this._socketFunctions.accountList) {
       this._socketFunctions
         .getAccounts()
-        .then((accounts: void | Record<string, SpotifySocket>): void | Promise<void> => {
+        .then(async (accounts: void | Record<string, SpotifySocket>): Promise<void> => {
           if (!accounts) return;
           if (accountId in accounts) {
-            this._accountId = accountId;
-            this._getAccountAndSocket(this._accountId);
-            this._logger.log('Registered new account:', this._accountId);
+            await this._getAccountAndSocket(accountId);
+            this._logger.log('[(set) accountId]', 'Registered new account:', this._accountId);
           }
         });
     } else if (accountId in this._socketFunctions.accountList) {
-      this._accountId = accountId;
-      this._getAccountAndSocket(this._accountId);
-      this._logger.log('Registered new account:', this._accountId);
+      this._getAccountAndSocket(accountId).then((): void | Promise<void> => {
+        this._logger.log('[(set) accountId]', 'Registered new account:', this._accountId);
+      });
     }
   }
 
@@ -177,7 +187,15 @@ export class SpotifyWatcher extends EventEmitter {
   }
 
   private async _getAccountAndSocket(accountId?: string): Promise<void> {
-    if (this._accountId && this._accountId !== accountId) this._removeSocketListener();
+    if (this._accountId && this._accountId !== accountId) {
+      this._logger.warn(
+        '[_getAccountAndSocket]',
+        'Attempted registration of new account',
+        accountId,
+        'but denied since current account is still in use',
+      );
+      return;
+    }
 
     this._account = (await this._socketFunctions.getAccount(accountId)) as SpotifySocket;
     this._websocket = (await this._socketFunctions.getWebSocket(accountId)) as WebSocket;
@@ -305,8 +323,10 @@ export class SpotifyModalManager {
       `${this._classes.anchor} ${this._classes.anchorUnderlineOnHover} ${this._classes.bodyLink} ${this._classes.ellipsis}`,
       true,
       (mouseEvent: MouseEvent): void => {
-        if ((mouseEvent.target as HTMLAnchorElement)?.href)
+        if ((mouseEvent.target as HTMLAnchorElement)?.href) {
           DiscordNative.clipboard.copy((mouseEvent.target as HTMLAnchorElement).href);
+          common.toast.toast("Copied artist's Spotify URL", 1);
+        }
       },
     );
 
