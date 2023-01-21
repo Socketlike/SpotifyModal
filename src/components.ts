@@ -172,7 +172,7 @@ class RepeatIcon extends Component {
     if ([...this.children.values()][0].classes.contains('repeat-one-path') && this.#mode === 'one')
       return;
 
-    this.replaceChildren(this.#mode === 'all' ? this.all : this.one);
+    this.replaceChildren(this.title, this.#mode === 'all' ? this.all : this.one);
   }
 
   public flipState(): void {
@@ -383,10 +383,10 @@ class Title extends Component {
     this.#animation = this.addAnimation(
       [
         { transform: 'translateX(0)' },
-        { transform: 'translateX(0)', offset: 0.2 },
+        { transform: 'translateX(0)', offset: 0.3 },
         {
           transform: `translateX(-${this.element.scrollWidth - this.element.offsetWidth}px)`,
-          offset: 0.8,
+          offset: 0.7,
         },
         { transform: `translateX(-${this.element.scrollWidth - this.element.offsetWidth}px)` },
       ],
@@ -485,10 +485,10 @@ class Artists extends Component {
     this.#animation = this.addAnimation(
       [
         { transform: 'translateX(0)' },
-        { transform: 'translateX(0)', offset: 0.2 },
+        { transform: 'translateX(0)', offset: 0.3 },
         {
           transform: `translateX(-${this.element.scrollWidth - this.element.offsetWidth}px)`,
-          offset: 0.8,
+          offset: 0.7,
         },
         { transform: `translateX(-${this.element.scrollWidth - this.element.offsetWidth}px)` },
       ],
