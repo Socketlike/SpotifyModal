@@ -4,15 +4,16 @@
   @typescript-eslint/no-floating-promises,
   @typescript-eslint/require-await
 */
-import { common, Logger, webpack } from 'replugged';
-import { CSSStyleProperties, FadeAnimations, SpotifySocket, SpotifySocketModule } from './types';
+import { Logger, webpack } from 'replugged';
+import { CSSStyleProperties, SpotifySocket, SpotifySocketModule } from './types';
 
 export class EventEmitter {
   public readonly name = this.constructor.name;
   public addEventListener = this.on;
 
   private _events: Map<string, Set<(...args: unknown[]) => void>> = new Map();
-  private _logger = new Logger('SpotifyModal', this.name);
+  // @ts-expect-error - I want my own logger type thank you very much
+  public _logger = new Logger('SpotifyModal', this.name);
 
   private _createOnceCallback(
     name: string,
@@ -48,7 +49,9 @@ export class EventEmitter {
 
   public once(name: string, callback: (...args: unknown[]) => void): void {
     if (typeof name === 'string' && typeof callback === 'function') {
-      const callbackFn: (...args: unknown[]) => void = this.createOnceCallback(name, callback);
+      const callbackFn: (...args: unknown[]) => void = this._createOnceCallback(name, callback) as (
+        ...args: unknown[]
+      ) => void;
       this.on(name, callbackFn);
     } else this._logger.log('[@once]', 'Name / callback is of invalid type');
   }
@@ -67,6 +70,7 @@ export class SpotifyAPI {
 
   private _account: SpotifySocket;
   private _ready: boolean = false;
+  // @ts-expect-error - I want my own logger type thank you very much
   private _logger = new Logger('SpotifyModal', this.name);
 
   public constructor(account: SpotifySocket) {
@@ -94,8 +98,8 @@ export class SpotifyAPI {
   public async sendGenericRequest(
     endpoint: string,
     method = 'GET',
-    query?: Record<string, unknown>,
-    body?: string | Record<string, unknown>,
+    query?: Record<string, string | number | boolean>,
+    body?: BodyInit,
   ): Promise<void | Response> {
     if (!this._ready) {
       this._logger.error('[@sendGenericRequest]', 'API not ready');
@@ -170,7 +174,6 @@ export class SpotifySocketFunctions extends EventEmitter {
 
   private _account: undefined | SpotifySocket = undefined;
   private _accountList: Record<string, SpotifySocket> = {};
-  private _logger = new Logger('SpotifyModal', this.name);
   private _ready = false;
   private _store: undefined | SpotifySocketModule = undefined;
   private _websocket: undefined | WebSocket = undefined;
@@ -281,7 +284,7 @@ export class SpotifySocketFunctions extends EventEmitter {
     }
   }
 
-  public async getAPI(accountId?: string): void | SpotifyAPI {
+  public async getAPI(accountId?: string): Promise<void | SpotifyAPI> {
     if (!this._ready) return;
 
     const account = await this.getAccount(accountId);
@@ -292,28 +295,10 @@ export class SpotifySocketFunctions extends EventEmitter {
 }
 
 /** Get all property descriptors of an object, including those on the prototype chain */
-export function getAllPropDescriptors(object: unknown): void | Record<
-  string,
-  {
-    writable: boolean;
-    configurable: boolean;
-    value?: unknown;
-    get?: () => unknown;
-    set?: (setValue: unknown) => void;
-  }
-> {
+export function getAllPropDescriptors(object: unknown): void | Record<string, PropertyDescriptor> {
   if ([undefined, null].includes(object)) return;
 
-  let descriptors: Record<
-    string,
-    {
-      writable: boolean;
-      configurable: boolean;
-      value?: unknown;
-      get?: () => unknown;
-      set?: (setValue: unknown) => void;
-    }
-  > = {};
+  let descriptors: Record<string, PropertyDescriptor> = {};
   let currentPrototype: unknown;
   let end = false;
 
@@ -375,7 +360,9 @@ export class Component {
     instance.#element = element;
     instance.animations = element.getAnimations();
     instance.parents = new Set<Component | HTMLElement | SVGElement>();
-    instance.children = new Set<Component | HTMLElement | SVGElement>(element.children);
+    instance.children = new Set<Component | HTMLElement | SVGElement>([
+      element as Component | HTMLElement | SVGElement,
+    ]);
   }
 
   public static svgTags = [
@@ -409,13 +396,15 @@ export class Component {
     'view',
   ];
 
+  public on = this.addEventListener;
   public animations: Animation[] = [];
   public children = new Set<Component | Node>();
   #element: HTMLElement | SVGElement;
   public parents = new Set<Component | HTMLElement | SVGElement>();
   #svg: boolean;
 
-  public _setAttribute(name: string, value: unknown): void {
+  public _setAttribute(name: string, value: string): void {
+    if (typeof value !== 'string') return;
     if (this.isSVG) this.#element.setAttributeNS(undefined, name, value);
     else this.#element.setAttribute(name, value);
   }
@@ -425,7 +414,7 @@ export class Component {
     options?: {
       children?: Array<Component | Node>;
       classes?: string;
-      props?: Record<string, unknown>;
+      props?: Record<string, string>;
       style?: CSSStyleProperties;
       svg?: boolean;
     },
@@ -464,25 +453,25 @@ export class Component {
     return this.#element;
   }
 
-  public get classes(): string {
+  public get classes(): DOMTokenList {
     return this.#element.classList;
   }
 
-  public addEventListener(name: string, callback: (...args: unknown) => void): void {
+  public addEventListener(name: string, callback: (...args: unknown[]) => void): void {
     if (typeof name !== 'string' || typeof callback !== 'function') return;
     this.#element.addEventListener(name, callback);
   }
 
-  public once(name: string, callback: (...args: unknown) => void): void {
+  public once(name: string, callback: (...args: unknown[]) => void): void {
     if (typeof name !== 'string' || typeof callback !== 'function') return;
-    const replacedCallback = (...args: unknown): void => {
+    const replacedCallback = (...args: unknown[]): void => {
       callback(...args);
       this.removeEventListener(name, replacedCallback);
     };
     this.addEventListener(name, replacedCallback);
   }
 
-  public removeEventListener(name: string, callback: (...args: unknown) => void): void {
+  public removeEventListener(name: string, callback: (...args: unknown[]) => void): void {
     if (typeof name !== 'string' || typeof callback !== 'function') return;
     this.#element.removeEventListener(name, callback);
   }
@@ -503,7 +492,7 @@ export class Component {
   public addClasses(...classes: string[]): void {
     const classesList = classes
       .filter((className): boolean => typeof className === 'string')
-      .filter((className): boolean => className)
+      .filter((className): boolean => Boolean(className))
       .map((className): string[] => className.split(' '))
       .flat();
     if (!classesList.length) return;
@@ -513,7 +502,7 @@ export class Component {
   public removeClasses(...classes: string[]): void {
     const classesList = classes
       .filter((className): boolean => typeof className === 'string')
-      .filter((className): boolean => className)
+      .filter((className): boolean => Boolean(className))
       .map((className): string[] => className.split(' '))
       .flat();
     if (!classesList.length) return;
@@ -561,7 +550,7 @@ export class Component {
   }
 
   // Inappropriate joke not intended for the next two methods starting from this line
-  public insertChildren(position: InsertPosition, child: Component | Node): void {
+  public insertChildren(position: InsertPosition, child: Component | Element): void {
     if (
       !['beforebegin', 'afterbegin', 'beforeend', 'afterend'].includes(position) ||
       (!(child instanceof Component) && !(child instanceof Node))
@@ -586,7 +575,7 @@ export class Component {
         !(parent instanceof SVGElement))
     )
       return;
-    if (parent instanceof Component) parent.insertChildren(this);
+    if (parent instanceof Component) parent.insertChildren(position, this);
     else {
       parent.insertAdjacentElement(position, this.element);
       this.parents.add(parent);
@@ -602,8 +591,8 @@ export class Component {
     return props;
   }
 
-  public setProps(props: Record<string, unknown>): void {
-    const setters = getAllSetters(this.element);
+  public setProps(props: Record<string, string>): void {
+    const setters = getAllSetters(this.element) as string[];
     for (const [name, value] of Object.entries(props).filter(
       ([name]): boolean => typeof name === 'string',
     )) {
@@ -627,7 +616,7 @@ export class Component {
   }
 
   public addAnimation(
-    keyframes: Keyframes[] | PropertyIndexedKeyframes,
+    keyframes: Keyframe[] | PropertyIndexedKeyframes,
     options?: number | KeyframeAnimationOptions,
   ): void | Animation {
     if (typeof keyframes !== 'object') return;
@@ -638,7 +627,7 @@ export class Component {
   }
 
   public playAnimation(
-    keyframes: Keyframes[] | PropertyIndexedKeyframes,
+    keyframes: Keyframe[] | PropertyIndexedKeyframes,
     options?: number | KeyframeAnimationOptions,
   ): void | Animation {
     const animation = this.addAnimation(keyframes, options);

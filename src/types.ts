@@ -1,11 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention, @typescript-eslint/no-explicit-any */
 
-export interface FadeAnimations {
-  _: { display: string; fadein: Animation; fadeout: Animation };
-  fadein: () => void;
-  fadeout: () => void;
-}
-
 export interface FluxDispatcher {
   _subscriptions: {
     [name: string]: Set<(...args: any) => unknown>;

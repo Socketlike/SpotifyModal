@@ -1,5 +1,16 @@
+/* eslint-disable @typescript-eslint/no-floating-promises */
 import { Component, EventEmitter } from './common';
-import { SpotifyTrack } from './types';
+import { SpotifyUser } from './types';
+
+interface FadeAnimations {
+  _: {
+    display: string;
+    fadein: Animation;
+    fadeout: Animation;
+  };
+  fadein: () => void;
+  fadeout: () => void;
+}
 
 declare const DiscordNative: {
   clipboard: {
@@ -41,11 +52,11 @@ class PlayPauseIcon extends Component {
     this.on('mouseleave', (): void => this.setStyle({ color: this.defaultColor }));
   }
 
-  get state(): boolean {
+  public get state(): boolean {
     return this.#state;
   }
 
-  set state(state: boolean) {
+  public set state(state: boolean) {
     if (this.#state === state) return;
     this.#state = Boolean(state);
     this.updateIcon();
@@ -56,8 +67,10 @@ class PlayPauseIcon extends Component {
   }
 
   public updateIcon(): void {
-    if ([...this.children.values()][0].classes.contains('play-path') && !this.#state) return;
-    if ([...this.children.values()][0].classes.contains('pause-path') && this.#state) return;
+    if (([...this.children.values()][0] as Component).classes.contains('play-path') && !this.#state)
+      return;
+    if (([...this.children.values()][0] as Component).classes.contains('pause-path') && this.#state)
+      return;
 
     this.replaceChildren(this.#state ? this.pause : this.play);
   }
@@ -140,15 +153,19 @@ class RepeatIcon extends Component {
     return this.#mode;
   }
 
+  public set mode(mode: string) {
+    if (!['off', 'context', 'track'].includes(mode)) return;
+    this.#mode = mode === 'track' ? 'one' : 'all';
+    this.#realMode = mode as 'off' | 'context' | 'track';
+    this.updateIconMode();
+  }
+
   public get realMode(): string {
     return this.#realMode;
   }
 
-  public set mode(mode: 'off' | 'context' | 'track') {
-    if (!['off', 'context', 'track'].includes(mode)) return;
-    this.#mode = mode === 'track' ? 'one' : 'all';
-    this.#realMode = mode;
-    this.updateIconMode();
+  public get titleText(): string {
+    return ([...this.title.children.values()][0] as Node).nodeValue ;
   }
 
   public set titleText(title: string) {
@@ -167,9 +184,15 @@ class RepeatIcon extends Component {
   }
 
   public updateIconMode(): void {
-    if ([...this.children.values()][0].classes.contains('repeat-all-path') && this.#mode === 'all')
+    if (
+      ([...this.children.values()][0] as Component).classes.contains('repeat-all-path') &&
+      this.#mode === 'all'
+    )
       return;
-    if ([...this.children.values()][0].classes.contains('repeat-one-path') && this.#mode === 'one')
+    if (
+      ([...this.children.values()][0] as Component).classes.contains('repeat-one-path') &&
+      this.#mode === 'one'
+    )
       return;
 
     this.replaceChildren(this.title, this.#mode === 'all' ? this.all : this.one);
@@ -177,10 +200,6 @@ class RepeatIcon extends Component {
 
   public flipState(): void {
     this.state = !this.#state;
-  }
-
-  public flipMode(): void {
-    this.mode = this.#mode === 'all' ? 'one' : 'all';
   }
 }
 
@@ -205,7 +224,7 @@ class ShuffleIcon extends Component {
   public constructor(
     defaultColor = 'var(--text-normal)',
     hoverColor = 'var(--brand-experiment-300)',
-    onColor: 'var(--brand-experiment-500)',
+    onColor = 'var(--brand-experiment-500)',
   ) {
     super('svg', {
       classes: 'shuffle-icon',
@@ -235,6 +254,10 @@ class ShuffleIcon extends Component {
     if (this.#state === state) return;
     this.#state = state;
     this.updateIcon();
+  }
+
+  public get titleText(): string {
+    return ([...this.title.children.values()][0] as Node).nodeValue ;
   }
 
   public set titleText(title: string) {
@@ -329,11 +352,11 @@ class DockIcons extends Component {
   public skipNext = new SkipNextIcon();
   public repeat = new RepeatIcon();
 
-  public fade = {
+  public fade: FadeAnimations = {
     _: {
       display: 'flex',
-      fadein: this.addAnimation({ opacity: [0, 1] }, 700),
-      fadeout: this.addAnimation({ opacity: [1, 0] }, 700),
+      fadein: this.addAnimation({ opacity: [0, 1] }, 700) as Animation,
+      fadeout: this.addAnimation({ opacity: [1, 0] }, 700) as Animation,
     },
     fadein: (): void => {
       if (this.element.style.display === 'none') {
@@ -376,7 +399,7 @@ class DockIcons extends Component {
 class Title extends Component {
   public _scrollingAnimation(): void {
     if (this.#animation && this.#animation?.playState === 'running') {
-      this.animations = [] as Animations[];
+      this.animations = [] as Animation[];
       this.#animation.cancel();
     }
 
@@ -385,18 +408,24 @@ class Title extends Component {
         { transform: 'translateX(0)' },
         { transform: 'translateX(0)', offset: 0.3 },
         {
-          transform: `translateX(-${this.element.scrollWidth - this.element.offsetWidth}px)`,
+          transform: `translateX(-${
+            this.element.scrollWidth - (this.element as HTMLElement).offsetWidth
+          }px)`,
           offset: 0.7,
         },
-        { transform: `translateX(-${this.element.scrollWidth - this.element.offsetWidth}px)` },
+        {
+          transform: `translateX(-${
+            this.element.scrollWidth - (this.element as HTMLElement).offsetWidth
+          }px)`,
+        },
       ],
       {
         iterations: Infinity,
-        duration: (this.element.scrollWidth - this.element.offsetWidth) * 50,
+        duration: (this.element.scrollWidth - (this.element as HTMLElement).offsetWidth) * 50,
         direction: 'alternate-reverse',
         easing: 'linear',
       },
-    );
+    ) as Animation;
 
     this.#animation.play();
   }
@@ -405,7 +434,7 @@ class Title extends Component {
   public defaultText = 'None';
   public textOverflowClass = '';
   #lastScrollWidth = this.scrollWidth;
-  #animation: Animation | undefined = undefined;
+  #animation: undefined | Animation = undefined;
 
   public constructor(
     color = 'var(--text-normal)',
@@ -425,7 +454,8 @@ class Title extends Component {
     this.setStyle({ color: this.color });
 
     this.on('contextmenu', () => {
-      if (this.element.href) DiscordNative.clipboard.copy(this.element.href);
+      if ((this.element as HTMLAnchorElement).href)
+        DiscordNative.clipboard.copy((this.element as HTMLAnchorElement).href);
     });
   }
 
@@ -433,7 +463,7 @@ class Title extends Component {
     return this.element.scrollWidth;
   }
 
-  public setInnerText(text?: string, id?: string) {
+  public setInnerText(text?: string, id?: string): void {
     if (typeof text !== 'string' || !text) {
       this.setProps({ innerText: this.defaultText, title: '', href: '' });
       this.setStyle({
@@ -452,7 +482,7 @@ class Title extends Component {
         textDecoration: typeof id === 'string' ? '' : 'none',
         cursor: typeof id === 'string' ? '' : 'default',
       });
-      if (this.element.scrollWidth > (this.element.offsetWidth as number) + 10) {
+      if (this.element.scrollWidth > ((this.element as HTMLElement).offsetWidth ) + 10) {
         if (this.classes.contains(this.textOverflowClass))
           this.removeClasses(this.textOverflowClass);
         if (this.#animation?.playState !== 'running') this._scrollingAnimation();
@@ -464,7 +494,7 @@ class Title extends Component {
           this._scrollingAnimation();
         }
       } else {
-        this.addClasses(this.textOverflowClass);
+        if (!this.classes.contains(this.textOverflowClass)) this.addClasses(this.textOverflowClass);
         if (this.#animation?.playState === 'running') this.#animation.cancel();
       }
     }
@@ -478,7 +508,7 @@ class Title extends Component {
 class Artists extends Component {
   public _scrollingAnimation(): void {
     if (this.#animation && this.#animation?.playState === 'running') {
-      this.animations = [] as Animations[];
+      this.animations = [] as Animation[];
       this.#animation.cancel();
     }
 
@@ -487,18 +517,24 @@ class Artists extends Component {
         { transform: 'translateX(0)' },
         { transform: 'translateX(0)', offset: 0.3 },
         {
-          transform: `translateX(-${this.element.scrollWidth - this.element.offsetWidth}px)`,
+          transform: `translateX(-${
+            this.element.scrollWidth - (this.element as HTMLElement).offsetWidth
+          }px)`,
           offset: 0.7,
         },
-        { transform: `translateX(-${this.element.scrollWidth - this.element.offsetWidth}px)` },
+        {
+          transform: `translateX(-${
+            this.element.scrollWidth - (this.element as HTMLElement).offsetWidth
+          }px)`,
+        },
       ],
       {
         iterations: Infinity,
-        duration: (this.element.scrollWidth - this.element.offsetWidth) * 50,
+        duration: (this.element.scrollWidth - (this.element as HTMLElement).offsetWidth) * 50,
         direction: 'alternate-reverse',
         easing: 'linear',
       },
-    );
+    ) as Animation;
 
     this.#animation.play();
   }
@@ -532,36 +568,35 @@ class Artists extends Component {
   }
 
   public setInnerText(
-    artists: SpotifyUser[],
+    artists?: SpotifyUser[],
     anchorClasses?: string,
     enableTooltip?: boolean,
-    onRightClick?: (mouseEvent: MouseEvent) => any,
+    onRightClick?: (mouseEvent: MouseEvent) => void,
   ): void {
     if (typeof artists !== 'object' || !Array.isArray(artists)) {
-      this.setInnerText([{ name: this.default }]);
+      this.replaceChildren(document.createTextNode(this.defaultText));
       return;
     }
 
     const elements = [] as Array<HTMLAnchorElement | Node>;
 
     artists.forEach(({ name, id }, index) => {
-      let el: Node | HTMLAnchorElement;
-
       if (typeof id === 'string') {
-        el = document.createElement('a') as HTMLAnchorElement;
+        const el = document.createElement('a') ;
 
         el.target = '_blank';
         el.href = `https://open.spotify.com/artist/${id}`;
         el.style.color = 'var(--header-secondary)';
         if (typeof anchorClasses === 'string') el.classList.add(...anchorClasses.split(' '));
         if (enableTooltip) el.title = name;
-        if (typeof onRightClick === 'function') el.onrightclick = onRightClick;
+        if (typeof onRightClick === 'function') el.oncontextmenu = onRightClick;
         el.appendChild(document.createTextNode(name));
+        elements.push(el);
       } else {
-        el = document.createTextNode(name) as Node;
+        const el = document.createTextNode(name) as Node;
+        elements.push(el);
       }
 
-      elements.push(el);
       if (artists.length - 1 !== index) elements.push(document.createTextNode(', '));
     });
 
@@ -569,7 +604,7 @@ class Artists extends Component {
 
     this.replaceChildren(...elements);
 
-    if (this.element.scrollWidth > (this.element.offsetWidth as number) + 10) {
+    if (this.element.scrollWidth > ((this.element as HTMLElement).offsetWidth ) + 10) {
       if (this.classes.contains(this.textOverflowClass)) this.removeClasses(this.textOverflowClass);
       if (this.#animation?.playState !== 'running') this._scrollingAnimation();
       else if (
@@ -580,7 +615,7 @@ class Artists extends Component {
         this._scrollingAnimation();
       }
     } else {
-      this.addClasses(this.textOverflowClass);
+      if (!this.classes.contains(this.textOverflowClass)) this.addClasses(this.textOverflowClass);
       if (this.#animation?.playState === 'running') this.#animation.cancel();
     }
   }
@@ -594,11 +629,11 @@ class Metadata extends Component {
   public title = new Title();
   public artists = new Artists();
 
-  public fade = {
+  public fade: FadeAnimations = {
     _: {
       display: 'flex',
-      fadein: this.addAnimation({ opacity: [0, 1] }, 700),
-      fadeout: this.addAnimation({ opacity: [1, 0] }, 700),
+      fadein: this.addAnimation({ opacity: [0, 1] }, 700) as Animation,
+      fadeout: this.addAnimation({ opacity: [1, 0] }, 700) as Animation,
     },
     fadein: (): void => {
       if (this.element.style.display === 'none') {
@@ -667,7 +702,7 @@ class PlaybackTimeCurrent extends Component {
   public update(timeInMS: number): void {
     if (typeof timeInMS !== 'number') return;
     const time = parseTime(timeInMS);
-    if (time !== this.element.innerText) this.setProps({ innerText: time });
+    if (time !== (this.element as HTMLSpanElement).innerText) this.setProps({ innerText: time });
   }
 
   public reset(): void {
@@ -688,7 +723,7 @@ class PlaybackTimeDuration extends Component {
   public update(timeInMS: number): void {
     if (typeof timeInMS !== 'number') return;
     const time = parseTime(timeInMS);
-    if (time !== this.element.innerText) this.setProps({ innerText: time });
+    if (time !== (this.element as HTMLSpanElement).innerText) this.setProps({ innerText: time });
   }
 
   public reset(): void {
@@ -700,11 +735,11 @@ class PlaybackTimeDisplay extends Component {
   public current = new PlaybackTimeCurrent();
   public duration = new PlaybackTimeDuration();
 
-  public fade = {
+  public fade: FadeAnimations = {
     _: {
       display: 'flex',
-      fadein: this.addAnimation({ opacity: [0, 1] }, 700),
-      fadeout: this.addAnimation({ opacity: [1, 0] }, 700),
+      fadein: this.addAnimation({ opacity: [0, 1] }, 700) as Animation,
+      fadeout: this.addAnimation({ opacity: [1, 0] }, 700) as Animation,
     },
     fadein: (): void => {
       if (this.element.style.display === 'none') {
@@ -787,11 +822,11 @@ class ProgressBarEventEmitter extends EventEmitter {}
 class ProgressBar extends Component {
   public inner = new ProgressBarInner();
 
-  public fade = {
+  public fade: FadeAnimations = {
     _: {
       display: '',
-      fadein: this.addAnimation({ opacity: [0, 1] }, 700),
-      fadeout: this.addAnimation({ opacity: [1, 0] }, 700),
+      fadein: this.addAnimation({ opacity: [0, 1] }, 700) as Animation,
+      fadeout: this.addAnimation({ opacity: [1, 0] }, 700) as Animation,
     },
     fadein: (): void => {
       if (this.element.style.display === 'none') {
@@ -829,8 +864,9 @@ class ProgressBar extends Component {
     this.addChildren(this.inner);
     this.setStyle({ backgroundColor: this.color });
 
+    // @ts-expect-error - MouseEvent will be a parameter
     this.on('click', (mouseEvent: MouseEvent): void => {
-      this.events.emit('scrub', mouseEvent.offsetX / this.element.offsetWidth);
+      this.events.emit('scrub', mouseEvent.offsetX / (this.element as HTMLDivElement).offsetWidth);
     });
   }
 
@@ -840,11 +876,11 @@ class ProgressBar extends Component {
 }
 
 class CoverArt extends Component {
-  public fade = {
+  public fade: FadeAnimations = {
     _: {
       display: '',
-      fadein: this.addAnimation({ opacity: [0, 1] }, 700),
-      fadeout: this.addAnimation({ opacity: [1, 0] }, 700),
+      fadein: this.addAnimation({ opacity: [0, 1] }, 700) as Animation,
+      fadeout: this.addAnimation({ opacity: [1, 0] }, 700) as Animation,
     },
     fadein: (): void => {
       if (this.element.style.display === 'none') {
@@ -903,11 +939,11 @@ class Dock extends Component {
   public progressBar = new ProgressBar();
   public dockIcons = new DockIcons();
 
-  public fade = {
+  public fade: FadeAnimations = {
     _: {
       display: 'flex',
-      fadein: this.addAnimation({ opacity: [0, 1] }, 700),
-      fadeout: this.addAnimation({ opacity: [1, 0] }, 700),
+      fadein: this.addAnimation({ opacity: [0, 1] }, 700) as Animation,
+      fadeout: this.addAnimation({ opacity: [1, 0] }, 700) as Animation,
     },
     fadein: (): void => {
       if (this.element.style.display === 'none') {
@@ -949,11 +985,11 @@ class ModalHeader extends Component {
   public coverArt = new CoverArt();
   public metadata = new Metadata();
 
-  public fade = {
+  public fade: FadeAnimations = {
     _: {
       display: 'flex',
-      fadein: this.addAnimation({ opacity: [0, 1] }, 700),
-      fadeout: this.addAnimation({ opacity: [1, 0] }, 700),
+      fadein: this.addAnimation({ opacity: [0, 1] }, 700) as Animation,
+      fadeout: this.addAnimation({ opacity: [1, 0] }, 700) as Animation,
     },
     fadein: (): void => {
       if (this.element.style.display === 'none') {
@@ -996,11 +1032,11 @@ class ModalContainer extends Component {
   public header = new ModalHeader();
   public dock = new Dock();
 
-  public fade = {
+  public fade: FadeAnimations = {
     _: {
       display: 'flex',
-      fadein: this.addAnimation({ opacity: [0, 1] }, 700),
-      fadeout: this.addAnimation({ opacity: [1, 0] }, 700),
+      fadein: this.addAnimation({ opacity: [0, 1] }, 700) as Animation,
+      fadeout: this.addAnimation({ opacity: [1, 0] }, 700) as Animation,
     },
     fadein: (): void => {
       if (this.element.style.display === 'none') {

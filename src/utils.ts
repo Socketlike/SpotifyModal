@@ -1,21 +1,14 @@
 /* eslint-disable
-  @typescript-eslint/naming-convention,
-  @typescript-eslint/no-inferrable-types,
   @typescript-eslint/no-floating-promises,
-  @typescript-eslint/no-explicit-any,
-  @typescript-eslint/require-await,
-  new-cap
+  @typescript-eslint/require-await
 */
 
 import { Logger, common, webpack } from 'replugged';
 import { EventEmitter, SpotifyAPI, SpotifySocketFunctions } from './common';
 import {
-  FadeAnimations,
   FluxDispatcher,
   SpotifyDevice,
   SpotifySocket,
-  SpotifySocketModule,
-  SpotifyTrack,
   SpotifyWebSocketDevices,
   SpotifyWebSocketRawMessage,
   SpotifyWebSocketRawParsedMessage,
@@ -23,13 +16,19 @@ import {
 } from './types';
 import { components } from './components';
 
+declare const DiscordNative: {
+  clipboard: {
+    copy: (content: string) => void;
+  };
+};
+
 export class SpotifyWatcher extends EventEmitter {
   public readonly name = this.constructor.name;
   public readonly handlers = {
     pong: (accountId: string): void => {
       this.handlers.spotifyUpdate({ accountId });
     },
-    spotifyAccessTokenRevoked: (accountId: string): void => {
+    spotifyAccessTokenRevoked: (): void => {
       this.accountId = '';
     },
     spotifyUpdate: async (data: { accountId: string }): Promise<void> => {
@@ -65,7 +64,6 @@ export class SpotifyWatcher extends EventEmitter {
   private _dispatcher: undefined | FluxDispatcher = undefined;
   private _dispatcherStatus = false;
   private _loaded = false;
-  private _logger = new Logger('SpotifyModal', this.name);
   private _state: undefined | SpotifyWebSocketState = undefined;
   private _socketFunctions = new SpotifySocketFunctions();
   private _websocket: undefined | WebSocket = undefined;
@@ -93,13 +91,16 @@ export class SpotifyWatcher extends EventEmitter {
       this._accountId = undefined;
       this._logger.log('Removed current account');
     } else if (!this._socketFunctions.accountList) {
-      this._socketFunctions.getAccounts().then((accounts: Record<string, SpotifySocket>): void => {
-        if (accountId in accounts) {
-          this._accountId = accountId;
-          this._getAccountAndSocket(this._accountId);
-          this._logger.log('Registered new account:', this._accountId);
-        }
-      });
+      this._socketFunctions
+        .getAccounts()
+        .then((accounts: void | Record<string, SpotifySocket>): void | Promise<void> => {
+          if (!accounts) return;
+          if (accountId in accounts) {
+            this._accountId = accountId;
+            this._getAccountAndSocket(this._accountId);
+            this._logger.log('Registered new account:', this._accountId);
+          }
+        });
     } else if (accountId in this._socketFunctions.accountList) {
       this._accountId = accountId;
       this._getAccountAndSocket(this._accountId);
@@ -135,7 +136,7 @@ export class SpotifyWatcher extends EventEmitter {
     }
   }
 
-  async _setupDispatcherHooks(): Promise<void> {
+  private async _setupDispatcherHooks(): Promise<void> {
     if (!this._dispatcher) await this.getFluxDispatcher();
     if (this._dispatcherStatus) return;
 
@@ -152,7 +153,7 @@ export class SpotifyWatcher extends EventEmitter {
     this._logger.log('Dispatcher hooks setup');
   }
 
-  _removeDispatcherHooks(): void {
+  private _removeDispatcherHooks(): void {
     if (!this._dispatcher || !this._dispatcherStatus) return;
 
     this._dispatcher.unsubscribe('SPOTIFY_PROFILE_UPDATE', this.handlers.spotifyUpdate);
@@ -168,19 +169,19 @@ export class SpotifyWatcher extends EventEmitter {
     this._logger.log('Dispatcher hooks removed');
   }
 
-  _removeSocketListener(): void {
+  private _removeSocketListener(): void {
     if (this._websocket) {
       this._websocket.removeEventListener('message', this.handlers.websocketListener);
       this._logger.log('Socket listener removed for account:', this._accountId);
     }
   }
 
-  async _getAccountAndSocket(accountId?: string): Promise<void> {
+  private async _getAccountAndSocket(accountId?: string): Promise<void> {
     if (this._accountId && this._accountId !== accountId) this._removeSocketListener();
 
-    this._account = await this._socketFunctions.getAccount(accountId);
-    this._websocket = await this._socketFunctions.getWebSocket(accountId);
-    this._api = await this._socketFunctions.getAPI(accountId);
+    this._account = (await this._socketFunctions.getAccount(accountId)) as SpotifySocket;
+    this._websocket = (await this._socketFunctions.getWebSocket(accountId)) as WebSocket;
+    this._api = (await this._socketFunctions.getAPI(accountId)) as SpotifyAPI;
 
     if (typeof accountId === 'string' && this._account) this._accountId = accountId;
     else if (this._account) this._accountId = this._account.accountId;
@@ -199,7 +200,7 @@ export class SpotifyWatcher extends EventEmitter {
     this._logger.log('Got account:', this._accountId);
   }
 
-  async _tryGetStateAndDevices(): Promise<void> {
+  private async _tryGetStateAndDevices(): Promise<void> {
     if (!this._accountId) await this._getAccountAndSocket();
     if (!this._socketFunctions.userHasSpotifyAccounts) return;
     const req = [this._api.getPlayerState(), this._api.getDevices()];
@@ -227,7 +228,10 @@ export class SpotifyWatcher extends EventEmitter {
     if (devices) {
       const data = await devices.text();
       if (data) {
-        const parsedDevices = JSON.parse(data) as SpotifyWebSocketDevices;
+        const parsedDevices = JSON.parse(data) as {
+          devices?: SpotifyWebSocketDevices;
+          error?: { message: string };
+        };
         if (Array.isArray(parsedDevices?.devices)) {
           this._devices = parsedDevices?.devices;
           this.emit('devices', { state: this._state, devices: this._devices });
@@ -264,8 +268,72 @@ export class SpotifyModalManager {
   public watcher = new SpotifyWatcher();
   public modal = new components.ModalContainer();
   public panels: HTMLElement | undefined = undefined;
+  public readonly devicesListener = ({ devices }: { devices: SpotifyDevice[] }): void => {
+    if (!devices?.length) {
+      this.modal.fade.fadeout();
+      this.modal.reset();
+    } else this.modal.fade.fadein();
+  };
+  public playerListener = ({ state }: { state: SpotifyWebSocketState }): void => {
+    if (!this._injected) this.injectModal();
+    this.modal.dock.dockIcons.playPause.state = state.is_playing;
+
+    this.modal.dock.dockIcons.shuffle.state = state.shuffle_state;
+    this.modal.dock.dockIcons.shuffle.titleText = `Shuffle ${state.shuffle_state ? 'on' : 'off'}`;
+    this.modal.dock.dockIcons.repeat.state = state.repeat_state !== 'off';
+    this.modal.dock.dockIcons.repeat.mode = state.repeat_state;
+    this.modal.dock.dockIcons.repeat.titleText = `Repeat ${
+      state.repeat_state !== 'off' ? { context: 'all', track: 'track' }[state.repeat_state] : 'off'
+    }`;
+
+    this._trackTime.current = typeof state?.progress_ms === 'number' ? state.progress_ms : 0;
+    this._trackTime.duration =
+      typeof state?.item?.duration_ms === 'number' ? state.item.duration_ms : 0;
+    this.modal.dock.progressBar.inner.update(this._trackTime.current, this._trackTime.duration);
+    this.modal.dock.playbackTimeDisplay.update(this._trackTime.current, this._trackTime.duration);
+
+    const track = state.item;
+    if (track?.album?.images?.[0]?.url)
+      this.modal.header.coverArt.update(
+        track.album.images[0].url,
+        track.album.name,
+        track.album.id,
+      );
+    this.modal.header.metadata.title.setInnerText(track?.name, track?.id);
+    this.modal.header.metadata.artists.setInnerText(
+      track?.artists,
+      `${this._classes.anchor} ${this._classes.anchorUnderlineOnHover} ${this._classes.bodyLink} ${this._classes.ellipsis}`,
+      true,
+      (mouseEvent: MouseEvent): void => {
+        if ((mouseEvent.target as HTMLAnchorElement)?.href)
+          DiscordNative.clipboard.copy((mouseEvent.target as HTMLAnchorElement).href);
+      },
+    );
+
+    if (state.is_playing) {
+      if (!this._intervalId)
+        this._intervalId = setInterval(
+          this.intervalCallback as unknown as () => void,
+          this._updateInterval,
+        ) as unknown as number;
+      this.modal.fade.fadein();
+    } else if (this._intervalId) {
+      clearInterval(this._intervalId);
+      this._intervalId = undefined;
+    }
+  };
+  public readonly intervalCallback = (): void => {
+    this._trackTime.current += 500;
+    this.modal.dock.progressBar.inner.update(this._trackTime.current, this._trackTime.duration);
+    this.modal.dock.playbackTimeDisplay.update(this._trackTime.current, this._trackTime.duration);
+  };
+  public readonly progressBarListener = (percent: number): void => {
+    if (this._trackTime.duration)
+      this.watcher.api.seekToPos(Math.round(this._trackTime.duration * percent));
+  };
 
   private _classes: {
+    activityName: string;
     anchor: string;
     anchorUnderlineOnHover: string;
     bodyLink: string;
@@ -276,6 +344,7 @@ export class SpotifyModalManager {
     panels: string;
     'text-sm/semibold': string;
   } = {
+    activityName: '',
     anchor: '',
     anchorUnderlineOnHover: '',
     bodyLink: '',
@@ -295,6 +364,7 @@ export class SpotifyModalManager {
   };
   private _injected = false;
 
+  // @ts-expect-error - Please let me have my own logger type name
   private _logger = new Logger('SpotifyModal', 'SpotifyModalManager');
 
   public constructor(progressBarUpdateInterval = 500) {
@@ -303,103 +373,17 @@ export class SpotifyModalManager {
         ? progressBarUpdateInterval
         : this._updateInterval;
 
-    Object.defineProperties(this, {
-      devicesListener: {
-        value: ({ devices }: { devices: SpotifyDevice[] }): void => {
-          if (!devices?.length) {
-            this.modal.fade.fadeout();
-            this.modal.reset();
-          } else this.modal.fade.fadein();
-        },
-      },
-      playerListener: {
-        value: ({ state }: { state: SpotifyWebSocketState }): void => {
-          if (!this._injected) this.injectModal();
-          this.modal.dock.dockIcons.playPause.state = state.is_playing;
-
-          this.modal.dock.dockIcons.shuffle.state = state.shuffle_state;
-          this.modal.dock.dockIcons.shuffle.titleText = `Shuffle ${
-            state.shuffle_state ? 'on' : 'off'
-          }`;
-          this.modal.dock.dockIcons.repeat.state = state.repeat_state !== 'off';
-          this.modal.dock.dockIcons.repeat.mode = state.repeat_state;
-          this.modal.dock.dockIcons.repeat.titleText = `Repeat ${
-            state.repeat_state !== 'off'
-              ? { context: 'all', track: 'track' }[state.repeat_state]
-              : 'off'
-          }`;
-
-          this._trackTime.current = typeof state?.progress_ms === 'number' ? state.progress_ms : 0;
-          this._trackTime.duration =
-            typeof state?.item?.duration_ms === 'number' ? state.item.duration_ms : 0;
-          this.modal.dock.progressBar.inner.update(
-            this._trackTime.current,
-            this._trackTime.duration,
-          );
-          this.modal.dock.playbackTimeDisplay.update(
-            this._trackTime.current,
-            this._trackTime.duration,
-          );
-
-          const track = state.item;
-          if (track?.album?.images?.[0]?.url)
-            this.modal.header.coverArt.update(
-              track.album.images[0].url,
-              track.album.name,
-              track.album.id,
-            );
-          this.modal.header.metadata.title.setInnerText(track?.name, track?.id);
-          this.modal.header.metadata.artists.setInnerText(
-            track?.artists,
-            `${this._classes.anchor} ${this._classes.anchorUnderlineOnHover} ${this._classes.bodyLink} ${this._classes.ellipsis}`,
-            true,
-            (mouseEvent: MouseEvent): void => {
-              if (mouseEvent.target?.href) DiscordNative.clipboard.copy(mouseEvent.target.href);
-            },
-          );
-
-          if (state.is_playing) {
-            if (!this._intervalId)
-              this._intervalId = setInterval(
-                this.intervalCallback,
-                this._updateInterval,
-              ) as unknown as number;
-            this.modal.fade.fadein();
-          } else if (this._intervalId) {
-            clearInterval(this._intervalId);
-            this._intervalId = undefined;
-          }
-        },
-      },
-      intervalCallback: {
-        value: (): void => {
-          this._trackTime.current += 500;
-          this.modal.dock.progressBar.inner.update(
-            this._trackTime.current,
-            this._trackTime.duration,
-          );
-          this.modal.dock.playbackTimeDisplay.update(
-            this._trackTime.current,
-            this._trackTime.duration,
-          );
-        },
-      },
-      progressBarListener: {
-        value: (percent: number): void => {
-          if (this._trackTime.duration)
-            this.watcher.api.seekToPos(Math.round(this._trackTime.duration * percent));
-        },
-      },
-    });
-
+    // @ts-expect-error - what more could you possibly want
     this.watcher.on('player', this.playerListener);
+    // @ts-expect-error - what more could you possibly want
     this.watcher.on('devices', this.devicesListener);
+    // @ts-expect-error - what more could you possibly want
     this.modal.dock.progressBar.events.on('scrub', this.progressBarListener);
     this.modal.dock.dockIcons.shuffle.on('click', (): void => {
       this.watcher.api.setShuffleState(!this.modal.dock.dockIcons.shuffle.state);
     });
     this.modal.dock.dockIcons.skipPrevious.on('click', (): void => {
-      if (this._trackTime < 6000) this.watcher.api.seekToPos(0);
+      if (this._trackTime.current >= 6000) this.watcher.api.seekToPos(0);
       else this.watcher.api.skipPrevious();
     });
     this.modal.dock.dockIcons.playPause.on('click', (): void => {
@@ -468,7 +452,8 @@ export class SpotifyModalManager {
   }
 
   public injectModal(): void {
-    if (!this.panels) this.panels = document.body.querySelectorAll('[class^="panels-"]')?.[0];
+    if (!this.panels)
+      this.panels = document.body.querySelectorAll('[class^="panels-"]')?.[0] as HTMLElement;
     if (!this.panels) this._logger.error('[@injectModal]', 'Cannot get panel');
     else if (!this._injected) {
       this.modal.insertIntoParent('afterbegin', this.panels);
@@ -478,7 +463,8 @@ export class SpotifyModalManager {
   }
 
   public uninjectModal(): void {
-    if (!this.panels) this.panels = document.body.querySelectorAll('[class^="panels-"]')?.[0];
+    if (!this.panels)
+      this.panels = document.body.querySelectorAll('[class^="panels-"]')?.[0] as HTMLElement;
     if (!this.panels) this._logger.error('[@uninjectModal]', 'Cannot get panel');
     else if (this._injected) {
       this.modal.removeParents(this.panels);
