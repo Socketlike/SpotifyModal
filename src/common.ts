@@ -11,17 +11,17 @@ export class EventEmitter {
   public readonly name = this.constructor.name;
   public addEventListener = this.on;
 
-  #events: Map<string, Set<(...args: unknown[]) => void>> = new Map();
-  #logger = new Logger('SpotifyModal', this.name);
+  private _events: Map<string, Set<(...args: unknown[]) => void>> = new Map();
+  private _logger = new Logger('SpotifyModal', this.name);
 
-  public static createOnceCallback(
+  private _createOnceCallback(
     name: string,
     callback: (...args: unknown[]) => void,
   ): void | ((...args: unknown[]) => void) {
     if (typeof name === 'string' && typeof callback === 'function') {
       const func = (...args: unknown[]): void => {
         callback(...args);
-        this.#events.get(name).delete(func);
+        this._events.get(name).delete(func);
       };
 
       return func;
@@ -29,37 +29,34 @@ export class EventEmitter {
   }
 
   public get events(): Map<string, Set<(...args: unknown[]) => void>> {
-    return this.#events;
+    return this._events;
   }
 
   public async emit(name: string, ...args: unknown[]): Promise<void> {
-    if (this.#events.has(name)) {
-      const listeners = this.#events.get(name);
+    if (this._events.has(name)) {
+      const listeners = this._events.get(name);
       for (const listener of listeners) listener(...args);
-    } else this.#logger.log('[@emit]', 'No matching listeners for event', name);
+    } else this._logger.log('[@emit]', 'No matching listeners for event', name);
   }
 
   public on(name: string, callback: (...args: unknown[]) => void): void {
     if (typeof name === 'string' && typeof callback === 'function') {
-      if (!this.#events.has(name)) this.#events.set(name, new Set());
-      this.#events.get(name).add(callback);
-    } else this.#logger.log('[@on]', 'Name / callback is of invalid type');
+      if (!this._events.has(name)) this._events.set(name, new Set());
+      this._events.get(name).add(callback);
+    } else this._logger.log('[@on]', 'Name / callback is of invalid type');
   }
 
   public once(name: string, callback: (...args: unknown[]) => void): void {
     if (typeof name === 'string' && typeof callback === 'function') {
-      const callbackFn: (...args: unknown[]) => void = EventEmitter.createOnceCallback(
-        name,
-        callback,
-      );
+      const callbackFn: (...args: unknown[]) => void = this.createOnceCallback(name, callback);
       this.on(name, callbackFn);
-    } else this.#logger.log('[@once]', 'Name / callback is of invalid type');
+    } else this._logger.log('[@once]', 'Name / callback is of invalid type');
   }
 
   public removeAllListeners(name?: string): boolean {
-    if (this.#events.has(name)) return this.#events.delete(name);
+    if (this._events.has(name)) return this._events.delete(name);
     else if (!name) {
-      this.#events.clear();
+      this._events.clear();
       return true;
     } else return false;
   }
@@ -68,30 +65,30 @@ export class EventEmitter {
 export class SpotifyAPI {
   public readonly name = this.constructor.name;
 
-  #account: SpotifySocket;
-  #ready: boolean = false;
-  #logger = new Logger('SpotifyModal', this.name);
+  private _account: SpotifySocket;
+  private _ready: boolean = false;
+  private _logger = new Logger('SpotifyModal', this.name);
 
   public constructor(account: SpotifySocket) {
     if (typeof account?.accountId !== 'string' || typeof account?.accessToken !== 'string')
-      this.#logger.error('[@constructor]', 'Invalid account');
+      this._logger.error('[@constructor]', 'Invalid account');
 
-    this.#account = account;
-    this.#ready =
-      typeof this.#account?.accountId === 'string' &&
-      typeof this.#account?.accessToken === 'string';
+    this._account = account;
+    this._ready =
+      typeof this._account?.accountId === 'string' &&
+      typeof this._account?.accessToken === 'string';
   }
 
   public get accountId(): string {
-    return this.#account.accountId;
+    return this._account.accountId;
   }
 
   public get accessToken(): string {
-    return this.#account.accessToken;
+    return this._account.accessToken;
   }
 
   public get ready(): boolean {
-    return this.#ready;
+    return this._ready;
   }
 
   public async sendGenericRequest(
@@ -100,12 +97,12 @@ export class SpotifyAPI {
     query?: Record<string, unknown>,
     body?: string | Record<string, unknown>,
   ): Promise<void | Response> {
-    if (!this.#ready) {
-      this.#logger.error('[@sendGenericRequest]', 'API not ready');
+    if (!this._ready) {
+      this._logger.error('[@sendGenericRequest]', 'API not ready');
       return;
     }
     if (typeof endpoint !== 'string' || !endpoint) {
-      this.#logger.error(`[${this.accountId}]`, 'Invalid endpoint');
+      this._logger.error(`[${this.accountId}]`, 'Invalid endpoint');
       return;
     }
 
@@ -141,7 +138,7 @@ export class SpotifyAPI {
   }
 
   public async setRepeatState(state: 'off' | 'context' | 'track'): Promise<void | Response> {
-    if (['off', 'context', 'track'].includes(state)) return;
+    if (!['off', 'context', 'track'].includes(state)) return;
     return this.sendGenericRequest('/me/player/repeat', 'PUT', { state });
   }
 
@@ -171,13 +168,13 @@ export class SpotifyAPI {
 export class SpotifySocketFunctions extends EventEmitter {
   public readonly name = this.constructor.name;
 
-  #account: undefined | SpotifySocket = undefined;
-  #accountList: Record<string, SpotifySocket> = {};
-  #logger = new Logger('SpotifyModal', this.name);
-  #ready = false;
-  #store: undefined | SpotifySocketModule = undefined;
-  #websocket: undefined | WebSocket = undefined;
-  #websocketList: Record<string, WebSocket> = {};
+  private _account: undefined | SpotifySocket = undefined;
+  private _accountList: Record<string, SpotifySocket> = {};
+  private _logger = new Logger('SpotifyModal', this.name);
+  private _ready = false;
+  private _store: undefined | SpotifySocketModule = undefined;
+  private _websocket: undefined | WebSocket = undefined;
+  private _websocketList: Record<string, WebSocket> = {};
 
   public constructor() {
     super();
@@ -185,112 +182,112 @@ export class SpotifySocketFunctions extends EventEmitter {
   }
 
   public get userHasSpotifyAccounts(): boolean {
-    if (this.#accountList && Object.keys(this.#accountList).length) return true;
+    if (this._accountList && Object.keys(this._accountList).length) return true;
     else return false;
   }
 
   public get account(): void | SpotifySocket {
-    return this.#account;
+    return this._account;
   }
 
   public get accountList(): Record<string, SpotifySocket> {
-    return this.#accountList;
+    return this._accountList;
   }
 
   public get ready(): boolean {
-    return this.#ready;
+    return this._ready;
   }
 
   public get store(): void | SpotifySocketModule {
-    return this.#store;
+    return this._store;
   }
 
   public get websocket(): void | WebSocket {
-    return this.#websocket;
+    return this._websocket;
   }
 
   public get websocketList(): Record<string, WebSocket> {
-    return this.#websocketList;
+    return this._websocketList;
   }
 
   public async getStore(): Promise<void> {
-    this.#store = (await webpack.waitForModule(
+    this._store = (await webpack.waitForModule(
       webpack.filters.byProps('getActiveSocketAndDevice'),
     )) as unknown as SpotifySocketModule;
     this.emit('ready');
-    this.#ready = true;
+    this._ready = true;
   }
 
   public async getAccounts(): Promise<void | Record<string, SpotifySocket>> {
-    if (!this.ready) this.once('ready', () => this.getAccounts());
+    if (!this._ready) this.once('ready', () => this.getAccounts());
     else {
-      this.#accountList = this.#store.__getLocalVars().accounts;
-      return this.#accountList;
+      this._accountList = this._store.__getLocalVars().accounts;
+      return this._accountList;
     }
   }
 
   public async getAccount(accountId?: string): Promise<void | SpotifySocket> {
-    if (!this.ready) this.once('ready', () => this.getAccount(accountId));
+    if (!this._ready) this.once('ready', () => this.getAccount(accountId));
     else {
-      this.#accountList = this.#store.__getLocalVars().accounts;
+      this._accountList = this._store.__getLocalVars().accounts;
       let account: undefined | SpotifySocket;
-      const activeSocketAndDevice = this.#store.getActiveSocketAndDevice();
+      const activeSocketAndDevice = this._store.getActiveSocketAndDevice();
 
       if (!accountId && activeSocketAndDevice) {
-        this.#account = activeSocketAndDevice.socket;
+        this._account = activeSocketAndDevice.socket;
         return activeSocketAndDevice.socket;
       }
 
-      if (!Object.keys(this.#accountList).length) return;
-      else if (accountId in this.#accountList) account = this.#accountList[accountId];
-      else if (!accountId) account = Object.values(this.#accountList)[0];
+      if (!Object.keys(this._accountList).length) return;
+      else if (accountId in this._accountList) account = this._accountList[accountId];
+      else if (!accountId) account = Object.values(this._accountList)[0];
 
-      return (this.#account = account);
+      return (this._account = account);
     }
   }
 
   public async getWebSocket(accountId?: string): Promise<void | WebSocket> {
-    if (!this.ready) this.once('ready', () => this.getWebSocket(accountId));
-    else if (this.#account && !accountId) return this.#account.socket;
+    if (!this._ready) this.once('ready', () => this.getWebSocket(accountId));
+    else if (this._account && !accountId) return this._account.socket;
     else {
-      const activeSocketAndDevice = this.#store.getActiveSocketAndDevice();
+      const activeSocketAndDevice = this._store.getActiveSocketAndDevice();
       if (!accountId && activeSocketAndDevice) {
-        this.#websocket = activeSocketAndDevice.socket.socket;
+        this._websocket = activeSocketAndDevice.socket.socket;
         return activeSocketAndDevice.socket.socket;
       }
 
-      this.#accountList = this.#store.__getLocalVars().accounts;
+      this._accountList = this._store.__getLocalVars().accounts;
 
-      if (Object.keys(this.#accountList).length)
-        for (const [id, socket] of Object.entries(this.#accountList))
-          this.#websocketList[id] = socket.socket;
+      if (Object.keys(this._accountList).length)
+        for (const [id, socket] of Object.entries(this._accountList))
+          this._websocketList[id] = socket.socket;
       else return;
 
-      if (accountId in this.#websocketList) return this.#websocketList[accountId];
+      if (accountId in this._websocketList) return this._websocketList[accountId];
     }
   }
 
   public async getAllWebSockets(): Promise<void | Record<string, WebSocket>> {
-    if (!this.ready) this.once('ready', () => this.getAllWebSockets());
+    if (!this._ready) this.once('ready', () => this.getAllWebSockets());
     else {
-      this.#accountList = this.#store.__getLocalVars().accounts;
+      this._accountList = this._store.__getLocalVars().accounts;
 
-      if (Object.keys(this.#accountList).length)
-        for (const [accountId, socket] of Object.entries(this.#accountList))
-          this.#websocketList[accountId] = socket.socket;
+      if (Object.keys(this._accountList).length)
+        for (const [accountId, socket] of Object.entries(this._accountList))
+          this._websocketList[accountId] = socket.socket;
       else return;
 
-      return this.#websocketList;
+      return this._websocketList;
     }
   }
 
   public async getAPI(accountId?: string): void | SpotifyAPI {
-    if (!this.ready) return;
+    if (!this._ready) return;
 
     const account = await this.getAccount(accountId);
 
     if (account) return new SpotifyAPI(account);
-    if (this.#account) return new SpotifyAPI(this.#account);
+    if (this._account) return new SpotifyAPI(this._account);
   }
 }
 
@@ -548,8 +545,10 @@ export class Component {
 
   public removeChildren(...children: Array<Component | Node>): void {
     for (const child of children) {
-      if (child instanceof Component) this.#element.removeChild(child.element);
-      else if (child instanceof Node) this.#element.removeChild(child);
+      if (child instanceof Component) {
+        this.#element.removeChild(child.element);
+        child.parents.delete(this);
+      } else if (child instanceof Node) this.#element.removeChild(child);
       else continue;
 
       this.children.delete(child);
