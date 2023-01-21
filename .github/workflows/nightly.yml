@@ -50,7 +50,7 @@ jobs:
           allowUpdates: true
           tag: nightly
           body: 'Generated at `${{ steps.date.outputs.date }}`'
-          name: 'nightly (${{ github.sha }})'
+          name: nightly
           generateReleaseNotes: true
           replacesArtifacts: true
           prerelease: true
