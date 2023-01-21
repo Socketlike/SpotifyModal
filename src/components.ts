@@ -1,12 +1,6 @@
 import { Component, EventEmitter } from './common';
 import { SpotifyTrack } from './types';
 
-/*
-const a = elementUtilities.attributes;
-const e = elementUtilities.element;
-const f = elementUtilities.effects;
-*/
-
 declare const DiscordNative: {
   clipboard: {
     copy: (content: string) => void;
@@ -379,13 +373,6 @@ class DockIcons extends Component {
   }
 }
 
-/**
- * Should recieve the anchor class,
- * anchorUnderlineOnHover class,
- * defaultColor class,
- * text-sm/semibold class
- * and all other classes in nameNormal except ellipsis
- */
 class Title extends Component {
   public _scrollingAnimation(): void {
     if (this.#animation && this.#animation?.playState === 'running') {
@@ -488,7 +475,6 @@ class Title extends Component {
   }
 }
 
-/** Should recieve anchor class on anchor children */
 class Artists extends Component {
   public _scrollingAnimation(): void {
     if (this.#animation && this.#animation?.playState === 'running') {
@@ -959,7 +945,6 @@ class Dock extends Component {
   }
 }
 
-/** Should recieve container class */
 class ModalHeader extends Component {
   public coverArt = new CoverArt();
   public metadata = new Metadata();
