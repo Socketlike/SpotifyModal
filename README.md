@@ -3,7 +3,7 @@
 A Post-SWC Replugged plugin that shows a little modal on your user dock that lets you see & control
 what you're playing on Spotify.
 
-> **Note**
+> **Note**  
 > This plugin does **not** require Spotify Premium to function.
 > All functionality are built upon Discord's Spotify WebSocket + Spotify WebAPI calls
 
@@ -15,6 +15,7 @@ what you're playing on Spotify.
 
 # How to use
 
+- Link your Spotify account to Discord if you haven't already  
 - Play any Spotify song (that's literally it)
 
 # Preview
