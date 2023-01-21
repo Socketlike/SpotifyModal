@@ -50,6 +50,13 @@ UI elements are also exposed to CSS via these classes:
       - Repeat all SVG path: `repeat-all-path`
       - Repeat one SVG path: `repeat-one-path`
 
+# Known issues
+
+- Leaving Spotify inactive for an hour or so will make the controls stop working until you manually update the player state in the Spotify app  
+- The progress bar can (and quite literally) freeze when renderer freezes (i.e. switching channels when system / renderer is under heavy load), causing progress bar inaccuracy  
+- The modal can fade out at random when the player state updates (pre-better-codebase bug)  
+- The title element does not play the scrolling animation (when it's supposed to) on Discord startup, instead it cuts out (ellipsis)  
+
 # Miscellaneous
 
 - Right clicking on the cover art copies the currently playing album URL, if there's any
