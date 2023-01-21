@@ -165,7 +165,7 @@ class RepeatIcon extends Component {
   }
 
   public get titleText(): string {
-    return ([...this.title.children.values()][0] as Node).nodeValue ;
+    return ([...this.title.children.values()][0] as Node).nodeValue;
   }
 
   public set titleText(title: string) {
@@ -257,7 +257,7 @@ class ShuffleIcon extends Component {
   }
 
   public get titleText(): string {
-    return ([...this.title.children.values()][0] as Node).nodeValue ;
+    return ([...this.title.children.values()][0] as Node).nodeValue;
   }
 
   public set titleText(title: string) {
@@ -482,7 +482,7 @@ class Title extends Component {
         textDecoration: typeof id === 'string' ? '' : 'none',
         cursor: typeof id === 'string' ? '' : 'default',
       });
-      if (this.element.scrollWidth > ((this.element as HTMLElement).offsetWidth ) + 10) {
+      if (this.element.scrollWidth > (this.element as HTMLElement).offsetWidth + 10) {
         if (this.classes.contains(this.textOverflowClass))
           this.removeClasses(this.textOverflowClass);
         if (this.#animation?.playState !== 'running') this._scrollingAnimation();
@@ -582,7 +582,7 @@ class Artists extends Component {
 
     artists.forEach(({ name, id }, index) => {
       if (typeof id === 'string') {
-        const el = document.createElement('a') ;
+        const el = document.createElement('a');
 
         el.target = '_blank';
         el.href = `https://open.spotify.com/artist/${id}`;
@@ -604,7 +604,7 @@ class Artists extends Component {
 
     this.replaceChildren(...elements);
 
-    if (this.element.scrollWidth > ((this.element as HTMLElement).offsetWidth ) + 10) {
+    if (this.element.scrollWidth > (this.element as HTMLElement).offsetWidth + 10) {
       if (this.classes.contains(this.textOverflowClass)) this.removeClasses(this.textOverflowClass);
       if (this.#animation?.playState !== 'running') this._scrollingAnimation();
       else if (
