@@ -56,7 +56,7 @@ const install: esbuild.Plugin = {
           : '\x1b[39;31m\x1b[22;1mnot installing',
       );
       if (existsSync('dist')) for (const file of readdirSync('dist')) rmSync(join('dist', file));
-      else mkdir('dist');
+      else mkdirSync('dist');
       writeFileSync('dist/manifest.json', JSON.stringify(manifest));
     });
     build.onEnd(() => {
