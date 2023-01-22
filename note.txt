@@ -1,0 +1,91 @@
+import React, { useState, useEffect } from "react";
+import "./styles.css";
+const end = 300000;
+let interval;
+
+function ProgressBar(props) {
+  const { percent } = props;
+
+  return (<div style={{ height: 20, width: '100%' }}>
+    <div style={{ maxWidth: '100%', width: `${percent}%`, backgroundColor: 'blue', height: '100%' }}></div>
+  </div>)
+}
+
+export default function App() {
+  const [current, setCurrent] = useState(10);
+  const [percent, setPercent] = useState('0');
+
+  useEffect(() => {
+    if (!interval) interval = setInterval(() => {
+      setCurrent((prev) => prev + 500);
+    }, 500);
+  });
+
+  useEffect(() => {
+    if (current >= end) {
+      clearInterval(interval)
+      interval = undefined;
+    }
+    setPercent(() => ((current / end) * 100).toFixed(4))
+  }, [current])
+  
+  return (
+    <div className="App">
+      <ProgressBar percent={percent} />
+      <button onClick={() => { setCurrent(0); setPercent('0') }}>reset percent</button>
+    </div>
+  );
+}
+
+import React, { useState, useEffect } from "react";
+import "./styles.css";
+const end = 200000;
+let interval;
+
+function parseTime(ms: number): string {
+  if (typeof ms !== 'number') return '';
+  const dateObject = new Date(ms);
+  const raw = {
+    month: dateObject.getUTCMonth(),
+    day: dateObject.getUTCDate(),
+    hours: dateObject.getUTCHours(),
+    minutes: dateObject.getUTCMinutes(),
+    seconds: dateObject.getUTCSeconds(),
+  };
+  const parsedHours = raw.hours + (raw.day - 1) * 24 + raw.month * 30 * 24;
+
+  return `${parsedHours > 0 ? `${parsedHours}:` : ''}${
+    raw.minutes < 10 && parsedHours > 0 ? `0${raw.minutes}` : raw.minutes
+  }:${raw.seconds < 10 ? `0${raw.seconds}` : raw.seconds}`;
+}
+
+function PlaybackTimeDisplay(props) {
+  const { current, end } = props;
+
+  return (<div style={{ display: 'flex' }}><span>{parseTime(current)}</span><span style={{ paddingLeft: 'auto', paddingRight: 10 }}>{parseTime(end)}</span></div>)
+}
+
+export default function App() {
+  const [current, setCurrent] = useState(10);
+
+  useEffect(() => {
+    if (!interval) interval = setInterval(() => {
+      setCurrent((prev) => prev + 500);
+    }, 500);
+  });
+
+  useEffect(() => {
+    if (current >= end) {
+      clearInterval(interval)
+      interval = undefined;
+    }
+  }, [current])
+  
+  return (
+    <div className="App">
+      <h1>Hello CodeSandbox</h1>
+      <h2>Start editing to see some magic happen!</h2>
+      <PlaybackTimeDisplay current={current} end={end} />
+    </div>
+  );
+}

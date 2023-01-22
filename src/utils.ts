@@ -4,9 +4,8 @@
 */
 
 import { Logger, common, webpack } from 'replugged';
-import { EventEmitter, SpotifyAPI, SpotifySocketFunctions } from './common';
+import { SpotifyAPI, SpotifySocketFunctions } from './common';
 import {
-  FluxDispatcher,
   SpotifyDevice,
   SpotifySocket,
   SpotifyWebSocketDevices,
@@ -22,7 +21,13 @@ declare const DiscordNative: {
   };
 };
 
-export class SpotifyWatcher extends EventEmitter {
+/*
+const watcherEvents = {
+  player: new CustomEvent()
+} */
+
+/*
+export class SpotifyWatcher extends EventTarget {
   public readonly name = this.constructor.name;
   public readonly handlers = {
     pong: (accountId: string): void => {
@@ -230,13 +235,14 @@ export class SpotifyWatcher extends EventEmitter {
       const data = await state.text();
       if (data) {
         const parsedData = JSON.parse(data);
-        if (typeof parsedData?.error?.status === 'number' && parsedData.error.status > 400)
+        if (typeof parsedData?.error?.status === 'number' && parsedData.error.status > 400) {
           this._logger.error(
             '[_tryGetStateAndDevices]',
             'An error occurred trying to get state:',
             parsedData?.error?.message,
           );
-        else {
+          this._shouldFallback = true;
+        } else {
           this._state = parsedData as SpotifyWebSocketState;
           this.emit('player', { state: this._state, devices: this._devices });
         }
@@ -253,14 +259,18 @@ export class SpotifyWatcher extends EventEmitter {
         if (Array.isArray(parsedDevices?.devices)) {
           this._devices = parsedDevices?.devices;
           this.emit('devices', { state: this._state, devices: this._devices });
-        } else
+        } else {
           this._logger.error(
             '[_tryGetStateAndDevices]',
             'An error occurred trying to get devices:',
             parsedDevices?.error?.message,
           );
+          this._shouldFallback = true;
+        }
       }
     }
+
+    if (!this._state || !this._devices) this.websocket.send('');
   }
 
   public async load(): Promise<void> {
@@ -320,7 +330,7 @@ export class SpotifyModalManager {
     this.modal.header.metadata.title.setInnerText(track?.name, track?.id);
     this.modal.header.metadata.artists.setInnerText(
       track?.artists,
-      `${this._classes.anchor} ${this._classes.anchorUnderlineOnHover} ${this._classes.bodyLink} ${this._classes.ellipsis}`,
+      `${this._classes.anchor} ${this._classes.anchorUnderlineOnHover} ${this._classes.bodyLink}`,
       true,
       (mouseEvent: MouseEvent): void => {
         if ((mouseEvent.target as HTMLAnchorElement)?.href) {
@@ -502,4 +512,4 @@ export class SpotifyModalManager {
     this.watcher.removeAllListeners();
     this.uninjectModal();
   }
-}
+} */
