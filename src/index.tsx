@@ -46,15 +46,6 @@ export async function start(): Promise<void> {
   panel.insertAdjacentElement('afterbegin', rootElement);
   root.render(
     <Dock
-      children={[
-        <ProgressContainer
-          currentNow={10}
-          duration={10000}
-          onClick={(percent: number) =>
-            common.toast.toast(`Change track position to ${parseTime(Math.round(10000 * percent))}`)
-          }
-        />,
-      ]}
       onClick={{
         shuffle: (state: boolean): void =>
           common.toast.toast(`Shuffle state ${state ? 'on' : 'off'}`, 1),
@@ -69,7 +60,15 @@ export async function start(): Promise<void> {
         playPause: false,
         repeat: 'off',
       }}
-    />,
+    >
+     <ProgressContainer
+        currentNow={10}
+        duration={10000}
+        onClick={(percent: number) =>
+          common.toast.toast(`Change track position to ${parseTime(Math.round(10000 * percent))}`)
+        }
+      />
+    </Dock>,
   );
 }
 
