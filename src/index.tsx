@@ -37,7 +37,15 @@ export const handlers = {
     }>,
   ): void => {
     if (!watcher.account?.accessToken) return;
-    spotifyAPI.setShuffleState(watcher.account.accessToken, !event.detail.currentState);
+    spotifyAPI
+      .setShuffleState(watcher.account.accessToken, !event.detail.currentState)
+      .then((res: Response): Promise<void> => {
+        if (!res.ok)
+          common.toast.toast(
+            '[SpotifyModal] Failed to update shuffle state. Please update your Spotify state manually.',
+            2,
+          );
+      });
   },
   skipPrevClick: (
     event: CustomEvent<{
@@ -47,8 +55,26 @@ export const handlers = {
     }>,
   ): void => {
     if (!watcher.account?.accessToken) return;
-    if (event.detail.currentPos >= 6000) spotifyAPI.seekToPosition(watcher.account.accessToken, 0);
-    else spotifyAPI.skipNextOrPrevious(watcher.account.accessToken, false);
+    if (event.detail.currentPos >= 6000)
+      spotifyAPI
+        .seekToPosition(watcher.account.accessToken, 0)
+        .then((res: Response): Promise<void> => {
+          if (!res.ok)
+            common.toast.toast(
+              '[SpotifyModal] Failed to update current playback position. Please update your Spotify state manually.',
+              2,
+            );
+        });
+    else
+      spotifyAPI
+        .skipNextOrPrevious(watcher.account.accessToken, false)
+        .then((res: Response): Promise<void> => {
+          if (!res.ok)
+            common.toast.toast(
+              '[SpotifyModal] Failed to skip to previous track. Please update your Spotify state manually.',
+              2,
+            );
+        });
   },
   playPauseClick: (
     event: CustomEvent<{
@@ -58,11 +84,27 @@ export const handlers = {
     }>,
   ): void => {
     if (!watcher.account?.accessToken) return;
-    spotifyAPI.setPlaybackState(watcher.account.accessToken, !event.detail.currentState);
+    spotifyAPI
+      .setPlaybackState(watcher.account.accessToken, !event.detail.currentState)
+      .then((res: Response): Promise<void> => {
+        if (!res.ok)
+          common.toast.toast(
+            '[SpotifyModal] Failed to update playback state. Please update your Spotify state manually.',
+            2,
+          );
+      });
   },
   skipNextClick: (event: CustomEvent<{ mouseEvent: React.MouseEvent }>): void => {
     if (!watcher.account?.accessToken) return;
-    spotifyAPI.skipNextOrPrevious(watcher.account.accessToken);
+    spotifyAPI
+      .skipNextOrPrevious(watcher.account.accessToken)
+      .then((res: Response): Promise<void> => {
+        if (!res.ok)
+          common.toast.toast(
+            '[SpotifyModal] Failed to skip to next track. Please update your Spotify state manually.',
+            2,
+          );
+      });
   },
   repeatClick: (
     event: CustomEvent<{
@@ -74,7 +116,15 @@ export const handlers = {
     if (!watcher.account?.accessToken) return;
 
     const nextMode = { off: 'context', context: 'track', track: 'off' };
-    spotifyAPI.setRepeatState(watcher.account.accessToken, nextMode[event.detail.currentState]);
+    spotifyAPI
+      .setRepeatState(watcher.account.accessToken, nextMode[event.detail.currentState])
+      .then((res: Response): Promise<void> => {
+        if (!res.ok)
+          common.toast.toast(
+            '[SpotifyModal] Failed to update repeat state. Please update your Spotify state manually.',
+            2,
+          );
+      });
   },
   progressBarClick: (
     event: CustomEvent<{
@@ -85,10 +135,18 @@ export const handlers = {
     }>,
   ): void => {
     if (!watcher.account?.accessToken) return;
-    spotifyAPI.seekToPosition(
-      watcher.account.accessToken,
-      Math.round(event.detail.duration * event.detail.percent),
-    );
+    spotifyAPI
+      .seekToPosition(
+        watcher.account.accessToken,
+        Math.round(event.detail.duration * event.detail.percent),
+      )
+      .then((res: Response): Promise<void> => {
+        if (!res.ok)
+          common.toast.toast(
+            '[SpotifyModal] Failed to update playback position. Please update your Spotify state manually.',
+            2,
+          );
+      });
   },
   coverArtClick: (event: CustomEvent<{ name: string; id?: string }>): void => {
     if (typeof event.detail.id === 'string') {
