@@ -328,6 +328,7 @@ function Modal(props: {
       artists?: SpotifyUser[],
       coverArt?: string,
     ): void => {
+      console.log('yes setting', trackMeta, albumMeta, artists, coverArt);
       setTrack({
         name: typeof trackMeta?.name === 'string' ? trackMeta.name : 'None',
         id: typeof trackMeta?.id === 'string' ? trackMeta.id : undefined,
@@ -374,18 +375,27 @@ function Modal(props: {
   };
 
   React.useEffect(() => {
-    const metadataChangeListener = (metadata: {
-      track?: { name: string; id?: string };
-      album?: { name: string; id?: string };
-      artists?: SpotifyUser[];
-      coverArt?: string;
-    }): void =>
-      modify.metadata(metadata?.track, metadata?.album, metadata?.artists, metadata?.coverArt);
+    const metadataChangeListener = (
+      event: CustomEvent<{
+        track?: { name: string; id?: string };
+        album?: { name: string; id?: string };
+        artists?: SpotifyUser[];
+        coverArt?: string;
+      }>,
+    ): void =>
+      modify.metadata(
+        event.detail?.track,
+        event.detail?.album,
+        event.detail?.artists,
+        event.detail?.coverArt,
+      );
 
-    const playbackTimeChangeListener = (playbackTime: {
-      current?: number;
-      duration?: number;
-    }): void => modify.playbackTime(playbackTime?.current, playbackTime?.duration);
+    const playbackTimeChangeListener = (
+      event: CustomEvent<{
+        current?: number;
+        duration?: number;
+      }>,
+    ): void => modify.playbackTime(event.detail?.current, event.detail?.duration);
 
     componentEventTarget.addEventListener('metadataChange', metadataChangeListener);
     componentEventTarget.addEventListener('playbackTimeChange', playbackTimeChangeListener);
