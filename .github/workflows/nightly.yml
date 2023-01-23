@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - src/**/*.ts
+      - src/**/*.tsx
       - scripts/**/*.ts
 
 jobs:
