@@ -17,6 +17,23 @@ declare const DiscordNative: {
   };
 };
 
+// Unused
+function useInterval(callback: () => void, delay: number) {
+  const savedCallback = useRef();
+
+  useEffect(() => {
+    savedCallback.current = callback;
+  }, [callback]);
+
+  useEffect(() => {
+    const tick = () => savedCallback.current();
+    if (delay !== null) {
+      let id = setInterval(tick, delay);
+      return () => clearInterval(id);
+    }
+  }, [delay]);
+}
+
 function parseTime(ms: number): string {
   if (typeof ms !== 'number') return '';
   const dateObject = new Date(ms);
@@ -67,17 +84,18 @@ function ProgressContainer(props: {
 }): React.Element {
   const [current, setCurrent] = React.useState(props.currentNow);
   const [shouldPlay, setShouldPlay] = React.useState(true);
-  let interval: number;
 
   React.useEffect(() => {
-    if (!shouldPlay) return; 
-    interval = setInterval(() => {
-      setCurrent((previous: number) => {
-        if (previous < props.duration) return previous + 500;
-        else return props.duration;
-      });
-    }, 500);
-    return () => clearInterval(interval);
+    if (!shouldPlay) return;
+    else {
+      const interval = setInterval(() => {
+        setCurrent((previous: number) => {
+          if (previous < props.duration) return previous + 500;
+          else return props.duration;
+        });
+      }, 500);
+      return () => clearInterval(interval);
+    }
   });
 
   return (
