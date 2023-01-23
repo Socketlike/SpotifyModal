@@ -18,7 +18,6 @@ declare const DiscordNative: {
 };
 
 const componentEventTarget = new EventTarget();
-const DockContext = React.createContext();
 const ModalContext = React.createContext();
 
 function parseTime(ms: number): string {
@@ -204,17 +203,6 @@ function Icons(): React.Element {
   );
 }
 
-function Dock(): React.Element {
-  const context = React.useContext(ModalContext);
-
-  return (
-    <div className='dock'>
-      <ProgressContainer />
-      <Icons />
-    </div>
-  );
-}
-
 function Artists(): React.Element {
   const context = React.useContext(ModalContext);
 
@@ -296,13 +284,13 @@ function Header(): React.Element {
 }
 
 function Modal(props: {
-  dockChildren: React.Element[];
   track?: { name: string; id?: string };
   album?: { name: string; id?: string };
   current?: number;
   duration?: number;
   playing?: boolean;
   shuffle?: boolean;
+  shouldShow?: boolean;
   repeat?: 'off' | 'context' | 'track';
   artists?: SpotifyUser[];
   coverArt?: string;
@@ -320,6 +308,9 @@ function Modal(props: {
   );
   const [shuffle, setShuffle] = React.useState(
     typeof props.shuffle === 'boolean' ? props.shuffle : false,
+  );
+  const [shouldShow, setShouldShow] = React.useState(
+    typeof props.shouldShow === 'boolean' ? props.shouldShow : false,
   );
   const [repeat, setRepeat] = React.useState(
     ['off', 'context', 'track'].includes(props.repeat) ? props.repeat : 'off',
@@ -354,22 +345,26 @@ function Modal(props: {
       setDuration(typeof duration === 'number' ? duration : 0);
     },
     current: (pos: number | ((prev: number) => number)): void => {
-      if (typeof pos !== 'number' && typeof pos !== 'function') return;
+      if ((typeof pos !== 'number' && typeof pos !== 'function') || pos === current) return;
       if (typeof pos === 'number' && pos >= duration) setCurrent(duration);
       else setCurrent(pos);
     },
     duration: (pos: number): void => {
-      if (typeof pos !== 'number') return;
-      setCurrent(0);
+      if (typeof pos !== 'number' || pos === duration) return;
       setDuration(pos);
     },
     playing: (state: boolean | ((previous: boolean) => boolean)): void => {
-      if (typeof state !== 'boolean' && typeof state !== 'function') return;
+      if ((typeof state !== 'boolean' && typeof state !== 'function') || state === playing) return;
       setPlaying(state);
     },
     shuffle: (state: boolean | ((previous: boolean) => boolean)): void => {
-      if (typeof state !== 'boolean' && typeof state !== 'function') return;
+      if ((typeof state !== 'boolean' && typeof state !== 'function') || state === shuffle) return;
       setShuffle(state);
+    },
+    shouldShow: (state: boolean | ((previous: boolean) => boolean)): void => {
+      if ((typeof state !== 'boolean' && typeof state !== 'function') || state === shouldShow)
+        return;
+      setShouldShow(state);
     },
     repeat: (
       state: 'off' | 'context' | 'track' | ((previous: 'off' | 'context' | 'track') => boolean),
@@ -406,12 +401,18 @@ function Modal(props: {
       }>,
     ): void => modify.playbackTime(event.detail?.current, event.detail?.duration);
 
+    const shouldShowListener = (
+      event: CustomEvent<boolean | ((previous: boolean) => boolean)>,
+    ): void => modify.shouldShow(event.detail);
+
     componentEventTarget.addEventListener('metadataChange', metadataChangeListener);
     componentEventTarget.addEventListener('playbackTimeChange', playbackTimeChangeListener);
+    componentEventTarget.addEventListener('shouldShowChange', shouldShowListener);
 
     return () => {
       componentEventTarget.removeEventListener('metadataChange', metadataChangeListener);
       componentEventTarget.removeEventListener('playbackTimeChange', playbackTimeChangeListener);
+      componentEventTarget.removeEventListener('shouldShowChange', shouldShowListener);
     };
   }, []);
 
@@ -431,7 +432,10 @@ function Modal(props: {
         modify,
       }}>
       <Header />
-      <Dock />
+      <div className='dock'>
+        <ProgressContainer />
+        <Icons />
+      </div>
     </ModalContext.Provider>
   );
 }
