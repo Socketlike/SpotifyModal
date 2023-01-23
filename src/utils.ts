@@ -162,19 +162,26 @@ export class SpotifyWatcher extends EventTarget {
     await this.tryGetStateAndDevices();
   };
 
-  public websocketMessageHandler = (message: { data: string }): void => {
+  public websocketMessageHandler = async (message: { data: string }): void => {
     if (!message?.data) return;
 
     const parsed = JSON.parse(message.data) as SpotifyWebSocketRawParsedMessage;
 
     if (parsed?.type !== 'pong' && Array.isArray(parsed?.payloads)) {
-      if (parsed.payloads[0].events[0].type === 'PLAYER_STATE_CHANGED')
+      let stopDispatch = false;
+      if (parsed.payloads[0].events[0].type === 'PLAYER_STATE_CHANGED') {
         this.state = parsed.payloads[0].events[0].event.state;
-      else if (parsed.payloads[0].events[0].type === 'DEVICE_STATE_CHANGED')
+        if (!this.devices.length) {
+          await this.tryGetStateAndDevices();
+          stopDispatch = true;
+        }
+      } else if (parsed.payloads[0].events[0].type === 'DEVICE_STATE_CHANGED')
         this.devices = parsed.payloads[0].events[0].event.devices;
-      this.dispatchEvent(
-        new CustomEvent('update', { detail: { state: this._state, devices: this._devices } }),
-      );
+
+      if (!stopDispatch)
+        this.dispatchEvent(
+          new CustomEvent('update', { detail: { state: this._state, devices: this._devices } }),
+        );
     }
   };
 
@@ -207,9 +214,10 @@ export class SpotifyWatcher extends EventTarget {
     this._devices = devices;
 
     if (!devices.length) {
-      this.account.socket.removeEventListener('message', this.websocketMessageHandler);
+      if (this.account)
+        this.account.socket.removeEventListener('message', this.websocketMessageHandler);
       this.account = undefined;
-      this._websocket = false;
+      this.dispatchEvent(new CustomEvent('update', { detail: { devices } }));
     }
   }
 

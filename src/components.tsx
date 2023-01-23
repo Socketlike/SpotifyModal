@@ -240,12 +240,12 @@ function Artists(): React.Element {
   );
 }
 
-function Header(): React.Element {
+function Header(props: { shouldShow: boolean }): React.Element {
   const context = React.useContext(ModalContext);
 
   return (
     <div
-      className={`header${!context.shouldShow ? ' hidden' : ''}${
+      className={`header${!props.shouldShow ? ' hidden' : ''}${
         context.header ? ` ${context.header}` : ''
       }`}>
       <img
@@ -357,6 +357,7 @@ function Modal(props: {
       duration?: number,
       playing?: boolean,
       shuffle?: boolean,
+      shouldShow?: boolean,
       repeat?: 'off' | 'context' | 'track',
     ): void => {
       setTrack({
@@ -373,6 +374,7 @@ function Modal(props: {
       setDuration(typeof duration === 'number' ? duration : 0);
       setPlaying(typeof playing === 'boolean' ? playing : false);
       setShuffle(typeof shuffle === 'boolean' ? shuffle : false);
+      setShouldShow(typeof shouldShow === 'boolean' ? shouldShow : false);
       setRepeat(['off', 'context', 'track'].includes(repeat) ? repeat : 'off');
     },
     current: (pos: number | ((prev: number) => number)): void => {
@@ -442,6 +444,7 @@ function Modal(props: {
         duration?: number;
         playing?: boolean;
         shuffle?: boolean;
+        shouldShow?: boolean;
         repeat?: 'off' | 'context' | 'track';
       }>,
     ): void =>
@@ -454,6 +457,7 @@ function Modal(props: {
         event.detail?.duration,
         event.detail?.playing,
         event.detail?.shuffle,
+        event.detail?.shouldShow,
         event.detail?.repeat,
       );
 
@@ -489,7 +493,7 @@ function Modal(props: {
         coverArt,
         modify,
       }}>
-      <Header />
+      <Header shouldShow={shouldShow} />
       <div className={`dock${!shouldShow ? ' hidden' : ''}`}>
         <ProgressContainer />
         <Icons />

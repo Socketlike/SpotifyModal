@@ -4,7 +4,7 @@
 }
 
 .spotify-modal .hidden {
-  display: none;
+  display: none !important;
 }
 
 .spotify-modal .header {
