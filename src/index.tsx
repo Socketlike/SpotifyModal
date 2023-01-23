@@ -234,10 +234,6 @@ export async function start(): Promise<void> {
           injected = true;
         }
       } else {
-        if (Array.isArray(devices))
-          componentEventTarget.dispatchEvent(
-            new CustomEvent('shouldShowChange', { detail: Boolean(devices.length) }),
-          );
         if (typeof state === 'object')
           componentEventTarget.dispatchEvent(
             new CustomEvent('allChange', {
@@ -262,10 +258,18 @@ export async function start(): Promise<void> {
                 playing: typeof state?.is_playing === 'boolean' ? state.is_playing : undefined,
                 shuffle:
                   typeof state?.shuffle_state === 'boolean' ? state.shuffle_state : undefined,
+                shouldShow:
+                  typeof state?.device?.is_active === 'boolean' ? state.shuffle_state : undefined,
                 repeat: ['off', 'context', 'track'].includes(state?.repeat_state)
                   ? (state.repeat_state as 'off' | 'context' | 'track')
                   : undefined,
               },
+            }),
+          );
+        if (Array.isArray(devices))
+          componentEventTarget.dispatchEvent(
+            new CustomEvent('shouldShowChange', {
+              detail: Boolean(devices.length),
             }),
           );
       }
