@@ -17,6 +17,10 @@ declare const DiscordNative: {
   };
 };
 
+const componentEventTarget = new EventTarget();
+const DockContext = React.createContext();
+const ModalContext = React.createContext();
+
 function parseTime(ms: number): string {
   if (typeof ms !== 'number') return '';
   const dateObject = new Date(ms);
@@ -35,18 +39,30 @@ function parseTime(ms: number): string {
 }
 
 function ProgressBar(props: {
-  percent: string;
-  onClick: (percent: number) => void;
+  current: number;
+  duration: number;
+  modifyCurrent: (pos: number | ((prev: number) => number)) => void;
 }): React.Element {
   return (
     <div
       className='progress-bar'
-      onClick={(mouseEvent: React.MouseEvent) =>
-        props.onClick(
-          mouseEvent.nativeEvent.offsetX / (mouseEvent.target as HTMLDivElement).offsetWidth,
-        )
-      }>
-      <div className='inner' style={{ width: `${props.percent}%` }}></div>
+      onClick={(mouseEvent: React.MouseEvent): void => {
+        const percent = mouseEvent.nativeEvent.offsetX / mouseEvent.currentTarget.offsetWidth;
+        const event = new CustomEvent('progressBarClick', {
+          detail: {
+            duration: props.duration,
+            modifyCurrent: props.modifyCurrent,
+            mouseEvent,
+            percent,
+          },
+        });
+        componentEventTarget.dispatchEvent(event);
+      }}>
+      <div
+        className='inner'
+        style={{
+          width: `${props.duration ? ((props.current / props.duration) * 100).toFixed(4) : '0'}%`,
+        }}></div>
     </div>
   );
 }
@@ -60,21 +76,15 @@ function ProgressDisplay(props: { current: number; duration: number }): React.El
   );
 }
 
-function ProgressContainer(props: {
-  currentNow: number;
-  duration: number;
-  onClick: (percent: number) => void;
-}): React.Element {
-  const [current, setCurrent] = React.useState(props.currentNow);
-  const [shouldPlay, setShouldPlay] = React.useState(true);
-  let interval: number;
+function ProgressContainer(): React.Element {
+  const context = React.useContext(ModalContext);
 
-  React.useEffect(() => {
-    if (!shouldPlay) return; 
-    interval = setInterval(() => {
-      setCurrent((previous: number) => {
-        if (previous < props.duration) return previous + 500;
-        else return props.duration;
+  React.useEffect((): void | (() => void) => {
+    if (!context.playing) return;
+    const interval = setInterval(() => {
+      context.modify.current((previous: number): number => {
+        if (previous < context.duration) return previous + 500;
+        else return context.duration;
       });
     }, 500);
     return () => clearInterval(interval);
@@ -82,10 +92,11 @@ function ProgressContainer(props: {
 
   return (
     <div className='progress-container'>
-      <ProgressDisplay current={current} duration={props.duration} />
+      <ProgressDisplay current={context.current} duration={context.duration} />
       <ProgressBar
-        percent={((current / props.duration) * 100).toFixed(4)}
-        onClick={props.onClick}
+        current={context.current}
+        duration={context.duration}
+        modifyCurrent={context.modify.current}
       />
     </div>
   );
@@ -103,376 +114,319 @@ function Icon(props: {
       viewBox='0 0 24 24'
       onClick={typeof props.onClick === 'function' ? props.onClick : null}>
       {props.title ? <title>{props.title}</title> : ''}
-      <path fill='currentColor' d={props.path}></path>
+      <path fill='currentColor' d={props.path} />
     </svg>
   );
 }
 
-function Icons(props: {
-  onClick: {
-    shuffle: (currentState: boolean) => void;
-    skipPrev: () => void;
-    playPause: (currentState: string) => void;
-    skipNext: () => void;
-    repeat: (currentState: string) => void;
-  };
-  state: {
-    shuffle: boolean;
-    playPause: boolean;
-    repeat: string;
-  };
-}): React.Element {
+function Icons(): React.Element {
+  const context = React.useContext(ModalContext);
+
   return (
     <div className='icons'>
       <Icon
         path='M14.83,13.41L13.42,14.82L16.55,17.95L14.5,20H20V14.5L17.96,16.54L14.83,13.41M14.5,4L16.54,6.04L4,18.59L5.41,20L17.96,7.46L20,9.5V4M10.59,9.17L5.41,4L4,5.41L9.17,10.58L10.59,9.17Z'
-        className={`shuffle${props.state.shuffle ? ' active' : ''}`}
-        onClick={() => props.onClick.shuffle(props.state.shuffle)}
-        title={`Shuffle ${props.state.shuffle ? 'on' : 'off'}`}
+        className={`shuffle${context.shuffle ? ' active' : ''}`}
+        onClick={(mouseEvent: React.MouseEvent): void => {
+          const event = new CustomEvent('shuffleClick', {
+            detail: {
+              mouseEvent,
+              currentState: context.shuffle,
+              modifyState: context.modify.shuffle,
+            },
+          });
+          componentEventTarget.dispatchEvent(event);
+        }}
+        title={`Shuffle ${context.shuffle ? 'on' : 'off'}`}
       />
       <Icon
         path='M6,18V6H8V18H6M9.5,12L18,6V18L9.5,12Z'
         className='skip-prev'
-        onClick={props.onClick.skipPrev}
+        onClick={(mouseEvent: React.MouseEvent): void => {
+          const event = new CustomEvent('skipPrevClick', {
+            detail: {
+              mouseEvent,
+              currentPos: context.current,
+              modifyCurrent: context.modify.current,
+            },
+          });
+          componentEventTarget.dispatchEvent(event);
+        }}
       />
       <Icon
-        path={
-          props.state.playPause
-            ? 'M14,19H18V5H14M6,19H10V5H6V19Z'
-            : 'M8,5.14V19.14L19,12.14L8,5.14Z'
-        }
+        path={context.playing ? 'M14,19H18V5H14M6,19H10V5H6V19Z' : 'M8,5.14V19.14L19,12.14L8,5.14Z'}
         className='play-pause'
-        onClick={() => props.onClick.playPause(props.state.playPause)}
+        onClick={(mouseEvent: React.MouseEvent): void => {
+          const event = new CustomEvent('playPauseClick', {
+            detail: {
+              mouseEvent,
+              currentState: context.playing,
+              modifyState: context.modify.playing,
+            },
+          });
+          componentEventTarget.dispatchEvent(event);
+        }}
       />
       <Icon
         path='M16,18H18V6H16M6,18L14.5,12L6,6V18Z'
         className='skip-next'
-        onClick={props.onClick.skipNext}
+        onClick={(mouseEvent: React.MouseEvent): void => {
+          const event = new CustomEvent('skipNextClick', { detail: { mouseEvent } });
+          componentEventTarget.dispatchEvent(event);
+        }}
       />
       <Icon
         path={
-          props.state.repeat !== 'track'
+          context.repeat !== 'track'
             ? 'M17,17H7V14L3,18L7,22V19H19V13H17M7,7H17V10L21,6L17,2V5H5V11H7V7Z'
             : 'M13,15V9H12L10,10V11H11.5V15M17,17H7V14L3,18L7,22V19H19V13H17M7,7H17V10L21,6L17,2V5H5V11H7V7Z'
         }
-        className='repeat'
-        onClick={() => props.onClick.repeat(props.state.repeat)}
-        title={`Repeat ${props.state.repeat === 'context' ? 'all' : props.state.repeat}`}
+        className={`repeat${context.repeat !== 'off' ? ' active' : ''}`}
+        onClick={(mouseEvent): void => {
+          const event = new CustomEvent('repeatClick', {
+            detail: {
+              mouseEvent,
+              currentState: context.repeat,
+              modifyState: context.modify.repeat,
+            },
+          });
+          componentEventTarget.dispatchEvent(event);
+        }}
+        title={`Repeat ${context.repeat === 'context' ? 'all' : context.repeat}`}
       />
     </div>
   );
 }
 
-function Dock(props: {
-  children: React.Element[];
-  onClick: {
-    shuffle: (currentState: boolean) => void;
-    skipPrev: () => void;
-    playPause: (currentState: string) => void;
-    skipNext: () => void;
-    repeat: (currentState: string) => void;
-  };
-  state: {
-    shuffle: boolean;
-    playPause: boolean;
-    repeat: 'off' | 'context' | 'track';
-  };
-}): React.Element {
+function Dock(): React.Element {
+  const context = React.useContext(ModalContext);
+
   return (
     <div className='dock'>
-      {props.children}
-      <Icons
-        onClick={props.onClick}
-        title={{
-          shuffle: `Shuffle ${props.state.shuffle ? 'on' : 'off'}`,
-          repeat: `Repeat ${props.state.repeat !== 'context' ? props.state.repeat : 'all'}`,
-        }}
-        state={props.state}
-      />
+      <ProgressContainer />
+      <Icons />
     </div>
   );
 }
 
-function Header(props: {
-  title: { name: string; id?: string };
-  artists: SpotifyUser[];
-  album: { name: string; id?: string };
-  coverArt?: string;
-}): React.Element {
+function Artists(): React.Element {
+  const context = React.useContext(ModalContext);
+
+  return (
+    <span className='artists'>
+      {Array.isArray(context.artists)
+        ? context.artists.map((artist, index): React.Fragment => {
+            if (artist.id)
+              return (
+                <>
+                  <a
+                    className='artist'
+                    title={artist.name}
+                    onContextMenu={(): void => {
+                      const event = new CustomEvent('artistRightClick', { detail: artist });
+                      componentEventTarget.dispatchEvent(event);
+                    }}
+                    href={`https://open.spotify.com/artist/${artist.id}`}
+                    target='_blank'>
+                    {artist.name}
+                  </a>
+                  {index !== context.artists.length - 1 ? <>, </> : <></>}
+                </>
+              );
+            return (
+              <>
+                {artist.name}
+                {index !== context.artists.length - 1 ? <>, </> : <></>}
+              </>
+            );
+          })
+        : None}
+    </span>
+  );
+}
+
+function Header(): React.Element {
+  const context = React.useContext(ModalContext);
+
   return (
     <div className='header'>
-      <div className=''> </div>
-    </div>
-  );
-}
-
-export { ProgressBar, ProgressContainer, ProgressDisplay, Icons, Dock, parseTime };
-
-/*
-function ProgressBar(props: { current: number; end: number }) {
-  const [currentPos, setCurrentPos] = React.useState(props.current);
-  const [intervalId, setIntervalId] = React.useState(0);
-
-  React.useEffect(() => {
-    setIntervalId(
-      setInterval((): void => {
-        setCurrentPos(currentPos + 500);
-      }, 500),
-    );
-    return () => {
-      clearInterval(intervalId);
-      setIntervalId(0);
-    };
-  }, []);
-
-  return (
-    <div className='progress-bar'>
-      <div
-        className='inner'
-        style={{ width: `${((currentPos / props.end) * 100).toFixed(4)}%` }}></div>
-    </div>
-  );
-}
-
-function PlaybackTimeDisplay(props: { current: number; end: number }) {
-  const [currentPos, setCurrentPos] = React.useState(props.current);
-  const [intervalId, setIntervalId] = React.useState(0);
-
-  function parseTime(ms: number): string {
-    if (typeof ms !== 'number') return '';
-    const dateObject = new Date(ms);
-    const raw = {
-      month: dateObject.getUTCMonth(),
-      day: dateObject.getUTCDate(),
-      hours: dateObject.getUTCHours(),
-      minutes: dateObject.getUTCMinutes(),
-      seconds: dateObject.getUTCSeconds(),
-    };
-    const parsedHours = raw.hours + (raw.day - 1) * 24 + raw.month * 30 * 24;
-
-    return `${parsedHours > 0 ? `${parsedHours}:` : ''}${
-      raw.minutes < 10 && parsedHours > 0 ? `0${raw.minutes}` : raw.minutes
-    }:${raw.seconds < 10 ? `0${raw.seconds}` : raw.seconds}`;
-  }
-
-  React.useEffect(() => {
-    setIntervalId(
-      setInterval((): void => {
-        setCurrentPos(currentPos + 500);
-      }, 500),
-    );
-    return () => {
-      clearInterval(intervalId);
-      setIntervalId(0);
-    };
-  }, []);
-
-  return (
-    <div className='playback-time'>
-      <span className='current'>{parseTime(currentPos)}</span>
-      <span className='duration'>{parseTime(props.end)}</span>
-    </div>
-  );
-} */
-
-/*
-class Artists extends React.Component {
-  public props: {
-    list: SpotifyUser[];
-  };
-
-  public render() {
-    return (
-      <span className='artists'>
-        {this.props.list.forEach(({ name, id }) => {
-          const url = `https://open.spotify.com/artist/${id}`;
-          if (id)
-            return (
-              <a
-                className='artist'
-                target='_blank'
-                href={url}
-                oncontextmenu={() => {
-                  DiscordNative.clipboard.copy(url);
-                  common.toast.toast("Copied artist's Spotify URL", 1);
-                }}>
-                {name}
-              </a>
-            );
-          else return <>{name}</>;
-        })}
-      </span>
-    );
-  }
-}
-
-class CoverArt extends React.Component {
-  public props: {
-    id: string;
-    name: string;
-    src: string;
-  };
-
-  public render() {
-    return (
       <img
-        className='cover-art'
-        src={this.props.coverSrc}
-        title={this.props.albumName}
-        onclick={() => {
-          if (this.props.albumId)
-            window.open(`https://open.spotify.com/album/${this.props.albumId}`);
+        className={`cover-art${typeof context.album.id === 'string' ? ' href' : ''}`}
+        src={typeof context.coverArt === 'string' ? context.coverArt : ''}
+        title={context.album.id ? context.album.name : ''}
+        onContextMenu={(): void => {
+          const event = new CustomEvent('coverArtRightClick', { detail: context.album });
+          componentEventTarget.dispatchEvent(event);
         }}
-        oncontextmenu={() => {
-          if (this.props.albumId) {
-            DiscordNative.clipboard.copy(`https://open.spotify.com/album/${this.props.albumId}`);
-            common.toast.toast('Copied album URL', 1);
-          }
+        onClick={(): void => {
+          const event = new CustomEvent('coverArtClick', { detail: context.album });
+          componentEventTarget.dispatchEvent(event);
         }}
       />
-    );
-  }
-}
-
-class Title extends React.Component {
-  public props: {
-    id: string;
-    name: string;
-  };
-
-  public render() {
-    return (
-      <a
-        className={`title${this.props.id ? ' href' : ''}`}
-        title={this.props.name}
-        href={`https://open.spotify.com/track/${this.props.id}`}
-        target='_blank'
-        oncontextmenu={() => {
-          if (this.props.id) {
-            DiscordNative.clipboard.copy(`https://open.spotify.com/track/${this.props.id}`);
-            common.toast.toast('Copied track URL', 1);
+      <div className='song-info'>
+        <a
+          className={`title${typeof context.track.id === 'string' ? ' href' : ''}`}
+          title={context.track.name}
+          onContextMenu={(): void => {
+            const event = new CustomEvent('titleRightClick', { detail: context.track });
+            componentEventTarget.dispatchEvent(event);
+          }}
+          href={
+            typeof context.track.id === 'string'
+              ? `https://open.spotify.com/track/${context.track.id}`
+              : ''
           }
-        }}>
-        {this.props.name}
-      </a>
-    );
-  }
+          target='_blank'>
+          {context.track.name}
+        </a>
+        <Artists />
+      </div>
+    </div>
+  );
 }
 
-class ModalHeader extends React.Component {
-  public props: {
-    albumId: string;
-    albumName: string;
-    trackId: string;
-    trackName: string;
-    coverSrc: string;
-    artists: SpotifyUser[];
+function Modal(props: {
+  dockChildren: React.Element[];
+  track?: { name: string; id?: string };
+  album?: { name: string; id?: string };
+  current?: number;
+  duration?: number;
+  playing?: boolean;
+  shuffle?: boolean;
+  repeat?: 'off' | 'context' | 'track';
+  artists?: SpotifyUser[];
+  coverArt?: string;
+}): React.Element {
+  const [track, setTrack] = React.useState(props.track ? props.track : { name: 'None' });
+  const [album, setAlbum] = React.useState(props.album ? props.album : { name: 'None' });
+  const [current, setCurrent] = React.useState(
+    typeof props.current === 'number' ? props.current : 0,
+  );
+  const [duration, setDuration] = React.useState(
+    typeof props.duration === 'number' ? props.duration : 0,
+  );
+  const [playing, setPlaying] = React.useState(
+    typeof props.playing === 'boolean' ? props.playing : false,
+  );
+  const [shuffle, setShuffle] = React.useState(
+    typeof props.shuffle === 'boolean' ? props.shuffle : false,
+  );
+  const [repeat, setRepeat] = React.useState(
+    ['off', 'context', 'track'].includes(props.repeat) ? props.repeat : 'off',
+  );
+  const [artists, setArtists] = React.useState(
+    Array.isArray(props.artists) ? props.artists : [{ name: 'None' }],
+  );
+  const [coverArt, setCoverArt] = React.useState(
+    typeof props.coverArt === 'string' ? props.coverArt : '',
+  );
+
+  const modify = {
+    metadata: (
+      trackMeta?: { name: string; id?: string },
+      albumMeta?: { name: string; id?: string },
+      artists?: SpotifyUser[],
+      coverArt?: string,
+    ): void => {
+      setTrack({
+        name: typeof trackMeta?.name === 'string' ? trackMeta.name : 'None',
+        id: typeof trackMeta?.id === 'string' ? trackMeta.id : undefined,
+      });
+      setAlbum({
+        name: typeof albumMeta?.name === 'string' ? albumMeta.name : 'None',
+        id: typeof albumMeta?.id === 'string' ? albumMeta.id : undefined,
+      });
+      setArtists(Array.isArray(artists) ? artists : [{ name: 'None' }]);
+      setCoverArt(typeof coverArt === 'string' ? coverArt : '');
+    },
+    playbackTime: (current: number, duration: number): void => {
+      setCurrent(typeof current === 'number' ? current : 0);
+      setDuration(typeof duration === 'number' ? duration : 0);
+    },
+    current: (pos: number | ((prev: number) => number)): void => {
+      if (typeof pos !== 'number' && typeof pos !== 'function') return;
+      if (typeof pos === 'number' && pos >= duration) setCurrent(duration);
+      else setCurrent(pos);
+    },
+    duration: (pos: number): void => {
+      if (typeof pos !== 'number') return;
+      setCurrent(0);
+      setDuration(pos);
+    },
+    playing: (state: boolean | ((previous: boolean) => boolean)): void => {
+      if (typeof state !== 'boolean' && typeof state !== 'function') return;
+      setPlaying(state);
+    },
+    shuffle: (state: boolean | ((previous: boolean) => boolean)): void => {
+      if (typeof state !== 'boolean' && typeof state !== 'function') return;
+      setShuffle(state);
+    },
+    repeat: (
+      state: 'off' | 'context' | 'track' | ((previous: 'off' | 'context' | 'track') => boolean),
+    ): void => {
+      if (
+        (!['off', 'context', 'track'].includes(state) || state === repeat) &&
+        typeof state !== 'function'
+      )
+        return;
+      setRepeat(state);
+    },
   };
 
-  public render() {
-    return (
-      <div className='header'>
-        <CoverArt id={this.props.albumId} name={this.props.albumName} src={this.props.coverSrc} />
-        <div className='metadata'>
-          <Title id={this.props.trackId} name={this.props.trackName} />
-          <Artists list={this.props.artists} />
-        </div>
-      </div>
-    );
-  }
-}
+  React.useEffect(() => {
+    const metadataChangeListener = (metadata: {
+      track?: { name: string; id?: string };
+      album?: { name: string; id?: string };
+      artists?: SpotifyUser[];
+      coverArt?: string;
+    }): void =>
+      modify.metadata(metadata?.track, metadata?.album, metadata?.artists, metadata?.coverArt);
 
-class DockIcons extends React.Component {
-  public props: {
-    shuffle: boolean;
-    repeat: 'off' | 'context' | 'track';
-    playing: boolean;
-  };
+    const playbackTimeChangeListener = (playbackTime: {
+      current?: number;
+      duration?: number;
+    }): void => modify.playbackTime(playbackTime?.current, playbackTime?.duration);
 
-  public async onShuffleClick(): Promise<void> {}
+    componentEventTarget.addEventListener('metadataChange', metadataChangeListener);
+    componentEventTarget.addEventListener('playbackTimeChange', playbackTimeChangeListener);
 
-  public render() {
-    return (
-      <div className='icons'>
-        <Icon
-          title={`Shuffle ${shuffle ? 'on' : 'off'}`}
-          classNames={`shuffle${shuffle ? ' active' : ''}`}
-          d='M14.83,13.41L13.42,14.82L16.55,17.95L14.5,20H20V14.5L17.96,16.54L14.83,13.41M14.5,4L16.54,6.04L4,18.59L5.41,20L17.96,7.46L20,9.5V4M10.59,9.17L5.41,4L4,5.41L9.17,10.58L10.59,9.17Z'
-        />
-        <Icon
-          classNames='play-pause'
-          d={playing ? 'M14,19H18V5H14M6,19H10V5H6V19Z' : 'M8,5.14V19.14L19,12.14L8,5.14Z'}
-        />
-      </div>
-    );
-  }
-}
-
-class ModalDock extends React.Component {
-  public props: {
-    shuffle: boolean;
-    repeat: 'off' | 'context' | 'track';
-    playing: boolean;
-    dockComponents: { progressBar?: ProgressBar; timeDisplay?: PlaybackTimeDisplay };
-  };
-
-  public render() {
-    return (
-      <div className='dock'>
-        {[this.props.dockComponents?.timeDisplay ? this.props.dockComponents.timeDisplay : <></>]}
-        {[this.props.dockComponents?.progressBar ? this.props.dockComponents.progressBar : <></>]}
-        <DockIcons
-          shuffle={this.props.shuffle}
-          repeat={this.props.repeat}
-          playing={this.props.playing}
-        />
-      </div>
-    );
-  }
-}
-
-class ModalContainer extends React.Component {
-  public state: {
-    album: { id: string; name: string };
-    track: { id: string; name: string };
-    status: {
-      repeat: 'off' | 'context' | 'track';
-      shuffle: boolean;
-      playing: boolean;
-      active: boolean;
+    return () => {
+      componentEventTarget.removeEventListener('metadataChange', metadataChangeListener);
+      componentEventTarget.removeEventListener('playbackTimeChange', playbackTimeChangeListener);
     };
-    artists: SpotifyUser[];
-    coverArtSrc: string;
-    currentPos: number;
-    endPos: number;
-    dockComponents: { progressBar?: ProgressBar; timeDisplay?: PlaybackTimeDisplay };
-  } = {
-    album: { id: '', name: 'None' },
-    track: { id: '', name: 'None' },
-    status: { repeat: 'off', shuffle: false, playing: false, active: false },
-    artists: [] as SpotifyUser[],
-    coverArtSrc: '',
-    dockComponents: {},
-  };
+  }, []);
 
-  public render() {
-    return (
-      <div className={`spotify-modal${this.state.status.active ? ' inactive' : ''}`}>
-        <ModalHeader
-          albumId={this.state.album.id}
-          trackId={this.state.track.id}
-          albumName={this.state.album.name}
-          trackName={this.state.track.name}
-          coverSrc={this.state.coverArtSrc}
-          artists={this.state.artists}
-        />
-        <ModalDock
-          shuffle={this.state.status.shuffle}
-          repeat={this.state.status.repeat}
-          playing={this.state.status.playing}
-          dockComponents={this.state.dockComponents}
-        />
-      </div>
-    );
-  }
-} */
+  return (
+    <ModalContext.Provider
+      value={{
+        dockChildren: props.dockChildren,
+        track,
+        album,
+        current,
+        duration,
+        playing,
+        shuffle,
+        repeat,
+        artists,
+        coverArt,
+        modify,
+      }}>
+      <Header />
+      <Dock />
+    </ModalContext.Provider>
+  );
+}
+
+export {
+  Artists,
+  Dock,
+  Header,
+  Icon,
+  Icons,
+  Modal,
+  ProgressBar,
+  ProgressContainer,
+  ProgressDisplay,
+  componentEventTarget,
+  parseTime,
+};
