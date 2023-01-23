@@ -134,33 +134,6 @@ export interface SpotifyDevice {
   volume_percent: number;
 }
 
-export interface SpotifyFluxDispatcherState {
-  accountId: string;
-  context: SpotifyStateContext;
-  device: SpotifyDevice;
-  isPlaying: boolean;
-  position: boolean;
-  repeat: boolean;
-  track: {
-    album: {
-      id: string;
-      image: {
-        height: number;
-        url: string;
-        width: number;
-      };
-      name: string;
-    };
-    artists: SpotifyUser[];
-    duration: number;
-    id: string;
-    isLocal: boolean;
-    name: string;
-  };
-  type: 'SPOTIFY_PLAYER_STATE';
-  volumePercent: number;
-}
-
 export interface SpotifyWebSocketState {
   actions: {
     disallows: Record<string, boolean>;
@@ -174,10 +147,6 @@ export interface SpotifyWebSocketState {
   repeat_state: 'off' | 'context' | 'track';
   shuffle_state: boolean;
   timestamp: number;
-}
-
-export interface SpotifyWebSocketRawMessage {
-  data: string;
 }
 
 export interface SpotifyWebSocketRawParsedMessage {

@@ -244,7 +244,10 @@ function Header(): React.Element {
   const context = React.useContext(ModalContext);
 
   return (
-    <div className='header'>
+    <div
+      className={`header${!context.shouldShow ? ' hidden' : ''}${
+        context.header ? ` ${context.header}` : ''
+      }`}>
       <img
         className={`cover-art${typeof context.album.id === 'string' ? ' href' : ''}`}
         src={typeof context.coverArt === 'string' ? context.coverArt : ''}
@@ -284,6 +287,7 @@ function Header(): React.Element {
 }
 
 function Modal(props: {
+  additionalHeaderClasses: string;
   track?: { name: string; id?: string };
   album?: { name: string; id?: string };
   current?: number;
@@ -340,9 +344,36 @@ function Modal(props: {
       setArtists(Array.isArray(artists) ? artists : [{ name: 'None' }]);
       setCoverArt(typeof coverArt === 'string' ? coverArt : '');
     },
-    playbackTime: (current: number, duration: number): void => {
+    playbackTime: (current?: number, duration?: number): void => {
       setCurrent(typeof current === 'number' ? current : 0);
       setDuration(typeof duration === 'number' ? duration : 0);
+    },
+    all: (
+      trackMeta?: { name: string; id?: string },
+      albumMeta?: { name: string; id?: string },
+      artists?: SpotifyUser[],
+      coverArt?: string,
+      current?: number,
+      duration?: number,
+      playing?: boolean,
+      shuffle?: boolean,
+      repeat?: 'off' | 'context' | 'track',
+    ): void => {
+      setTrack({
+        name: typeof trackMeta?.name === 'string' ? trackMeta.name : 'None',
+        id: typeof trackMeta?.id === 'string' ? trackMeta.id : undefined,
+      });
+      setAlbum({
+        name: typeof albumMeta?.name === 'string' ? albumMeta.name : 'None',
+        id: typeof albumMeta?.id === 'string' ? albumMeta.id : undefined,
+      });
+      setArtists(Array.isArray(artists) ? artists : [{ name: 'None' }]);
+      setCoverArt(typeof coverArt === 'string' ? coverArt : '');
+      setCurrent(typeof current === 'number' ? current : 0);
+      setDuration(typeof duration === 'number' ? duration : 0);
+      setPlaying(typeof playing === 'boolean' ? playing : false);
+      setShuffle(typeof shuffle === 'boolean' ? shuffle : false);
+      setRepeat(['off', 'context', 'track'].includes(repeat) ? repeat : 'off');
     },
     current: (pos: number | ((prev: number) => number)): void => {
       if ((typeof pos !== 'number' && typeof pos !== 'function') || pos === current) return;
@@ -401,15 +432,42 @@ function Modal(props: {
       }>,
     ): void => modify.playbackTime(event.detail?.current, event.detail?.duration);
 
+    const allChangeListener = (
+      event: CustomEvent<{
+        track?: { name: string; id?: string };
+        album?: { name: string; id?: string };
+        artists?: SpotifyUser[];
+        coverArt?: string;
+        current?: number;
+        duration?: number;
+        playing?: boolean;
+        shuffle?: boolean;
+        repeat?: 'off' | 'context' | 'track';
+      }>,
+    ): void =>
+      modify.all(
+        event.detail?.track,
+        event.detail?.album,
+        event.detail?.artists,
+        event.detail?.coverArt,
+        event.detail?.current,
+        event.detail?.duration,
+        event.detail?.playing,
+        event.detail?.shuffle,
+        event.detail?.repeat,
+      );
+
     const shouldShowListener = (
       event: CustomEvent<boolean | ((previous: boolean) => boolean)>,
     ): void => modify.shouldShow(event.detail);
 
+    componentEventTarget.addEventListener('allChange', allChangeListener);
     componentEventTarget.addEventListener('metadataChange', metadataChangeListener);
     componentEventTarget.addEventListener('playbackTimeChange', playbackTimeChangeListener);
     componentEventTarget.addEventListener('shouldShowChange', shouldShowListener);
 
     return () => {
+      componentEventTarget.removeEventListener('allChange', allChangeListener);
       componentEventTarget.removeEventListener('metadataChange', metadataChangeListener);
       componentEventTarget.removeEventListener('playbackTimeChange', playbackTimeChangeListener);
       componentEventTarget.removeEventListener('shouldShowChange', shouldShowListener);
@@ -419,7 +477,7 @@ function Modal(props: {
   return (
     <ModalContext.Provider
       value={{
-        dockChildren: props.dockChildren,
+        header: props.additionalHeaderClasses,
         track,
         album,
         current,
@@ -432,7 +490,7 @@ function Modal(props: {
         modify,
       }}>
       <Header />
-      <div className='dock'>
+      <div className={`dock${!shouldShow ? ' hidden' : ''}`}>
         <ProgressContainer />
         <Icons />
       </div>
