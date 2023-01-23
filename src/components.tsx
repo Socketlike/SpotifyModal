@@ -48,15 +48,16 @@ function ProgressBar(props: {
       className='progress-bar'
       onClick={(mouseEvent: React.MouseEvent): void => {
         const percent = mouseEvent.nativeEvent.offsetX / mouseEvent.currentTarget.offsetWidth;
-        const event = new CustomEvent('progressBarClick', {
-          detail: {
-            duration: props.duration,
-            modifyCurrent: props.modifyCurrent,
-            mouseEvent,
-            percent,
-          },
-        });
-        componentEventTarget.dispatchEvent(event);
+        componentEventTarget.dispatchEvent(
+          new CustomEvent('progressBarClick', {
+            detail: {
+              duration: props.duration,
+              modifyCurrent: props.modifyCurrent,
+              mouseEvent,
+              percent,
+            },
+          }),
+        );
       }}>
       <div
         className='inner'
@@ -127,53 +128,57 @@ function Icons(): React.Element {
       <Icon
         path='M14.83,13.41L13.42,14.82L16.55,17.95L14.5,20H20V14.5L17.96,16.54L14.83,13.41M14.5,4L16.54,6.04L4,18.59L5.41,20L17.96,7.46L20,9.5V4M10.59,9.17L5.41,4L4,5.41L9.17,10.58L10.59,9.17Z'
         className={`shuffle${context.shuffle ? ' active' : ''}`}
-        onClick={(mouseEvent: React.MouseEvent): void => {
-          const event = new CustomEvent('shuffleClick', {
-            detail: {
-              mouseEvent,
-              currentState: context.shuffle,
-              modifyState: context.modify.shuffle,
-            },
-          });
-          componentEventTarget.dispatchEvent(event);
-        }}
+        onClick={(mouseEvent: React.MouseEvent): void =>
+          componentEventTarget.dispatchEvent(
+            new CustomEvent('shuffleClick', {
+              detail: {
+                mouseEvent,
+                currentState: context.shuffle,
+                modifyState: context.modify.shuffle,
+              },
+            }),
+          )
+        }
         title={`Shuffle ${context.shuffle ? 'on' : 'off'}`}
       />
       <Icon
         path='M6,18V6H8V18H6M9.5,12L18,6V18L9.5,12Z'
         className='skip-prev'
-        onClick={(mouseEvent: React.MouseEvent): void => {
-          const event = new CustomEvent('skipPrevClick', {
-            detail: {
-              mouseEvent,
-              currentPos: context.current,
-              modifyCurrent: context.modify.current,
-            },
-          });
-          componentEventTarget.dispatchEvent(event);
-        }}
+        onClick={(mouseEvent: React.MouseEvent): void =>
+          componentEventTarget.dispatchEvent(
+            new CustomEvent('skipPrevClick', {
+              detail: {
+                mouseEvent,
+                currentPos: context.current,
+                modifyCurrent: context.modify.current,
+              },
+            }),
+          )
+        }
       />
       <Icon
         path={context.playing ? 'M14,19H18V5H14M6,19H10V5H6V19Z' : 'M8,5.14V19.14L19,12.14L8,5.14Z'}
         className='play-pause'
-        onClick={(mouseEvent: React.MouseEvent): void => {
-          const event = new CustomEvent('playPauseClick', {
-            detail: {
-              mouseEvent,
-              currentState: context.playing,
-              modifyState: context.modify.playing,
-            },
-          });
-          componentEventTarget.dispatchEvent(event);
-        }}
+        onClick={(mouseEvent: React.MouseEvent): void =>
+          componentEventTarget.dispatchEvent(
+            new CustomEvent('playPauseClick', {
+              detail: {
+                mouseEvent,
+                currentState: context.playing,
+                modifyState: context.modify.playing,
+              },
+            }),
+          )
+        }
       />
       <Icon
         path='M16,18H18V6H16M6,18L14.5,12L6,6V18Z'
         className='skip-next'
-        onClick={(mouseEvent: React.MouseEvent): void => {
-          const event = new CustomEvent('skipNextClick', { detail: { mouseEvent } });
-          componentEventTarget.dispatchEvent(event);
-        }}
+        onClick={(mouseEvent: React.MouseEvent): void =>
+          componentEventTarget.dispatchEvent(
+            new CustomEvent('skipNextClick', { detail: { mouseEvent } }),
+          )
+        }
       />
       <Icon
         path={
@@ -182,16 +187,17 @@ function Icons(): React.Element {
             : 'M13,15V9H12L10,10V11H11.5V15M17,17H7V14L3,18L7,22V19H19V13H17M7,7H17V10L21,6L17,2V5H5V11H7V7Z'
         }
         className={`repeat${context.repeat !== 'off' ? ' active' : ''}`}
-        onClick={(mouseEvent): void => {
-          const event = new CustomEvent('repeatClick', {
-            detail: {
-              mouseEvent,
-              currentState: context.repeat,
-              modifyState: context.modify.repeat,
-            },
-          });
-          componentEventTarget.dispatchEvent(event);
-        }}
+        onClick={(mouseEvent): void =>
+          componentEventTarget.dispatchEvent(
+            new CustomEvent('repeatClick', {
+              detail: {
+                mouseEvent,
+                currentState: context.repeat,
+                modifyState: context.modify.repeat,
+              },
+            }),
+          )
+        }
         title={`Repeat ${context.repeat === 'context' ? 'all' : context.repeat}`}
       />
     </div>
@@ -222,10 +228,11 @@ function Artists(): React.Element {
                   <a
                     className='artist'
                     title={artist.name}
-                    onContextMenu={(): void => {
-                      const event = new CustomEvent('artistRightClick', { detail: artist });
-                      componentEventTarget.dispatchEvent(event);
-                    }}
+                    onContextMenu={(): void =>
+                      componentEventTarget.dispatchEvent(
+                        new CustomEvent('artistRightClick', { detail: artist }),
+                      )
+                    }
                     href={`https://open.spotify.com/artist/${artist.id}`}
                     target='_blank'>
                     {artist.name}
@@ -254,23 +261,26 @@ function Header(): React.Element {
         className={`cover-art${typeof context.album.id === 'string' ? ' href' : ''}`}
         src={typeof context.coverArt === 'string' ? context.coverArt : ''}
         title={context.album.id ? context.album.name : ''}
-        onContextMenu={(): void => {
-          const event = new CustomEvent('coverArtRightClick', { detail: context.album });
-          componentEventTarget.dispatchEvent(event);
-        }}
-        onClick={(): void => {
-          const event = new CustomEvent('coverArtClick', { detail: context.album });
-          componentEventTarget.dispatchEvent(event);
-        }}
+        onContextMenu={(): void =>
+          componentEventTarget.dispatchEvent(
+            new CustomEvent('coverArtRightClick', { detail: context.album }),
+          )
+        }
+        onClick={(): void =>
+          componentEventTarget.dispatchEvent(
+            new CustomEvent('coverArtClick', { detail: context.album }),
+          )
+        }
       />
       <div className='song-info'>
         <a
           className={`title${typeof context.track.id === 'string' ? ' href' : ''}`}
           title={context.track.name}
-          onContextMenu={(): void => {
-            const event = new CustomEvent('titleRightClick', { detail: context.track });
-            componentEventTarget.dispatchEvent(event);
-          }}
+          onContextMenu={(): void =>
+            componentEventTarget.dispatchEvent(
+              new CustomEvent('titleRightClick', { detail: context.track }),
+            )
+          }
           href={
             typeof context.track.id === 'string'
               ? `https://open.spotify.com/track/${context.track.id}`
@@ -328,7 +338,6 @@ function Modal(props: {
       artists?: SpotifyUser[],
       coverArt?: string,
     ): void => {
-      console.log('yes setting', trackMeta, albumMeta, artists, coverArt);
       setTrack({
         name: typeof trackMeta?.name === 'string' ? trackMeta.name : 'None',
         id: typeof trackMeta?.id === 'string' ? trackMeta.id : undefined,
