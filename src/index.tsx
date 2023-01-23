@@ -1,5 +1,4 @@
 import { common, webpack } from 'replugged';
-import { getSpotifyAccount } from './common';
 import {
   SpotifyDevice,
   SpotifyUser,
@@ -9,48 +8,24 @@ import {
   SpotifyWebSocketState,
 } from './types';
 import {
-  Artists,
-  Dock,
-  Header,
-  Icon,
-  Icons,
-  Modal,
-  ProgressBar,
-  ProgressContainer,
-  ProgressDisplay,
-  componentEventTarget,
-  parseTime,
-} from './components';
+  SpotifyWatcher,
+  addRootToPanel,
+  logger,
+  removeRootFromPanelAndUnmount,
+  spotifyAPI,
+} from './utils';
 import './style.css';
 
-const { React, ReactDOM } = common;
+import { Modal, componentEventTarget } from './components';
 
+export * as components from './components';
+export * as utils from './utils';
+
+const { React, ReactDOM } = common;
 declare const DiscordNative: {
   clipboard: {
     copy: (content: string) => void;
   };
-};
-
-let currentAccountId = '';
-let dispatcher = common.fluxDispatcher;
-let injected = false;
-let panel: HTMLElement;
-const rootElement = document.createElement('div');
-rootElement.classList.add('spotify-modal');
-const root = ReactDOM.createRoot(rootElement);
-
-export const components = {
-  Artists,
-  Dock,
-  Header,
-  Icon,
-  Icons,
-  Modal,
-  ProgressBar,
-  ProgressContainer,
-  ProgressDisplay,
-  componentEventTarget,
-  parseTime,
 };
 
 export const handlers = {
@@ -61,8 +36,8 @@ export const handlers = {
       modifyState: (state: boolean | ((previous: boolean) => boolean)) => void;
     }>,
   ): void => {
-    event.detail.modifyState(!event.detail.currentState);
-    common.toast.toast(`Shuffle set to ${!event.detail.currentState ? 'on' : 'off'}`, 1);
+    if (!watcher.account?.accessToken) return;
+    spotifyAPI.setShuffleState(watcher.account.accessToken, !event.detail.currentState);
   },
   skipPrevClick: (
     event: CustomEvent<{
@@ -71,10 +46,9 @@ export const handlers = {
       modifyCurrent: (pos: number | ((previous: number) => number)) => void;
     }>,
   ): void => {
-    if (event.detail.currentPos >= 6000) {
-      event.detail.modifyCurrent(0);
-      common.toast.toast('Set playback time to 0', 1);
-    } else common.toast.toast('Skip previous', 1);
+    if (!watcher.account?.accessToken) return;
+    if (event.detail.currentPos >= 6000) spotifyAPI.seekToPosition(watcher.account.accessToken, 0);
+    else spotifyAPI.skipNextOrPrevious(watcher.account.accessToken, false);
   },
   playPauseClick: (
     event: CustomEvent<{
@@ -83,11 +57,12 @@ export const handlers = {
       modifyState: (state: boolean | ((previous: boolean) => boolean)) => void;
     }>,
   ): void => {
-    event.detail.modifyState(!event.detail.currentState);
-    common.toast.toast(`Play / pause set to ${!event.detail.currentState ? 'play' : 'pause'}`, 1);
+    if (!watcher.account?.accessToken) return;
+    spotifyAPI.setPlaybackState(watcher.account.accessToken, !event.detail.currentState);
   },
   skipNextClick: (event: CustomEvent<{ mouseEvent: React.MouseEvent }>): void => {
-    common.toast.toast('Skip next', 1);
+    if (!watcher.account?.accessToken) return;
+    spotifyAPI.skipNextOrPrevious(watcher.account.accessToken);
   },
   repeatClick: (
     event: CustomEvent<{
@@ -96,16 +71,10 @@ export const handlers = {
       modifyState: (state: boolean | ((previous: boolean) => boolean)) => void;
     }>,
   ): void => {
+    if (!watcher.account?.accessToken) return;
+
     const nextMode = { off: 'context', context: 'track', track: 'off' };
-    event.detail.modifyState(nextMode[event.detail.currentState]);
-    common.toast.toast(
-      `Repeat set to ${
-        nextMode[event.detail.currentState] === 'context'
-          ? 'all'
-          : nextMode[event.detail.currentState]
-      }`,
-      1,
-    );
+    spotifyAPI.setRepeatState(watcher.account.accessToken, nextMode[event.detail.currentState]);
   },
   progressBarClick: (
     event: CustomEvent<{
@@ -115,10 +84,10 @@ export const handlers = {
       modifyCurrent: (pos: number | ((previous: number) => number)) => void;
     }>,
   ): void => {
-    event.detail.modifyCurrent(Math.round(event.detail.duration * event.detail.percent));
-    common.toast.toast(
-      `Set current pos to ${Math.round(event.detail.duration * event.detail.percent)}`,
-      1,
+    if (!watcher.account?.accessToken) return;
+    spotifyAPI.seekToPosition(
+      watcher.account.accessToken,
+      Math.round(event.detail.duration * event.detail.percent),
     );
   },
   coverArtClick: (event: CustomEvent<{ name: string; id?: string }>): void => {
@@ -147,31 +116,119 @@ export const handlers = {
   },
 };
 
+let injected = false;
+export let watcher: SpotifyWatcher;
+let root: { element: HTMLDivElement; root: ReactDOM.Root };
+let modal: React.Element;
+let container = '';
+
 export async function start(): Promise<void> {
-  panel = document.body.querySelectorAll('[class^=panels-]')[0];
-  panel.insertAdjacentElement('afterbegin', rootElement);
-  Object.entries(handlers).forEach(
-    ([name, listener]: [string, (event: CustomEvent<any>) => void]): void => {
-      componentEventTarget.addEventListener(name, listener);
+  Object.entries(handlers).forEach(([name, handler]): void =>
+    componentEventTarget.addEventListener(name, handler),
+  );
+
+  const containerClasses = await webpack.waitForModule<{
+    container: string;
+  }>(webpack.filters.byProps('avatar', 'customStatus'));
+
+  if (containerClasses?.container) container = containerClasses.container;
+
+  watcher = new SpotifyWatcher();
+  watcher.addEventListener(
+    'update',
+    (data: CustomEvent<{ state?: SpotifyWebSocketState; devices?: SpotifyDevices[] }>): void => {
+      const { devices, state } = data.detail;
+
+      if (!injected) {
+        root = addRootToPanel();
+        if (root.root) {
+          root.root.render(
+            <Modal
+              additionalHeaderClasses={container}
+              track={{
+                name: typeof state?.item?.name === 'string' ? state.item.name : 'None',
+                id: typeof state?.item?.id === 'string' ? state.item.id : undefined,
+              }}
+              album={{
+                name: typeof state?.item?.album?.name === 'string' ? state.item.album.name : 'None',
+                id: typeof state?.item?.album?.id === 'string' ? state.item.album.id : undefined,
+              }}
+              artists={Array.isArray(state?.item?.artists) ? state.item.artists : undefined}
+              coverArt={
+                typeof state?.item?.album?.images?.[0]?.url === 'string'
+                  ? state.item.album.images[0].url
+                  : undefined
+              }
+              current={typeof state?.progress_ms === 'number' ? state.progress_ms : undefined}
+              duration={
+                typeof state?.item?.duration_ms === 'number' ? state.item.duration_ms : undefined
+              }
+              playing={typeof state?.is_playing === 'boolean' ? state.is_playing : undefined}
+              shuffle={typeof state?.shuffle_state === 'boolean' ? state.shuffle_state : undefined}
+              shouldShow={Boolean(devices?.length)}
+              repeat={
+                ['off', 'context', 'track'].includes(state?.repeat_state)
+                  ? (state.repeat_state as 'off' | 'context' | 'track')
+                  : undefined
+              }
+            />,
+          );
+          injected = true;
+        }
+      } else {
+        if (Array.isArray(devices))
+          componentEventTarget.dispatchEvent(
+            new CustomEvent('shouldShowChange', { detail: Boolean(devices.length) }),
+          );
+        if (typeof state === 'object')
+          componentEventTarget.dispatchEvent(
+            new CustomEvent('allChange', {
+              detail: {
+                track: {
+                  name: typeof state?.item?.name === 'string' ? state.item.name : 'None',
+                  id: typeof state?.item?.id === 'string' ? state.item.id : undefined,
+                },
+                album: {
+                  name:
+                    typeof state?.item?.album?.name === 'string' ? state.item.album.name : 'None',
+                  id: typeof state?.item?.album?.id === 'string' ? state.item.album.id : undefined,
+                },
+                artists: Array.isArray(state?.item?.artists) ? state.item.artists : undefined,
+                coverArt:
+                  typeof state?.item?.album?.images?.[0]?.url === 'string'
+                    ? state.item.album.images[0].url
+                    : undefined,
+                current: typeof state?.progress_ms === 'number' ? state.progress_ms : undefined,
+                duration:
+                  typeof state?.item?.duration_ms === 'number' ? state.item.duration_ms : undefined,
+                playing: typeof state?.is_playing === 'boolean' ? state.is_playing : undefined,
+                shuffle:
+                  typeof state?.shuffle_state === 'boolean' ? state.shuffle_state : undefined,
+                repeat: ['off', 'context', 'track'].includes(state?.repeat_state)
+                  ? (state.repeat_state as 'off' | 'context' | 'track')
+                  : undefined,
+              },
+            }),
+          );
+      }
     },
   );
-  root.render(<Modal />);
 }
 
 export async function stop(): void {
-  if (panel) panel.removeChild(rootElement);
-  Object.entries(handlers).forEach(
-    ([name, listener]: [string, (event: CustomEvent<any>) => void]) => {
-      componentEventTarget.removeEventListener(name, listener);
-    },
+  Object.entries(handlers).forEach(([name, handler]): void =>
+    componentEventTarget.removeEventListener(name, handler),
   );
-  root.unmount();
+  componentEventTarget.dispatchEvent(new CustomEvent('shouldShowChange', { detail: false }));
+  watcher.destroy();
+  removeRootFromPanelAndUnmount(root);
 }
 
-export function Settings(): React.Element {
+// For testing purposes
+/* export function Settings(): React.Element {
   return (
     <div>
       <span style={{ color: 'white', backgroundColor: 'red' }}>Settings component test</span>
     </div>
   );
-}
+} */

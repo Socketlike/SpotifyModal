@@ -3,7 +3,7 @@
   flex-direction: column;
 }
 
-.spotify-modal.inactive {
+.spotify-modal .hidden {
   display: none;
 }
 
