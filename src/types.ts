@@ -1,5 +1,38 @@
 /* eslint-disable @typescript-eslint/naming-convention, @typescript-eslint/no-explicit-any */
 
+interface ControlContextInterface {
+  modify: {
+    playing: (newPlaying: boolean | ((previousPlaying: boolean) => boolean)) => void;
+    repeat: (
+      newRepeat: 
+        | 'off'
+        | 'context'
+        | 'track'
+        | ((previousRepeat: 'off' | 'context' | 'track') => 'off' | 'context' | 'track'),
+    ) => void;
+    shuffle: (newShuffle: boolean | ((previousShuffle: boolean) => boolean)) => void;
+  };
+  on: {
+    playPauseClick: (mouseEvent: React.MouseEvent, currentState: boolean) => void;
+    repeatClick: (mouseEvent: React.MouseEvent, currentState: 'off' | 'context' | 'track') => void;
+    shuffleClick: (mouseEvent: React.MouseEvent, currentState: boolean) => void;
+    skipNextClick: (mouseEvent: React.MouseEvent) => void;
+    skipPrevClick: (mouseEvent: React.MouseEvent) => void;
+  };
+  playing: boolean;
+  repeat: 'off' | 'context' | 'track';
+  shuffle: boolean;
+  shouldShow: boolean;
+}
+
+interface ProgressContextInterface {
+  duration: number;
+  modifyProgress: (newProgress: number | ((previousProgress: number) => number)) => void;
+  onProgressModified: (newProgress: number) => void;
+  playing: boolean;
+  progress: number;
+}
+
 export interface SpotifySocket {
   accountId: string;
   accessToken: string;
