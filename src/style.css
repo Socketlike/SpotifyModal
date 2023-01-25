@@ -1,9 +1,10 @@
 .spotify-modal {
+  --spotify-darker: #0a963c;
   display: flex;
   flex-direction: column;
 }
 
-.spotify-modal .hidden {
+.hidden {
   display: none !important;
 }
 
@@ -35,7 +36,7 @@
   white-space: nowrap;
 }
 
-.spotify-modal .header .song-info .title {
+.spotify-modal .header .track-info .title {
   color: var(--header-primary);
   font-size: 14px;
   font-family: var(--font-primary);
@@ -45,22 +46,22 @@
   padding-bottom: 3px;
 }
 
-.spotify-modal .header .song-info .title.href:hover {
+.spotify-modal .header .track-info .title.href:hover {
   text-decoration: underline;
   cursor: pointer;
 }
 
-.spotify-modal .header .song-info .artists {
+.spotify-modal .header .track-info .artists {
   color: var(--header-secondary);
   font-size: 12px;
 }
 
-.spotify-modal .header .song-info .artists .artist {
+.spotify-modal .header .track-info .artists .artist {
   color: var(--header-secondary);
   text-decoration: none;
 }
 
-.spotify-modal .header .song-info .artists .artist:hover {
+.spotify-modal .header .track-info .artists .artist:hover {
   color: var(--text-normal);
   text-decoration: underline;
 }
@@ -71,7 +72,7 @@
   padding-bottom: 6px;
 }
 
-.spotify-modal .dock .progress-container .progress-display {
+.spotify-modal .dock .progress-display {
   display: flex;
   position: relative;
   color: var(--text-normal);
@@ -81,12 +82,12 @@
   font-size: 12px;
 }
 
-.spotify-modal .dock .progress-container .progress-display .duration {
+.spotify-modal .dock .progress-display .duration {
   margin-left: auto;
   margin-right: 16px;
 }
 
-.spotify-modal .dock .progress-container .progress-bar {
+.spotify-modal .dock .seek-bar {
   border-radius: 8px;
   background-color: var(--background-modifier-accent);
   height: 5px;
@@ -96,14 +97,14 @@
   left: 5px;
 }
 
-.spotify-modal .dock .progress-container .progress-bar .inner {
-  background-color: var(--text-normal);
+.spotify-modal .dock .seek-bar .inner {
+  background-color: var(--spotify);
   height: 100%;
   max-width: 100%;
   border-radius: 8px;
 }
 
-.spotify-modal .dock .icons {
+.spotify-modal .dock .controls {
   padding-top: 5px;
   padding-left: 5px;
   height: 24px;
@@ -112,33 +113,30 @@
   flex-direction: row;
 }
 
-.spotify-modal .dock .icons svg {
+.spotify-modal .dock .controls svg {
   color: var(--text-normal);
   min-width: 24px;
   height: 24px;
   transition-duration: 400ms;
 }
 
-.spotify-modal .dock .icons .skip-prev {
+.spotify-modal .dock .controls .skip-prev {
   margin-left: auto;
 }
 
-.spotify-modal .dock .icons .play-pause {
+.spotify-modal .dock .controls .play-pause {
   margin: 0px 10px;
 }
 
-.spotify-modal .dock .icons .repeat {
+.spotify-modal .dock .controls .repeat {
   margin: 0px 10px 0px auto;
 }
 
-.spotify-modal .dock .icons svg.active {
-  color: var(--brand-experiment-500);
+.spotify-modal .dock .controls svg.active,
+.spotify-modal .dock .controls svg:not(.active):hover {
+  color: var(--spotify);
 }
 
-.spotify-modal .dock .icons svg.active:hover {
-  color: var(--brand-experiment-300);
-}
-
-.spotify-modal .dock .icons svg:not(.active):hover {
-  color: var(--brand-experiment-500);
+.spotify-modal .dock .controls svg.active:hover {
+  color: var(--spotify-darker);
 }
