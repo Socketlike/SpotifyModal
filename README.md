@@ -52,7 +52,7 @@ UI elements are also exposed to CSS via these classes:
 # Known issues
 
 - Leaving Spotify inactive for an hour or so will make the controls stop working until you manually update the player state in the Spotify app  
-- The progress bar can (and quite literally) freeze when renderer freezes (i.e. switching channels when system / renderer is under heavy load), causing progress bar inaccuracy  
+- The progress bar is very sensitive to lag (heavy system load / renderer freezing), causing inaccuracy  
 - The modal can fade out at random when the player state updates (pre-better-codebase bug)  
 - The title element does not play the scrolling animation (when it's supposed to) on Discord startup, instead it cuts out (ellipsis)  
 
