@@ -45,10 +45,9 @@ export function ProgressContainer(): JSX.Element {
     if (context.playing) {
       interval.current = setInterval(
         () =>
-          context.modifyProgress((previous: number): number => {
-            if (previous + 500 >= context.duration) context.modify.playing(false);
-            return previous + 500 >= context.duration ? context.duration : previous + 500;
-          }),
+          context.modifyProgress((previous: number): number =>
+            previous + 500 >= context.duration ? context.duration : previous + 500,
+          ),
         500,
       ) as number;
     } else clearInterval(interval.current);

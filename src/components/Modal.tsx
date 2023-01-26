@@ -10,21 +10,23 @@ const { React } = common;
 export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
   // TrackInfo context
   const [track, setTrack] = React.useState<SpotifyTrack>(
-    props.state?.item
-      ? props.state.item
+    props?.state?.item
+      ? props?.state?.item
       : { album: { name: 'None', images: [{}] }, artists: [{ name: 'None' }], name: 'None' },
   );
 
   // ProgressDisplay context
   const [duration, setDuration] = React.useState<number>(
-    typeof props.state?.item?.duration_ms === 'number' ? props.state.item.duration_ms : 0,
+    typeof props?.state?.item?.duration_ms === 'number' ? props?.state?.item?.duration_ms : 0,
   );
-  const [playing, setPlaying] = React.useState<boolean>(props.state?.is_playing ? true : false);
+  const [playing, setPlaying] = React.useState<boolean>(props?.state?.is_playing ? true : false);
   const [progress, setProgress] = React.useState<number>(
-    typeof props.state?.progress_ms === 'number' ? props.state.progress_ms : 0,
+    typeof props?.state?.progress_ms === 'number' ? props?.state?.progress_ms : 0,
   );
 
-  const [shouldShowModal, setShouldShowModal] = React.useState<boolean>(false);
+  const [shouldShowModal, setShouldShowModal] = React.useState<boolean>(
+    typeof props?.state === 'object' ? true : false,
+  );
   const [shouldShowControls, setShouldShowControls] = React.useState<boolean>(false);
 
   // Controls context
@@ -101,10 +103,37 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
   };
 
   const elementRef = React.useRef<HTMLDivElement>(null);
-  const onProgressModified = React.useCallback((newProgress: number): void => {
-    componentEventTarget.dispatchEvent(new CustomEvent('progressUpdate', { detail: newProgress }));
-  }, []);
-  const modifyProgress = React.useCallback(
+  const onProgressModified = React.useCallback<(newProgress: number) => void>(
+    (newProgress: number): void =>
+      componentEventTarget.dispatchEvent(
+        new CustomEvent('progressUpdate', { detail: newProgress }),
+      ),
+    [],
+  );
+  const artistRightClick = React.useCallback<(name: string, id?: string) => void>(
+    (name: string, id?: string): void =>
+      componentEventTarget.dispatchEvent(
+        new CustomEvent('artistRightClick', { detail: { name, id } }),
+      ),
+    [],
+  );
+  const titleRightClick = React.useCallback<(name: string, id?: string) => void>(
+    (name: string, id?: string): void =>
+      componentEventTarget.dispatchEvent(
+        new CustomEvent('titleRightClick', { detail: { name, id } }),
+      ),
+    [],
+  );
+  const coverArtRightClick = React.useCallback<(name: string, id?: string) => void>(
+    (name: string, id?: string): void =>
+      componentEventTarget.dispatchEvent(
+        new CustomEvent('coverArtRightClick', { detail: { name, id } }),
+      ),
+    [],
+  );
+  const modifyProgress = React.useCallback<
+    (newProgress: number | ((previousProgress: number) => number)) => void
+  >(
     (newProgress: number | ((previousProgress: number) => number)): void =>
       setProgress(newProgress),
     [progress],
@@ -159,7 +188,8 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
 
   return (
     <div className={`spotify-modal${shouldShowModal ? '' : ' hidden'}`} ref={elementRef}>
-      <TrackInfoContext.Provider value={track}>
+      <TrackInfoContext.Provider
+        value={{ track, artistRightClick, titleRightClick, coverArtRightClick }}>
         <TrackInfo />
       </TrackInfoContext.Provider>
       <div className='dock'>

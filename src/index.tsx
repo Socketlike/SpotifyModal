@@ -11,6 +11,12 @@ import {
 } from './utils';
 import './style.css';
 
+declare const DiscordNative: {
+  clipboard: {
+    copy: (content: string) => void;
+  };
+};
+
 export * as utils from './utils';
 export let accounts: Record<string, SpotifySocket>;
 export let componentListeners = {
@@ -84,6 +90,24 @@ export let componentListeners = {
             );
         });
     else common.toast.toast('[SpotifyModal] Current account ID is empty', 2);
+  },
+  artistRightClick: (ev: CustomEvent<{ name: string; id?: string }>): void => {
+    if (typeof ev.detail.id === 'string') {
+      DiscordNative.clipboard.copy(`https://open.spotify.com/artist/${ev.detail.id}`);
+      common.toast.toast(`Copied artist (${ev.detail.name})'s URL`);
+    }
+  },
+  coverArtRightClick: (ev: CustomEvent<{ name: string; id?: string }>): void => {
+    if (typeof ev.detail.id === 'string') {
+      DiscordNative.clipboard.copy(`https://open.spotify.com/album/${ev.detail.id}`);
+      common.toast.toast(`Copied album (${ev.detail.name})'s URL`);
+    }
+  },
+  titleRightClick: (ev: CustomEvent<{ name: string; id?: string }>): void => {
+    if (typeof ev.detail.id === 'string') {
+      DiscordNative.clipboard.copy(`https://open.spotify.com/track/${ev.detail.id}`);
+      common.toast.toast(`Copied track (${ev.detail.name})'s URL`);
+    }
   },
   progressUpdate: (ev: CustomEvent<number>): void => {
     if (currentAccountId)
