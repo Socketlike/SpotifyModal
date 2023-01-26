@@ -33,9 +33,9 @@ export const ControlContext = React.createContext<ControlContextInterface>({
       componentEventTarget.dispatchEvent(
         new CustomEvent<React.MouseEvent>('skipNextClick', { detail: event }),
       ),
-    skipPrevClick: (event: React.MouseEvent): void =>
+    skipPrevClick: (event: React.MouseEvent, currentProgress: number): void =>
       componentEventTarget.dispatchEvent(
-        new CustomEvent<React.MouseEvent>('skipPrevClick', { detail: event }),
+        new CustomEvent<React.MouseEvent>('skipPrevClick', { detail: { event, currentProgress } }),
       ),
   },
   playing: false,
@@ -74,7 +74,7 @@ export function Controls(): JSX.Element {
       />
       <Icon
         className='skip-prev'
-        onClick={context.on.skipPrevClick}
+        onClick={(e: React.MouseEvent) => context.on.skipPrevClick(e, context.currentProgress)}
         path={paths.skipPrevious}
         title='Skip to previous track'
       />

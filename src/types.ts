@@ -4,7 +4,7 @@ interface ControlContextInterface {
   modify: {
     playing: (newPlaying: boolean | ((previousPlaying: boolean) => boolean)) => void;
     repeat: (
-      newRepeat: 
+      newRepeat:
         | 'off'
         | 'context'
         | 'track'

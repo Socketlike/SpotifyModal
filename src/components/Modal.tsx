@@ -63,9 +63,11 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
         componentEventTarget.dispatchEvent(
           new CustomEvent<React.MouseEvent>('skipNextClick', { detail: event }),
         ),
-      skipPrevClick: (event: React.MouseEvent): void =>
+      skipPrevClick: (event: React.MouseEventm, currentProgress: number): void =>
         componentEventTarget.dispatchEvent(
-          new CustomEvent<React.MouseEvent>('skipPrevClick', { detail: event }),
+          new CustomEvent<React.MouseEvent>('skipPrevClick', {
+            detail: { currentProgress, event },
+          }),
         ),
     }),
     [],
@@ -199,6 +201,7 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
         </ProgressContext.Provider>
         <ControlContext.Provider
           value={{
+            currentProgress: progress,
             shouldShow: shouldShowControls,
             on: controlListeners,
             modify: modifyControls,

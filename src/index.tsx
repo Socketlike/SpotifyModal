@@ -18,19 +18,30 @@ declare const DiscordNative: {
 };
 
 export * as utils from './utils';
-export let accounts: Record<string, SpotifySocket>;
-export let componentListeners = {
+
+const componentsListenerErrorHandler = (res: Response): Promise<void> => {
+  const opening = '[SpotifyModal] An error occurred whilst';
+  let action = 'handling an unknown API action';
+  if (res.url.match(/player\/(play|pause)/g)) action = 'toggling playback state';
+  else if (res.url.match(/me\/tracks/g)) action = 'liking a track';
+  else if (res.url.match(/player\/repeat/g)) action = 'setting repeat state';
+  else if (res.url.match(/player\/shuffle/g)) action = 'setting shuffle state';
+  else if (res.url.match(/player\/seek/g)) action = 'setting playback position';
+  else if (res.url.match(/player\/volume/g)) action = 'setting volume';
+  else if (res.url.match(/player\(next|previous/g))
+    action = `skipping to ${res.url.match(/player\/next/g) ? 'next' : 'previous'} track`;
+  if (!res.ok && res.status !== 404)
+    common.toast.toast(`${opening} ${action}. Status: ${res.status.toString()}`, 2);
+  else if (res.status === 4040)
+    common.toast.toast(`[SpotifyModal] Got a 404 whilst ${action}. This can be safely ignored.`, 1);
+};
+
+const componentListeners = {
   playPauseClick: (ev: CustomEvent<{ event: React.MouseEvent; currentState: boolean }>) => {
     if (currentAccountId)
       spotifyAPI
         .setPlaybackState(getAccessTokenFromAccountId(currentAccountId), !ev.detail.currentState)
-        .then((res: Response): Promise<void> => {
-          if (!res.ok)
-            common.toast.toast(
-              `[SpotifyModal] An error occurred whilst setting playback state. Status: ${res.status.toString()}`,
-              2,
-            );
-        });
+        .then(componentsListenerErrorHandler);
     else common.toast.toast('[SpotifyModal]: Current account ID is empty', 2);
   },
   repeatClick: (
@@ -43,53 +54,34 @@ export let componentListeners = {
           getAccessTokenFromAccountId(currentAccountId),
           nextStates[ev.detail.currentState],
         )
-        .then((res: Response): Promise<void> => {
-          if (!res.ok)
-            common.toast.toast(
-              `[SpotifyModal] An error occurred whilst setting repeat state. Status: ${res.status.toString()}`,
-              2,
-            );
-        });
+        .then(componentsListenerErrorHandler);
     else common.toast.toast('[SpotifyModal] Current account ID is empty', 2);
   },
   shuffleClick: (ev: CustomEvent<{ event: React.MouseEvent; currentState: boolean }>): void => {
     if (currentAccountId)
       spotifyAPI
         .setShuffleState(getAccessTokenFromAccountId(currentAccountId), !ev.detail.currentState)
-        .then((res: Response): Promise<void> => {
-          if (!res.ok)
-            common.toast.toast(
-              `[SpotifyModal] An error occurred whilst setting shuffle state. Status: ${res.status.toString()}`,
-              2,
-            );
-        });
+        .then(componentsListenerErrorHandler);
     else common.toast.toast('[SpotifyModal] Current account ID is empty', 2);
   },
   skipNextClick: (): void => {
     if (currentAccountId)
       spotifyAPI
         .skipNextOrPrevious(getAccessTokenFromAccountId(currentAccountId), true)
-        .then((res: Response): Promise<void> => {
-          if (!res.ok)
-            common.toast.toast(
-              `[SpotifyModal] An error occurred whilst skipping to next track. Status: ${res.status.toString()}`,
-              2,
-            );
-        });
+        .then(componentsListenerErrorHandler);
     else common.toast.toast('[SpotifyModal] Current account ID is empty', 2);
   },
-  skipPrevClick: (): void => {
-    if (currentAccountId)
-      spotifyAPI
-        .skipNextOrPrevious(getAccessTokenFromAccountId(currentAccountId), false)
-        .then((res: Response): Promise<void> => {
-          if (!res.ok)
-            common.toast.toast(
-              `[SpotifyModal] An error has occurred whilst skipping to previous track. Status: ${res.status.toString()}`,
-              2,
-            );
-        });
-    else common.toast.toast('[SpotifyModal] Current account ID is empty', 2);
+  skipPrevClick: (ev: CustomEvent<{ event: React.MouseEvent; currentProgress: number }>): void => {
+    if (currentAccountId) {
+      if (currentProgress >= 6000)
+        spotifyAPI
+          .seekToPosition(getAccessTokenFromAccountId(currentAccountId), 0)
+          .then(componentsListenerErrorHandler);
+      else
+        spotifyAPI
+          .skipNextOrPrevious(getAccessTokenFromAccountId(currentAccountId), false)
+          .then(componentsListenerErrorHandler);
+    } else common.toast.toast('[SpotifyModal] Current account ID is empty', 2);
   },
   artistRightClick: (ev: CustomEvent<{ name: string; id?: string }>): void => {
     if (typeof ev.detail.id === 'string') {
@@ -113,19 +105,13 @@ export let componentListeners = {
     if (currentAccountId)
       spotifyAPI
         .seekToPosition(getAccessTokenFromAccountId(currentAccountId), ev.detail)
-        .then((res: Response): Promise<void> => {
-          if (!res.ok)
-            common.toast.toast(
-              `[SpotifyModal] An error has occurred whilst seeking to new playback position. Status: ${res.status.toString()}`,
-              2,
-            );
-        });
+        .then(componentsListenerErrorHandler);
     else common.toast.toast('[SpotifyModal] Current account ID is empty', 2);
   },
 };
+
+export let accounts: Record<string, SpotifySocket>;
 export let currentAccountId: string;
-export let currentDeviceId: undefined | string;
-const injector = new Injector();
 export let injectedAccounts = [] as string[];
 export let modalInjected = false;
 export let root: undefined | { element: HTMLDivElement; root: ReactDOM.Root };
@@ -134,12 +120,18 @@ export let status = { state: undefined, devices: undefined } as {
   devices: undefined | SpotifyDevice[];
 };
 export let store: SpotifyStore;
+const injector = new Injector();
 
-export const handleLoggerInjection = (
-  _args: unknown[],
-  _res: unknown,
-  self: SpotifyStore,
-): void => {
+const injectIntoSocket = (account: SpotifySocket): void => {
+  injector.before(account.socket, 'onmessage', handleMessageInjection);
+  Object.defineProperty(account.socket, 'accountId', {
+    value: account.accountId,
+    configurable: true,
+  });
+  injectedAccounts.push(account.accountId);
+};
+
+const handleLoggerInjection = (_args: unknown[], _res: unknown, self: SpotifyStore): void => {
   if (
     _args[0] === 'WS Connected' ||
     (typeof _args[0] === 'string' && _args[0].match(/^Added account: .*/))
@@ -148,17 +140,11 @@ export const handleLoggerInjection = (
       if (
         !injectedAccounts.includes(account.accountId) &&
         typeof account?.socket?.onmessage === 'function'
-      ) {
-        injector.before(account.socket, 'onmessage', handleMessageInjection);
-        Object.defineProperty(account.socket, 'accountId', {
-          value: account.accountId,
-          configurable: true,
-        });
-        injectedAccounts.push(account.accountId);
-      }
+      )
+        injectIntoSocket(account);
 };
 
-export function injectModal(state?: SpotifyWebSocketState): void {
+const injectModal = (state?: SpotifyWebSocketState): void => {
   if (!panelExists() || modalInjected) return;
 
   root = addRootToPanel();
@@ -166,26 +152,23 @@ export function injectModal(state?: SpotifyWebSocketState): void {
 
   root.root.render(<Modal state={state} />);
   modalInjected = true;
-}
+};
 
-export function uninjectModal(): void {
+const uninjectModal = (): void => {
   if (!root || !modalInjected) return;
   removeRootFromPanelAndUnmount(root);
   root = undefined;
   modalInjected = false;
-}
+};
 
-export const getAccessTokenFromAccountId = (accountId: string): string => {
+const getAccessTokenFromAccountId = (accountId: string): string => {
   if (typeof accountId !== 'string') return '';
   for (const account of Object.values(accounts))
     if (account.accountId === accountId) return account.accessToken;
   return '';
 };
 
-export const handleMessageInjection = async (
-  res: MessageEvent[],
-  self: WebSocket,
-): Promise<void> => {
+const handleMessageInjection = async (res: MessageEvent[], self: WebSocket): Promise<void> => {
   const parsed = JSON.parse(res[0].data) as SpotifyWebSocketRawParsedMessage;
 
   if (!currentAccountId) currentAccountId = self.accountId;
@@ -207,6 +190,16 @@ export const handleMessageInjection = async (
   if (!modalInjected) injectModal(status.state);
 };
 
+export const functions = {
+  componentsListenerErrorHandler,
+  componentsListener,
+  getAccessTokenFromAccountId,
+  handleMessageInjection,
+  injectIntoSocket,
+  injectModal,
+  uninjectModal,
+};
+
 export async function start(): Promise<void> {
   store = await getStore();
   accounts = await getAllSpotifyAccounts();
@@ -215,14 +208,7 @@ export async function start(): Promise<void> {
     componentEventTarget.addEventListener(name, callback);
 
   if (Object.entries(accounts).length) {
-    for (const account of Object.values(accounts)) {
-      injector.before(account.socket, 'onmessage', handleMessageInjection);
-      Object.defineProperty(account.socket, 'accountId', {
-        value: account.accountId,
-        configurable: true,
-      });
-      injectedAccounts.push(account.accountId);
-    }
+    for (const account of Object.values(accounts)) injectIntoSocket(account);
     injectModal();
   }
   injector.after(store.__getLocalVars().logger, 'info', handleLoggerInjection);
@@ -232,6 +218,6 @@ export function stop(): void {
   for (const [name, callback] of Object.entries(componentListeners))
     componentEventTarget.removeEventListener(name, callback);
   uninjectModal();
-  for (const account of Object.values(accounts)) delete account.accountId;
+  for (const account of Object.values(accounts)) delete account.socket.accountId;
   injector.uninjectAll();
 }
