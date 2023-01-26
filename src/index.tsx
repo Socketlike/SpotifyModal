@@ -150,6 +150,10 @@ export const handleLoggerInjection = (
         typeof account?.socket?.onmessage === 'function'
       ) {
         injector.before(account.socket, 'onmessage', handleMessageInjection);
+        Object.defineProperty(account.socket, 'accountId', {
+          value: account.accountId,
+          configurable: true,
+        });
         injectedAccounts.push(account.accountId);
       }
 };
@@ -171,13 +175,6 @@ export function uninjectModal(): void {
   modalInjected = false;
 }
 
-export const getAccountIdFromWebSocketURL = (url: string): string => {
-  if (typeof url !== 'string') return '';
-  for (const account of Object.values(accounts))
-    if (url.match(account.accessToken)) return account.accountId;
-  return '';
-};
-
 export const getAccessTokenFromAccountId = (accountId: string): string => {
   if (typeof accountId !== 'string') return '';
   for (const account of Object.values(accounts))
@@ -185,25 +182,23 @@ export const getAccessTokenFromAccountId = (accountId: string): string => {
   return '';
 };
 
-export const handleMessageInjection = (res: MessageEvent[], self: WebSocket): void => {
+export const handleMessageInjection = async (
+  res: MessageEvent[],
+  self: WebSocket,
+): Promise<void> => {
   const parsed = JSON.parse(res[0].data) as SpotifyWebSocketRawParsedMessage;
 
-  if (parsed.type === 'pong' || !parsed?.payloads?.[0]) return;
+  if (!currentAccountId) currentAccountId = self.accountId;
+  if (currentAccountId !== self.accountId) return;
 
-  if (!currentAccountId) currentAccountId = getAccountIdFromWebSocketURL(self.url);
-  if (currentAccountId !== getAccountIdFromWebSocketURL(self.url)) return;
+  if (parsed.type === 'pong' || !parsed?.payloads?.[0]) return;
 
   if (parsed.payloads[0].events[0].type === 'PLAYER_STATE_CHANGED') {
     status.state = parsed.payloads[0].events[0].event.state;
     componentEventTarget.dispatchEvent(new CustomEvent('stateUpdate', { detail: status.state }));
-    currentDeviceId =
-      typeof status.state?.device?.id === 'string' ? status.state.device.id : undefined;
   } else if (parsed.payloads[0].events[0].type === 'DEVICE_STATE_CHANGED') {
     status.devices = parsed.payloads[0].events[0].event.devices;
-    if (!status.devices.length) {
-      currentAccountId = '';
-      currentDeviceId = undefined;
-    }
+    if (!status.devices.length) currentAccountId = '';
     componentEventTarget.dispatchEvent(
       new CustomEvent('shouldShowUpdate', { detail: Boolean(status.devices.length) }),
     );
@@ -222,6 +217,10 @@ export async function start(): Promise<void> {
   if (Object.entries(accounts).length) {
     for (const account of Object.values(accounts)) {
       injector.before(account.socket, 'onmessage', handleMessageInjection);
+      Object.defineProperty(account.socket, 'accountId', {
+        value: account.accountId,
+        configurable: true,
+      });
       injectedAccounts.push(account.accountId);
     }
     injectModal();
@@ -233,5 +232,6 @@ export function stop(): void {
   for (const [name, callback] of Object.entries(componentListeners))
     componentEventTarget.removeEventListener(name, callback);
   uninjectModal();
+  for (const account of Object.values(accounts)) delete account.accountId;
   injector.uninjectAll();
 }
