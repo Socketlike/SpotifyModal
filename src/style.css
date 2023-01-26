@@ -10,9 +10,9 @@
 
 .spotify-modal .header {
   display: flex;
-  height: 60px;
-  margin-top: 6px;
-  padding-bottom: 10px;
+  height: 45px;
+  margin-top: 10px;
+  padding-bottom: 6px;
   padding-left: 8px;
 }
 
@@ -27,8 +27,9 @@
   cursor: pointer;
 }
 
-.spotify-modal .header .song-info {
-  margin: 10px;
+.spotify-modal .header .track-info {
+  margin-top: 4px;
+  margin-left: 10px;
   display: flex;
   flex-direction: column;
   max-width: 145px;
@@ -115,8 +116,10 @@
 
 .spotify-modal .dock .controls svg {
   color: var(--text-normal);
-  min-width: 24px;
-  height: 24px;
+  background-color: var(--background-tertiary);
+  border-radius: 8px;
+  min-width: 28px;
+  height: 28px;
   transition-duration: 400ms;
 }
 

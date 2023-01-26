@@ -36,27 +36,24 @@ function Artists(props: { artists: SpotifyUser[] }): JSX.Element {
             if (typeof artist.id === 'string')
               return (
                 <>
-                  <components.Tooltip text={artist.name} shouldShow={true}>
-                    <a
-                      className='artist'
-                      onContextMenu={(event: React.MouseEvent): void =>
-                        componentEventTarget.dispatchEvent(
-                          new CustomEvent('artistRightClick', { detail: { event, artist } }),
-                        )
-                      }
-                      href={`https://open.spotify.com/artist/${artist.id}`}
-                      target='_blank'>
-                      {artist.name}
-                    </a>
-                  </components.Tooltip>
+                  <a
+                    className='artist'
+                    onContextMenu={(event: React.MouseEvent): void =>
+                      componentEventTarget.dispatchEvent(
+                        new CustomEvent('artistRightClick', { detail: { event, artist } }),
+                      )
+                    }
+                    href={`https://open.spotify.com/artist/${artist.id}`}
+                    target='_blank'
+                    title={artist.name}>
+                    {artist.name}
+                  </a>
                   {index !== props.artists.length - 1 ? ', ' : ''}
                 </>
               );
             return (
               <>
-                <components.Tooltip text={artist.name} shouldShow={true}>
-                  {artist.name}
-                </components.Tooltip>
+                {artist.name}
                 {index !== props.artists.length - 1 ? ', ' : ''}
               </>
             );
@@ -88,25 +85,22 @@ function Title(props: { track: SpotifyTrack }): JSX.Element {
   }, [elementRef]);
 
   return (
-    <components.Tooltip text={props.track.name} shouldShow={true}>
-      <a
-        className={`title${overflow.isOverflow ? ' overflow' : ''}${
-          typeof props.track.id === 'string' ? ' href' : ''
-        }`}
-        href={
-          typeof props.track.id === 'string'
-            ? `https://open.spotify.com/track/${props.track.id}`
-            : ''
-        }
-        target='_blank'
-        style={
-          overflow.isOverflow
-            ? { ['--overflownSpace' as string]: `-${overflow.overflownSpace}px` }
-            : {}
-        }>
-        {props.track.name}
-      </a>
-    </components.Tooltip>
+    <a
+      className={`title${overflow.isOverflow ? ' overflow' : ''}${
+        typeof props.track.id === 'string' ? ' href' : ''
+      }`}
+      href={
+        typeof props.track.id === 'string' ? `https://open.spotify.com/track/${props.track.id}` : ''
+      }
+      style={
+        overflow.isOverflow
+          ? { ['--overflownSpace' as string]: `-${overflow.overflownSpace}px` }
+          : {}
+      }
+      target='_blank'
+      title={props.track.name}>
+      {props.track.name}
+    </a>
   );
 }
 
@@ -114,18 +108,18 @@ export function TrackInfo(): JSX.Element {
   const context = React.useContext<SpotifyTrack>(TrackInfoContext);
 
   return (
-    <>
-      <components.Tooltip text={context.album.name} shouldShow={true}>
-        <img
-          src={
-            typeof context?.album?.images?.[0]?.src === 'string' ? context.album.images[0].src : ''
-          }
-        />
-      </components.Tooltip>
+    <div className='header'>
+      <img
+        className='cover-art'
+        src={
+          typeof context?.album?.images?.[0]?.url === 'string' ? context.album.images[0].url : ''
+        }
+        title={context.album.name}
+      />
       <div className='track-info'>
         <Title track={context} />
         <Artists artists={context.artists} />
       </div>
-    </>
+    </div>
   );
 }

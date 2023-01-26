@@ -11,7 +11,7 @@ import {
 } from './types';
 
 const { React, ReactDOM } = common;
-const baseURL = 'https://api.spotify.com/v1/me/player/';
+const baseURL = 'https://api.spotify.com/v1/me/';
 let store = (await webpack.waitForModule(
   webpack.filters.byProps('getActiveSocketAndDevice'),
 )) as unknown as SpotifyStore;
@@ -24,7 +24,7 @@ export const spotifyAPI = {
     accessToken: string,
     endpoint: string,
     method?: string,
-    query?: Record<string, string | number | boolean>,
+    query?: Record<string, unknown>,
     body?: BodyInit,
   ): void | Promise<Response> {
     if (
@@ -53,24 +53,72 @@ export const spotifyAPI = {
     }) as Promise<Response>;
   },
   getPlayerState: (accessToken: string): void | Promise<Response> =>
-    spotifyAPI.sendGenericRequest(accessToken, '', 'GET'),
+    spotifyAPI.sendGenericRequest(accessToken, 'player', 'GET'),
   getDevices: (accessToken: string): void | Promise<Response> =>
-    spotifyAPI.sendGenericRequest(accessToken, 'devices', 'GET'),
-  setPlaybackState: (accessToken: string, state: boolean): void | Promise<Response> =>
-    spotifyAPI.sendGenericRequest(accessToken, `${state ? 'play' : 'pause'}`, 'PUT'),
+    spotifyAPI.sendGenericRequest(accessToken, 'player/devices', 'GET'),
+  // it's just the 'like tracks' endpoint but instead of being called like tracks they called it save tracks
+  saveTracks: (accessToken: string, ...tracks: string[]): void | Promise<Response> => {
+    if (tracks.length)
+      spotifyAPI.sendGenericRequest(
+        accessToken,
+        'tracks',
+        'PUT',
+        undefined,
+        JSON.stringify({ ids: tracks }),
+      );
+  },
+  setPlaybackState: (
+    accessToken: string,
+    state: boolean,
+    deviceId?: string,
+  ): void | Promise<Response> =>
+    spotifyAPI.sendGenericRequest(accessToken, `player/${state ? 'play' : 'pause'}`, 'PUT', {
+      device_id: deviceId,
+    }),
   setRepeatState: (
     accessToken: string,
     state: 'off' | 'context' | 'track',
+    deviceId?: string,
   ): void | Promise<Response> =>
-    spotifyAPI.sendGenericRequest(accessToken, 'repeat', 'PUT', { state }),
-  setShuffleState: (accessToken: string, state: boolean): void | Promise<Response> =>
-    spotifyAPI.sendGenericRequest(accessToken, 'shuffle', 'PUT', { state }),
-  seekToPosition: (accessToken: string, position: number): void | Promise<Response> =>
-    spotifyAPI.sendGenericRequest(accessToken, 'seek', 'PUT', { position_ms: position }),
-  setPlaybackVolume: (accessToken: string, volume: number): void | Promise<Response> =>
-    spotifyAPI.sendGenericRequest(accessToken, 'volume', 'PUT', { volume_percent: volume }),
-  skipNextOrPrevious: (accessToken: string, next = true): void | Promise<Response> =>
-    spotifyAPI.sendGenericRequest(accessToken, `${next ? 'next' : 'previous'}`, 'POST'),
+    spotifyAPI.sendGenericRequest(accessToken, 'player/repeat', 'PUT', {
+      state,
+      device_id: deviceId,
+    }),
+  setShuffleState: (
+    accessToken: string,
+    state: boolean,
+    deviceId?: string,
+  ): void | Promise<Response> =>
+    spotifyAPI.sendGenericRequest(accessToken, 'player/shuffle', 'PUT', {
+      state,
+      device_id: deviceId,
+    }),
+  seekToPosition: (
+    accessToken: string,
+    position: number,
+    deviceId?: string,
+  ): void | Promise<Response> =>
+    spotifyAPI.sendGenericRequest(accessToken, 'player/seek', 'PUT', {
+      position_ms: position,
+      device_id: deviceId,
+    }),
+  setPlaybackVolume: (
+    accessToken: string,
+    volume: number,
+    deviceId?: string,
+  ): void | Promise<Response> =>
+    spotifyAPI.sendGenericRequest(accessToken, 'player/volume', 'PUT', {
+      volume_percent: volume,
+      device_id: deviceId,
+    }),
+  skipNextOrPrevious: (
+    accessToken: string,
+    next = true,
+    deviceId?: string,
+  ): void | Promise<Response> =>
+    spotifyAPI.sendGenericRequest(accessToken, `player/${next ? 'next' : 'previous'}`, 'POST', {
+      device_id: deviceId,
+    }),
 };
 
 export async function getStore(): Promise<SpotifyStore> {
