@@ -101,9 +101,9 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
   };
 
   const elementRef = React.useRef<HTMLDivElement>(null);
-  const onProgressModified = React.useCallback(() => {
-    componentEventTarget.dispatchEvent(new CustomEvent('progressUpdate', { detail: progress }));
-  }, [progress]);
+  const onProgressModified = React.useCallback((newProgress: number): void => {
+    componentEventTarget.dispatchEvent(new CustomEvent('progressUpdate', { detail: newProgress }));
+  }, []);
   const modifyProgress = React.useCallback(
     (newProgress: number | ((previousProgress: number) => number)): void =>
       setProgress(newProgress),
@@ -113,13 +113,12 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
   React.useEffect(() => {
     const stateUpdateListener = (event: CustomEvent<SpotifyWebSocketState>): void => {
       if (!shouldShowModal) setShouldShowModal(true);
-      if (track.id !== event.detail.item.id) setTrack(event.detail.item);
-      if (duration !== event.detail.item.duration_ms) setDuration(event.detail.item.duration_ms);
-      if (typeof event.detail.progress_ms === 'number' && progress !== event.detail.progress_ms)
-        setProgress(event.detail.progress_ms);
-      if (playing !== event.detail.is_playing) setPlaying(event.detail.is_playing);
-      if (shuffle !== event.detail.shuffle_state) setShuffle(event.detail.shuffle_state);
-      if (repeat !== event.detail.repeat_state) setRepeat(event.detail.repeat_state);
+      setTrack(event.detail.item);
+      setDuration(event.detail.item.duration_ms);
+      setProgress(event.detail.progress_ms);
+      setPlaying(event.detail.is_playing);
+      setShuffle(event.detail.shuffle_state);
+      setRepeat(event.detail.repeat_state);
     };
 
     const shouldShowListener = (event: CustomEvent<boolean>): void => {
@@ -134,18 +133,16 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
       componentEventTarget.removeEventListener('stateUpdate', stateUpdateListener);
       componentEventTarget.removeEventListener('shouldShowUpdate', shouldShowListener);
     };
-  }, [shouldShowModal, track, shuffle, repeat, playing]);
+  }, []);
 
   React.useEffect(() => {
     if (!elementRef?.current) return;
 
     const hoverListener = () => {
-      if (shouldShowControls) return;
       setShouldShowControls(true);
     };
 
     const leaveListener = () => {
-      if (!shouldShowControls) return;
       setShouldShowControls(false);
     };
 

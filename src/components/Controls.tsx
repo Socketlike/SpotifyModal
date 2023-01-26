@@ -50,19 +50,14 @@ function Icon(props: {
   title?: string;
   path: string;
 }): JSX.Element {
-  const element = (
+  return (
     <svg
       className={typeof props.className === 'string' ? props.className : ''}
-      viewBox='0 0 24 24'
-      onClick={typeof props.onClick === 'function' ? props.onClick : null}>
+      onClick={typeof props.onClick === 'function' ? props.onClick : null}
+      title={typeof props.title === 'string' ? props.title : null}
+      viewBox='0 0 24 24'>
       <path fill={typeof props.fill === 'string' ? props.fill : 'currentColor'} d={props.path} />
     </svg>
-  );
-
-  return typeof props.title === 'string' ? (
-    <components.Tooltip text={props.title}>{element}</components.Tooltip>
-  ) : (
-    element
   );
 }
 
@@ -98,7 +93,7 @@ export function Controls(): JSX.Element {
       <Icon
         className={`repeat${context.repeat !== 'off' ? ' active' : ''}`}
         onClick={(e: React.MouseEvent): void => context.on.repeatClick(e, context.repeat)}
-        path={context.repeat !== 'track' ? paths.repeatOne : paths.repeatAll}
+        path={context.repeat !== 'track' ? paths.repeatAll : paths.repeatOne}
         title={`Repeat ${context.repeat !== 'context' ? context.repeat : 'all'}`}
       />
     </div>
