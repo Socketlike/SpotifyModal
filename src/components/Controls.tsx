@@ -54,8 +54,8 @@ function Icon(props: {
     <svg
       className={typeof props.className === 'string' ? props.className : ''}
       onClick={typeof props.onClick === 'function' ? props.onClick : null}
-      title={typeof props.title === 'string' ? props.title : null}
       viewBox='0 0 24 24'>
+      <title>{typeof props.title === 'string' ? props.title : ''}</title>
       <path fill={typeof props.fill === 'string' ? props.fill : 'currentColor'} d={props.path} />
     </svg>
   );
