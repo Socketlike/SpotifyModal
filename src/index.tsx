@@ -203,7 +203,7 @@ const handleMessageInjection = (res: MessageEvent[], self: SpotifyWebSocket): Pr
   if (!currentAccountId) currentAccountId = self.accountId;
   if (currentAccountId !== self.accountId) return;
 
-  if (parsed.type === 'pong' || !parsed?.payloads?.[0]) return;
+  if (parsed.type === 'pong' || !parsed?.payloads?.[0]?.events?.[0]) return;
 
   if (parsed.payloads[0].events[0].type === 'PLAYER_STATE_CHANGED') {
     status.state = parsed.payloads[0].events[0].event.state;
