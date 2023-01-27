@@ -162,8 +162,8 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
     };
 
     const shouldShowListener = (event: CustomEvent<boolean>): void => {
-      if (event.detail === shouldShowModal) return;
       setShouldShowModal(event.detail);
+      if (!event.detail) setPlaying(false);
     };
 
     // @ts-expect-error - Oh please it's a valid listener

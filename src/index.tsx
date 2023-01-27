@@ -200,13 +200,14 @@ const uninjectModal = (): void => {
 const handleMessageInjection = (res: MessageEvent[], self: SpotifyWebSocket): Promise<void> => {
   const parsed = JSON.parse(res[0].data) as SpotifyWebSocketRawParsedMessage;
 
+  if (parsed.type === 'pong' || !parsed?.payloads?.[0]?.events?.[0]) return;
+
   if (!currentAccountId) currentAccountId = self.accountId;
   if (currentAccountId !== self.accountId) return;
 
-  if (parsed.type === 'pong' || !parsed?.payloads?.[0]?.events?.[0]) return;
-
   if (parsed.payloads[0].events[0].type === 'PLAYER_STATE_CHANGED') {
     status.state = parsed.payloads[0].events[0].event.state;
+    if (!modalInjected) injectModal(status.state);
     componentEventTarget.dispatchEvent(new CustomEvent('stateUpdate', { detail: status.state }));
   } else if (parsed.payloads[0].events[0].type === 'DEVICE_STATE_CHANGED') {
     status.devices = parsed.payloads[0].events[0].event.devices;
@@ -215,8 +216,6 @@ const handleMessageInjection = (res: MessageEvent[], self: SpotifyWebSocket): Pr
       new CustomEvent('shouldShowUpdate', { detail: Boolean(status.devices.length) }),
     );
   }
-
-  if (!modalInjected) injectModal(status.state);
 };
 
 export const functions = {
