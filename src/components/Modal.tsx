@@ -150,13 +150,15 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
 
   React.useEffect(() => {
     const stateUpdateListener = (event: CustomEvent<SpotifyWebSocketState>): void => {
-      if (!shouldShowModal) setShouldShowModal(true);
-      setTrack(event.detail.item);
-      setDuration(event.detail.item.duration_ms);
-      setProgress(event.detail.progress_ms);
-      setPlaying(event.detail.is_playing);
-      setShuffle(event.detail.shuffle_state);
-      setRepeat(event.detail.repeat_state);
+      if (event.detail.item) {
+        if (!shouldShowModal) setShouldShowModal(true);
+        setTrack(event.detail.item);
+        setDuration(event.detail.item.duration_ms);
+        setProgress(event.detail.progress_ms);
+        setPlaying(event.detail.is_playing);
+        setShuffle(event.detail.shuffle_state);
+        setRepeat(event.detail.repeat_state);
+      }
     };
 
     const shouldShowListener = (event: CustomEvent<boolean>): void => {
