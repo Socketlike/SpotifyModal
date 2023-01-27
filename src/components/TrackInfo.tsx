@@ -1,19 +1,24 @@
-import { common, components } from 'replugged';
-import { SpotifyTrack, SpotifyUser } from '../types';
+import { common } from 'replugged';
+import { SpotifyTrack, SpotifyUser, TrackInfoContextInterface } from '../types';
 const { React } = common;
 
-export const TrackInfoContext = React.createContext<SpotifyTrack>({
-  album: {
-    name: 'None',
-    images: [{}],
-  },
-  artists: [
-    {
+export const TrackInfoContext = React.createContext<TrackInfoContextInterface>({
+  artistRightClick: (): boolean => false,
+  coverArtRightClick: (): boolean => false,
+  titleRightClick: (): boolean => false,
+  track: {
+    album: {
       name: 'None',
+      images: [{}],
     },
-  ],
-  name: 'None',
-} as SpotifyTrack);
+    artists: [
+      {
+        name: 'None',
+      },
+    ],
+    name: 'None',
+  } as SpotifyTrack,
+});
 
 function Artists(props: {
   artists: SpotifyUser[];
@@ -34,7 +39,7 @@ function Artists(props: {
   return (
     <span className={`artists${isOverflow ? ' overflow' : ''}`}>
       {Array.isArray(props.artists)
-        ? props.artists.map((artist: SpotifyUser, index: number): ReactFragment => {
+        ? props.artists.map((artist: SpotifyUser, index: number): React.ReactElement => {
             if (typeof artist.id === 'string')
               return (
                 <>
@@ -61,7 +66,10 @@ function Artists(props: {
   );
 }
 
-function Title(props: { track: SpotifyTrack; onRightClick: (url?: string) => void }): JSX.Element {
+function Title(props: {
+  track: SpotifyTrack;
+  onRightClick: (name: string, id?: string) => void;
+}): JSX.Element {
   const elementRef = React.useRef<HTMLSpanElement>(null);
   const [overflow, setOverflow] = React.useState<{ isOverflow: boolean; overflownSpace: number }>({
     isOverflow: false,
@@ -104,11 +112,7 @@ function Title(props: { track: SpotifyTrack; onRightClick: (url?: string) => voi
 }
 
 export function TrackInfo(): JSX.Element {
-  const context = React.useContext<{
-    track: SpotifyTrack;
-    titleRightClick: (name: string, id?: string) => void;
-    artistRightClick: (name: string, id?: string) => void;
-  }>(TrackInfoContext);
+  const context = React.useContext<TrackInfoContextInterface>(TrackInfoContext);
 
   return (
     <div className='header'>
@@ -123,7 +127,7 @@ export function TrackInfo(): JSX.Element {
           if (typeof context.track?.album?.id === 'string')
             window.open(`https://open.spotify.com/album/${context.track.album.id}`);
         }}
-        onContextMenu={(): void =>
+        onContextMenu={(): boolean =>
           context.coverArtRightClick(context.track.album.name, context.track?.album?.id)
         }
         title={context.track.album.name}

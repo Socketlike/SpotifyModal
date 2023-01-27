@@ -1,9 +1,9 @@
 import { common } from 'replugged';
-import { Controls, ControlContext } from './Controls';
-import { ProgressContext, ProgressContainer } from './ProgressDisplay';
-import { TrackInfoContext, TrackInfo } from './TrackInfo';
-import { GlobalContext, componentEventTarget } from './global';
-import { ProgressContextInterface, SpotifyTrack, SpotifyWebSocketState } from '../types';
+import { ControlContext, Controls } from './Controls';
+import { ProgressContainer, ProgressContext } from './ProgressDisplay';
+import { TrackInfo, TrackInfoContext } from './TrackInfo';
+import { componentEventTarget } from './global';
+import { SpotifyTrack, SpotifyWebSocketState } from '../types';
 
 const { React } = common;
 
@@ -12,20 +12,24 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
   const [track, setTrack] = React.useState<SpotifyTrack>(
     props?.state?.item
       ? props?.state?.item
-      : { album: { name: 'None', images: [{}] }, artists: [{ name: 'None' }], name: 'None' },
+      : ({
+          album: { name: 'None', images: [{}] },
+          artists: [{ name: 'None' }],
+          name: 'None',
+        } as SpotifyTrack),
   );
 
   // ProgressDisplay context
   const [duration, setDuration] = React.useState<number>(
     typeof props?.state?.item?.duration_ms === 'number' ? props?.state?.item?.duration_ms : 0,
   );
-  const [playing, setPlaying] = React.useState<boolean>(props?.state?.is_playing ? true : false);
+  const [playing, setPlaying] = React.useState<boolean>(Boolean(props?.state?.is_playing));
   const [progress, setProgress] = React.useState<number>(
     typeof props?.state?.progress_ms === 'number' ? props?.state?.progress_ms : 0,
   );
 
   const [shouldShowModal, setShouldShowModal] = React.useState<boolean>(
-    typeof props?.state === 'object' ? true : false,
+    typeof props?.state === 'object',
   );
   const [shouldShowControls, setShouldShowControls] = React.useState<boolean>(false);
 
@@ -33,39 +37,42 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
   const [shuffle, setShuffle] = React.useState<boolean>(false);
   const [repeat, setRepeat] = React.useState<'off' | 'context' | 'track'>('off');
   const controlListeners = React.useMemo<{
-    playPauseClick: (mouseEvent: React.MouseEvent, currentState: boolean) => void;
-    repeatClick: (mouseEvent: React.MouseEvent, currentState: 'off' | 'context' | 'track') => void;
-    shuffleClick: (mouseEvent: React.MouseEvent, currentState: boolean) => void;
-    skipNextClick: (mouseEvent: React.MouseEvent) => void;
-    skipPrevClick: (mouseEvent: React.MouseEvent) => void;
+    playPauseClick: (mouseEvent: React.MouseEvent, currentState: boolean) => boolean;
+    repeatClick: (
+      mouseEvent: React.MouseEvent,
+      currentState: 'off' | 'context' | 'track',
+    ) => boolean;
+    shuffleClick: (mouseEvent: React.MouseEvent, currentState: boolean) => boolean;
+    skipNextClick: (mouseEvent: React.MouseEvent) => boolean;
+    skipPrevClick: (mouseEvent: React.MouseEvent, currentProgress: number) => boolean;
   }>(
     () => ({
-      playPauseClick: (event: React.MouseEvent, currentState: boolean): void =>
+      playPauseClick: (event: React.MouseEvent, currentState: boolean): boolean =>
         componentEventTarget.dispatchEvent(
           new CustomEvent<{ event: React.MouseEvent; currentState: boolean }>('playPauseClick', {
             detail: { event, currentState },
           }),
         ),
-      repeatClick: (event: React.MouseEvent, currentState: 'off' | 'context' | 'track'): void =>
+      repeatClick: (event: React.MouseEvent, currentState: 'off' | 'context' | 'track'): boolean =>
         componentEventTarget.dispatchEvent(
           new CustomEvent<{ event: React.MouseEvent; currentState: 'off' | 'context' | 'track' }>(
             'repeatClick',
             { detail: { event, currentState } },
           ),
         ),
-      shuffleClick: (event: React.MouseEvent, currentState: boolean): void =>
+      shuffleClick: (event: React.MouseEvent, currentState: boolean): boolean =>
         componentEventTarget.dispatchEvent(
           new CustomEvent<{ event: React.MouseEvent; currentState: boolean }>('shuffleClick', {
             detail: { event, currentState },
           }),
         ),
-      skipNextClick: (event: React.MouseEvent): void =>
+      skipNextClick: (event: React.MouseEvent): boolean =>
         componentEventTarget.dispatchEvent(
           new CustomEvent<React.MouseEvent>('skipNextClick', { detail: event }),
         ),
-      skipPrevClick: (event: React.MouseEventm, currentProgress: number): void =>
+      skipPrevClick: (event: React.MouseEvent, currentProgress: number): boolean =>
         componentEventTarget.dispatchEvent(
-          new CustomEvent<React.MouseEvent>('skipPrevClick', {
+          new CustomEvent<{ currentProgress: number; event: React.MouseEvent }>('skipPrevClick', {
             detail: { currentProgress, event },
           }),
         ),
@@ -105,29 +112,29 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
   };
 
   const elementRef = React.useRef<HTMLDivElement>(null);
-  const onProgressModified = React.useCallback<(newProgress: number) => void>(
-    (newProgress: number): void =>
+  const onProgressModified = React.useCallback<(newProgress: number) => boolean>(
+    (newProgress: number): boolean =>
       componentEventTarget.dispatchEvent(
         new CustomEvent('progressUpdate', { detail: newProgress }),
       ),
     [],
   );
-  const artistRightClick = React.useCallback<(name: string, id?: string) => void>(
-    (name: string, id?: string): void =>
+  const artistRightClick = React.useCallback<(name: string, id?: string) => boolean>(
+    (name: string, id?: string): boolean =>
       componentEventTarget.dispatchEvent(
         new CustomEvent('artistRightClick', { detail: { name, id } }),
       ),
     [],
   );
-  const titleRightClick = React.useCallback<(name: string, id?: string) => void>(
-    (name: string, id?: string): void =>
+  const titleRightClick = React.useCallback<(name: string, id?: string) => boolean>(
+    (name: string, id?: string): boolean =>
       componentEventTarget.dispatchEvent(
         new CustomEvent('titleRightClick', { detail: { name, id } }),
       ),
     [],
   );
-  const coverArtRightClick = React.useCallback<(name: string, id?: string) => void>(
-    (name: string, id?: string): void =>
+  const coverArtRightClick = React.useCallback<(name: string, id?: string) => boolean>(
+    (name: string, id?: string): boolean =>
       componentEventTarget.dispatchEvent(
         new CustomEvent('coverArtRightClick', { detail: { name, id } }),
       ),
@@ -157,16 +164,20 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
       setShouldShowModal(event.detail);
     };
 
+    // @ts-expect-error - Oh please it's a valid listener
     componentEventTarget.addEventListener('stateUpdate', stateUpdateListener);
+    // @ts-expect-error - Oh please it's a valid listener
     componentEventTarget.addEventListener('shouldShowUpdate', shouldShowListener);
 
     return () => {
+      // @ts-expect-error - Oh please it's a valid listener
       componentEventTarget.removeEventListener('stateUpdate', stateUpdateListener);
+      // @ts-expect-error - Oh please it's a valid listener
       componentEventTarget.removeEventListener('shouldShowUpdate', shouldShowListener);
     };
   }, []);
 
-  React.useEffect(() => {
+  React.useEffect((): (() => void) => {
     if (!elementRef?.current) return;
 
     const hoverListener = () => {
@@ -180,9 +191,12 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
     elementRef.current.addEventListener('mouseenter', hoverListener);
     elementRef.current.addEventListener('mouseleave', leaveListener);
 
-    return () => {
+    // eslint-disable-next-line consistent-return ---- This function can return a destructor
+    return (): void => {
       if (elementRef?.current) {
+        // @ts-expect-error - Oh please it's a valid listener
         elementRef.removeEventListener('mouseenter', hoverListener);
+        // @ts-expect-error - Oh please it's a valid listener
         elementRef.removeEventListener('mouseleave', leaveListener);
       }
     };

@@ -1,6 +1,13 @@
-/* eslint-disable @typescript-eslint/naming-convention, @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/naming-convention */
 
-interface ControlContextInterface {
+export { createRoot as ReactDOMCreateRoot } from 'react-dom/client';
+
+export interface SpotifyWebSocket extends WebSocket {
+  accountId: string;
+}
+
+export interface ControlContextInterface {
+  currentProgress: number;
   modify: {
     playing: (newPlaying: boolean | ((previousPlaying: boolean) => boolean)) => void;
     repeat: (
@@ -13,11 +20,14 @@ interface ControlContextInterface {
     shuffle: (newShuffle: boolean | ((previousShuffle: boolean) => boolean)) => void;
   };
   on: {
-    playPauseClick: (mouseEvent: React.MouseEvent, currentState: boolean) => void;
-    repeatClick: (mouseEvent: React.MouseEvent, currentState: 'off' | 'context' | 'track') => void;
-    shuffleClick: (mouseEvent: React.MouseEvent, currentState: boolean) => void;
-    skipNextClick: (mouseEvent: React.MouseEvent) => void;
-    skipPrevClick: (mouseEvent: React.MouseEvent) => void;
+    playPauseClick: (mouseEvent: React.MouseEvent, currentState: boolean) => boolean;
+    repeatClick: (
+      mouseEvent: React.MouseEvent,
+      currentState: 'off' | 'context' | 'track',
+    ) => boolean;
+    shuffleClick: (mouseEvent: React.MouseEvent, currentState: boolean) => boolean;
+    skipNextClick: (mouseEvent: React.MouseEvent) => boolean;
+    skipPrevClick: (mouseEvent: React.MouseEvent, currentProgress: number) => boolean;
   };
   playing: boolean;
   repeat: 'off' | 'context' | 'track';
@@ -25,12 +35,19 @@ interface ControlContextInterface {
   shouldShow: boolean;
 }
 
-interface ProgressContextInterface {
+export interface ProgressContextInterface {
   duration: number;
   modifyProgress: (newProgress: number | ((previousProgress: number) => number)) => void;
-  onProgressModified: (newProgress: number) => void;
+  onProgressModified: (newProgress: number) => boolean;
   playing: boolean;
   progress: number;
+}
+
+export interface TrackInfoContextInterface {
+  artistRightClick: (name: string, id?: string) => boolean;
+  coverArtRightClick: (name: string, id?: string) => boolean;
+  titleRightClick: (name: string, id?: string) => boolean;
+  track: SpotifyTrack;
 }
 
 export interface SpotifySocket {
@@ -259,14 +276,14 @@ export interface SpotifyStore {
       verbose: (...data: unknown[]) => void;
       warn: (...data: unknown[]) => void;
     };
-    pinnedState: SpotifyFluxDispatcherState | undefined;
+    pinnedState: unknown;
     playerDevices: Record<string, SpotifyDevice[]>;
-    playerStates: Record<string, SpotifyFluxDispatcherState | null>;
+    playerStates: Record<string, unknown | null>;
     speakingAutoPause: Record<string, never>;
     speakingAutoPauseGap: {
       _ref: null;
     };
-    store: SpotifySocketModule;
+    store: SpotifyStore;
     streamingAutoPause: null;
     syncingHostTimeout: Record<string, never>;
     syncingWith: undefined;

@@ -6,7 +6,7 @@ const { React } = common;
 export const ProgressContext = React.createContext<ProgressContextInterface>({
   duration: 0,
   modifyProgress: (): void => {},
-  onProgressModified: (newProgress: number): void =>
+  onProgressModified: (newProgress: number): boolean =>
     componentEventTarget.dispatchEvent(
       new CustomEvent<number>('progressChange', { detail: newProgress }),
     ),
@@ -41,7 +41,7 @@ export function ProgressContainer(): JSX.Element {
   const interval = React.useRef<number>(null);
   const seekBarRef = React.useRef<HTMLDivElement>(null);
 
-  React.useEffect(() => {
+  React.useEffect((): (() => void) => {
     if (context.playing) {
       interval.current = setInterval(
         () =>
@@ -49,7 +49,7 @@ export function ProgressContainer(): JSX.Element {
             previous + 500 >= context.duration ? context.duration : previous + 500,
           ),
         500,
-      ) as number;
+      ) as unknown as number;
     } else clearInterval(interval.current);
 
     return () => clearInterval(interval.current);

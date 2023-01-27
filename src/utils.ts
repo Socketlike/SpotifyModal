@@ -1,21 +1,19 @@
 /* eslint-disable
   @typescript-eslint/naming-convention
 */
-import { Logger, common, webpack } from 'replugged';
-import {
-  SpotifyDevice,
-  SpotifyStore,
-  SpotifySocket,
-  SpotifyWebSocketRawParsedMessage,
-  SpotifyWebSocketState,
-} from './types';
 
-const { React, ReactDOM } = common;
+import { Logger, common, webpack } from 'replugged';
+import { Root } from 'react-dom/client';
+import { ReactDOMCreateRoot, SpotifySocket, SpotifyStore } from './types';
+
+const { ReactDOM } = common;
+// @ts-expect-error - No other way to type ReactDOM.createRoot
+const { createRoot }: { createRoot: ReactDOMCreateRoot } = ReactDOM;
+
 const baseURL = 'https://api.spotify.com/v1/me/';
 let store = (await webpack.waitForModule(
   webpack.filters.byProps('getActiveSocketAndDevice'),
 )) as unknown as SpotifyStore;
-let accountList: Record<string, SpotifySocket>;
 
 export const logger = Logger.plugin('SpotifyModal');
 
@@ -24,7 +22,7 @@ export const spotifyAPI = {
     accessToken: string,
     endpoint: string,
     method?: string,
-    query?: Record<string, unknown>,
+    query?: Record<string, string | number | boolean>,
     body?: BodyInit,
   ): void | Promise<Response> {
     if (
@@ -39,6 +37,7 @@ export const spotifyAPI = {
       Object.entries(query).forEach(([key, val]): void => {
         if (typeof key !== 'string' || !['string', 'number', 'boolean'].includes(typeof val))
           return;
+        // @ts-expect-error - String, number, boolean all work on this
         url.searchParams.append(key, val);
       });
 
@@ -50,23 +49,21 @@ export const spotifyAPI = {
       },
       ...(body ? { body } : {}),
       mode: 'cors',
-    }) as Promise<Response>;
+    });
   },
-  getPlayerState: (accessToken: string): void | Promise<Response> =>
-    spotifyAPI.sendGenericRequest(accessToken, 'player', 'GET'),
+  getPlayerState: (accessToken: string): Promise<Response> =>
+    spotifyAPI.sendGenericRequest(accessToken, 'player', 'GET') as Promise<Response>,
   getDevices: (accessToken: string): void | Promise<Response> =>
-    spotifyAPI.sendGenericRequest(accessToken, 'player/devices', 'GET'),
+    spotifyAPI.sendGenericRequest(accessToken, 'player/devices', 'GET') as Promise<Response>,
   // it's just the 'like tracks' endpoint but instead of being called like tracks they called it save tracks
-  saveTracks: (accessToken: string, ...tracks: string[]): void | Promise<Response> => {
-    if (tracks.length)
-      spotifyAPI.sendGenericRequest(
-        accessToken,
-        'tracks',
-        'PUT',
-        undefined,
-        JSON.stringify({ ids: tracks }),
-      );
-  },
+  saveTracks: (accessToken: string, ...tracks: string[]): void | Promise<Response> =>
+    spotifyAPI.sendGenericRequest(
+      accessToken,
+      'tracks',
+      'PUT',
+      undefined,
+      JSON.stringify({ ids: tracks }),
+    ) as Promise<Response>,
   setPlaybackState: (
     accessToken: string,
     state: boolean,
@@ -74,7 +71,7 @@ export const spotifyAPI = {
   ): void | Promise<Response> =>
     spotifyAPI.sendGenericRequest(accessToken, `player/${state ? 'play' : 'pause'}`, 'PUT', {
       device_id: deviceId,
-    }),
+    }) as Promise<Response>,
   setRepeatState: (
     accessToken: string,
     state: 'off' | 'context' | 'track',
@@ -83,7 +80,7 @@ export const spotifyAPI = {
     spotifyAPI.sendGenericRequest(accessToken, 'player/repeat', 'PUT', {
       state,
       device_id: deviceId,
-    }),
+    }) as Promise<Response>,
   setShuffleState: (
     accessToken: string,
     state: boolean,
@@ -92,7 +89,7 @@ export const spotifyAPI = {
     spotifyAPI.sendGenericRequest(accessToken, 'player/shuffle', 'PUT', {
       state,
       device_id: deviceId,
-    }),
+    }) as Promise<Response>,
   seekToPosition: (
     accessToken: string,
     position: number,
@@ -101,7 +98,7 @@ export const spotifyAPI = {
     spotifyAPI.sendGenericRequest(accessToken, 'player/seek', 'PUT', {
       position_ms: position,
       device_id: deviceId,
-    }),
+    }) as Promise<Response>,
   setPlaybackVolume: (
     accessToken: string,
     volume: number,
@@ -110,7 +107,7 @@ export const spotifyAPI = {
     spotifyAPI.sendGenericRequest(accessToken, 'player/volume', 'PUT', {
       volume_percent: volume,
       device_id: deviceId,
-    }),
+    }) as Promise<Response>,
   skipNextOrPrevious: (
     accessToken: string,
     next = true,
@@ -118,7 +115,7 @@ export const spotifyAPI = {
   ): void | Promise<Response> =>
     spotifyAPI.sendGenericRequest(accessToken, `player/${next ? 'next' : 'previous'}`, 'POST', {
       device_id: deviceId,
-    }),
+    }) as Promise<Response>,
 };
 
 export async function getStore(): Promise<SpotifyStore> {
@@ -143,9 +140,9 @@ export function panelExists(): boolean {
   return Boolean(panels.length);
 }
 
-export function addRootToPanel(): void | { element: HTMLDivElement; root: ReactDOM.Root } {
+export function addRootToPanel(): void | { element: HTMLDivElement; root: Root } {
   if (!panelExists()) return;
-  const element = document.createElement('div') as HTMLDivElement;
+  const element = document.createElement('div');
   element.classList.add('spotify-modal-root');
 
   const panels = document.body.querySelectorAll('[class^="panels-"]');
@@ -154,15 +151,12 @@ export function addRootToPanel(): void | { element: HTMLDivElement; root: ReactD
   else return;
 
   panel.insertAdjacentElement('afterbegin', element);
-  const root = ReactDOM.createRoot(element);
+  const root = createRoot(element);
 
   return { element, root };
 }
 
-export function removeRootFromPanelAndUnmount(root: {
-  element: HTMLDivElement;
-  root: ReactDOM.Root;
-}): void {
+export function removeRootFromPanelAndUnmount(root: { element: HTMLDivElement; root: Root }): void {
   if (!(root?.element instanceof HTMLDivElement) || (root?.root && !('_internalRoot' in root.root)))
     return;
 
