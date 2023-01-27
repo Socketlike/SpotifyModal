@@ -7,7 +7,7 @@
     "discordID": "285329659023851520",
     "github": "Socketlike"
   },
-  "version": "1.1.4",
+  "version": "1.1.5",
   "updater": {
     "type": "github",
     "id": "Socketlike/SpotifyModal"
