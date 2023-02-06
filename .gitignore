@@ -103,7 +103,8 @@ dist
 # TernJS port file
 .tern-port
 
-/bundle
+# Bundles
+bundle/
 
 # Folders to contain "not ready for prod" things
 unstaged/
