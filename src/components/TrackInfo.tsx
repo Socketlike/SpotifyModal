@@ -25,19 +25,23 @@ function Artists(props: {
   onRightClick: (name: string, id?: string) => void;
 }): JSX.Element {
   const elementRef = React.useRef<HTMLSpanElement>(null);
-  const [isOverflow, setIsOverflow] = React.useState<boolean>(false);
+  let overflow = 0;
 
-  React.useEffect(() => {
-    if (!elementRef?.current) return;
-    if (
-      (elementRef.current as HTMLSpanElement).scrollWidth >=
-      (elementRef.current as HTMLSpanElement).offsetWidth + 10
-    )
-      setIsOverflow(true);
-  }, [elementRef]);
+  if (elementRef.current && elementRef.current.scrollWidth > elementRef.current.offsetWidth + 10)
+    overflow = elementRef.current.scrollWidth - elementRef.current.offsetWidth;
 
   return (
-    <span className={`artists${isOverflow ? ' overflow' : ''}`}>
+    <span
+      className={`artists${overflow ? ' overflow' : ''}`}
+      ref={elementRef}
+      style={
+        overflow
+          ? {
+              ['--scroll-space']: `-${overflow}px`,
+              ['--animation-duration']: `${overflow * 50}ms`,
+            }
+          : {}
+      }>
       {Array.isArray(props.artists)
         ? props.artists.map((artist: SpotifyUser, index: number): React.ReactElement => {
             if (typeof artist.id === 'string')
@@ -71,36 +75,26 @@ function Title(props: {
   onRightClick: (name: string, id?: string) => void;
 }): JSX.Element {
   const elementRef = React.useRef<HTMLSpanElement>(null);
-  const [overflow, setOverflow] = React.useState<{ isOverflow: boolean; overflownSpace: number }>({
-    isOverflow: false,
-    overflownSpace: 0,
-  });
+  let overflow = 0;
 
-  React.useEffect(() => {
-    if (!elementRef?.current) return;
-    if (
-      (elementRef.current as HTMLSpanElement).scrollWidth >=
-      (elementRef.current as HTMLSpanElement).offsetWidth + 10
-    )
-      setOverflow({
-        isOverflow: true,
-        overflownSpace:
-          (elementRef.current as HTMLSpanElement).scrollWidth -
-          (elementRef.current as HTMLSpanElement).offsetWidth,
-      });
-  }, [elementRef]);
+  if (elementRef.current && elementRef.current.scrollWidth > elementRef.current.offsetWidth + 10)
+    overflow = elementRef.current.scrollWidth - elementRef.current.offsetWidth;
 
   return (
     <a
-      className={`title${overflow.isOverflow ? ' overflow' : ''}${
+      className={`title${overflow ? ' overflow' : ''}${
         typeof props.track.id === 'string' ? ' href' : ''
       }`}
       href={
         typeof props.track.id === 'string' ? `https://open.spotify.com/track/${props.track.id}` : ''
       }
+      ref={elementRef}
       style={
-        overflow.isOverflow
-          ? { ['--overflownSpace' as string]: `-${overflow.overflownSpace}px` }
+        overflow
+          ? {
+              ['--scroll-space' as string]: `-${overflow}px`,
+              ['--animation-duration']: `${overflow * 50}ms`,
+            }
           : {}
       }
       onContextMenu={() => props.onRightClick(props.track.name, props.track?.id)}

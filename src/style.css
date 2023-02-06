@@ -1,3 +1,18 @@
+@keyframes scrolling {
+  0% {
+    transform: translateX(var(--scroll-space));
+  }
+  20% {
+    transform: translateX(var(--scroll-space));
+  }
+  80% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
 .spotify-modal {
   --spotify-darker: #0a963c;
   display: flex;
@@ -32,7 +47,7 @@
   margin-left: 10px;
   display: flex;
   flex-direction: column;
-  max-width: 145px;
+  max-width: 175px;
   overflow: hidden;
   white-space: nowrap;
 }
@@ -55,6 +70,21 @@
 .spotify-modal .header .track-info .artists {
   color: var(--header-secondary);
   font-size: 12px;
+}
+
+.spotify-modal .header .track-info .title.overflow,
+.spotify-modal .header .track-info .artists.overflow {
+  animation-direction: alternate-reverse;
+  animation-duration: var(--animation-duration);
+  animation-iteration-count: infinite;
+  animation-name: scrolling;
+  animation-play-state: running;
+  animation-timing-function: ease;
+}
+
+.spotify-modal .header .track-info .title.overflow:hover,
+.spotify-modal .header .track-info .artists.overflow:hover {
+  animation-play-state: paused;
 }
 
 .spotify-modal .header .track-info .artists .artist {

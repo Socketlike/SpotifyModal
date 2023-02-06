@@ -5,7 +5,6 @@ on:
     paths:
       - src/**/*.ts
       - src/**/*.tsx
-      - scripts/**/*.ts
 
 jobs:
   release:
@@ -46,7 +45,7 @@ jobs:
 
       - uses: ncipollo/release-action@v1
         with:
-          artifacts: '*.asar'
+          artifacts: 'budnle/*'
           makeLatest: true
           allowUpdates: true
           tag: nightly
