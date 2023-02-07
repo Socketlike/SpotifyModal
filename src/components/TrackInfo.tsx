@@ -1,5 +1,7 @@
 import { common } from 'replugged';
 import { SpotifyTrack, SpotifyUser, TrackInfoContextInterface } from '../types';
+import { CSSProperties } from '@types/react';
+import { config } from './global';
 const { React } = common;
 
 export const TrackInfoContext = React.createContext<TrackInfoContextInterface>({
@@ -35,12 +37,12 @@ function Artists(props: {
       className={`artists${overflow ? ' overflow' : ''}`}
       ref={elementRef}
       style={
-        overflow
+        (overflow
           ? {
               ['--scroll-space']: `-${overflow}px`,
               ['--animation-duration']: `${overflow * 50}ms`,
             }
-          : {}
+          : {}) as CSSProperties
       }>
       {Array.isArray(props.artists)
         ? props.artists.map((artist: SpotifyUser, index: number): React.ReactElement => {
@@ -50,8 +52,16 @@ function Artists(props: {
                   <a
                     className='artist'
                     onContextMenu={() => props.onRightClick(artist.name, artist.id)}
-                    href={`https://open.spotify.com/artist/${artist.id}`}
-                    target='_blank'
+                    onClick={(e: React.MouseEvent): void => {
+                      e.preventDefault();
+                      if (config.get('hyperlinkArtistEnabled', true))
+                        window.open(
+                          config.get('hyperlinkURI', true)
+                            ? `spotify:artist:${artist.id}`
+                            : `https://open.spotify.com/artist/${artist.id}`,
+                          'blank_',
+                        );
+                    }}
                     title={artist.name}>
                     {artist.name}
                   </a>
@@ -74,7 +84,7 @@ function Title(props: {
   track: SpotifyTrack;
   onRightClick: (name: string, id?: string) => void;
 }): JSX.Element {
-  const elementRef = React.useRef<HTMLSpanElement>(null);
+  const elementRef = React.useRef<HTMLAnchorElement>(null);
   let overflow = 0;
 
   if (elementRef.current && elementRef.current.scrollWidth > elementRef.current.offsetWidth + 10)
@@ -85,20 +95,26 @@ function Title(props: {
       className={`title${overflow ? ' overflow' : ''}${
         typeof props.track.id === 'string' ? ' href' : ''
       }`}
-      href={
-        typeof props.track.id === 'string' ? `https://open.spotify.com/track/${props.track.id}` : ''
-      }
       ref={elementRef}
       style={
-        overflow
+        (overflow
           ? {
-              ['--scroll-space' as string]: `-${overflow}px`,
+              ['--scroll-space']: `-${overflow}px`,
               ['--animation-duration']: `${overflow * 50}ms`,
             }
-          : {}
+          : {}) as CSSProperties
       }
+      onClick={(e: React.MouseEvent): void => {
+        e.preventDefault();
+        if (typeof props.track.id === 'string' && config.get('hyperlinkTrackEnabled', true))
+          window.open(
+            config.get('hyperlinkURI', true)
+              ? `spotify:track:${props.track.id}`
+              : `https://open.spotify.com/track/${props.track.id}`,
+            '_blank',
+          );
+      }}
       onContextMenu={() => props.onRightClick(props.track.name, props.track?.id)}
-      target='_blank'
       title={props.track.name}>
       {props.track.name}
     </a>
@@ -118,8 +134,16 @@ export function TrackInfo(): JSX.Element {
             : ''
         }
         onClick={(): void => {
-          if (typeof context.track?.album?.id === 'string')
-            window.open(`https://open.spotify.com/album/${context.track.album.id}`);
+          if (
+            typeof context.track?.album?.id === 'string' &&
+            config.get('hyperlinkAlbumEnabled', true)
+          )
+            window.open(
+              config.get('hyperlinkURI', true)
+                ? `spotify:album:${context.track.album.id}`
+                : `https://open.spotify.com/album/${context.track.album.id}`,
+              '_blank',
+            );
         }}
         onContextMenu={(): boolean =>
           context.coverArtRightClick(context.track.album.name, context.track?.album?.id)

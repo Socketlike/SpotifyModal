@@ -12,6 +12,8 @@ export const ProgressContext = React.createContext<ProgressContextInterface>({
     ),
   playing: false,
   progress: 0,
+  shouldShowProgressDisplay: false,
+  shouldShowSeekbar: true,
 });
 
 function calculatePercentage(current: number, end: number): string {
@@ -57,12 +59,12 @@ export function ProgressContainer(): JSX.Element {
 
   return (
     <>
-      <div className='progress-display'>
+      <div className={`progress-display${!context.shouldShowProgressDisplay ? ' hidden' : ''}`}>
         <span className='current'>{parseTime(context.progress)}</span>
         <span className='duration'>{parseTime(context.duration)}</span>
       </div>
       <div
-        className='seek-bar'
+        className={`seek-bar${!context.shouldShowSeekbar ? ' hidden' : ''}`}
         ref={seekBarRef}
         onClick={(event: React.MouseEvent) =>
           context.onProgressModified(

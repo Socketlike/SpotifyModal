@@ -1,7 +1,7 @@
-/* eslint-disable no-use-before-define */
-import { Injector, common } from 'replugged';
+/* eslint-disable no-use-before-define, @typescript-eslint/naming-convention */
+import { Injector, common, components } from 'replugged';
 import { Root } from 'react-dom/client';
-import { Modal, componentEventTarget } from './components/index';
+import { Modal, Settings, config, componentEventTarget } from './components/index';
 import {
   SpotifyDevice,
   SpotifySocket,
@@ -27,17 +27,18 @@ declare const DiscordNative: {
 };
 
 export * as utils from './utils';
+export * as components from './components/index';
 
-export let accounts: Record<string, SpotifySocket>;
-export let currentAccountId: string;
-export let injectedAccounts = [] as string[];
-export let modalInjected = false;
-export let root: undefined | { element: HTMLDivElement; root: Root };
-export let status = { state: undefined, devices: undefined } as {
+let accounts: Record<string, SpotifySocket>;
+let currentAccountId: string;
+let injectedAccounts = [] as string[];
+let modalInjected = false;
+let root: undefined | { element: HTMLDivElement; root: Root };
+let status = { state: undefined, devices: undefined } as {
   state: undefined | SpotifyWebSocketState;
   devices: undefined | SpotifyDevice[];
 };
-export let store: SpotifyStore;
+let store: SpotifyStore;
 const injector = new Injector();
 
 const getAccessTokenFromAccountId = (accountId: string): string => {
@@ -47,22 +48,55 @@ const getAccessTokenFromAccountId = (accountId: string): string => {
   return '';
 };
 
-const componentListenerErrorHandler = (res: Response): Promise<Response> => {
-  const opening = '[SpotifyModal] An error occurred whilst';
-  let action = 'handling an unknown API action';
-  if (res.url.match(/player\/(play|pause)/g)) action = 'toggling playback state';
-  else if (res.url.match(/me\/tracks/g)) action = 'liking a track';
-  else if (res.url.match(/player\/repeat/g)) action = 'setting repeat state';
-  else if (res.url.match(/player\/shuffle/g)) action = 'setting shuffle state';
-  else if (res.url.match(/player\/seek/g)) action = 'setting playback position';
-  else if (res.url.match(/player\/volume/g)) action = 'setting volume';
-  else if (res.url.match(/player\(next|previous/g))
-    action = `skipping to ${res.url.match(/player\/next/g) ? 'next' : 'previous'} track`;
-  if (!res.ok && res.status !== 404)
-    common.toast.toast(`${opening} ${action}. Status: ${res.status.toString()}`, 2);
-  else if (res.status === 404)
-    common.toast.toast(`[SpotifyModal] Got a 404 whilst ${action}. This can be safely ignored.`, 1);
-  return res as unknown as Promise<Response>;
+const componentListenerErrorHandler = async (res: Response, track?: string): Promise<Response> => {
+  if (config.get('automaticReauthentication', false)) {
+    let action = '';
+    let data: unknown;
+
+    if (res.url.match(/player\/play/g)) {
+      action = 'setPlaybackState';
+      data = true;
+    } else if (res.url.match(/player\/pause/g)) {
+      action = 'setPlaybackState';
+      data = false;
+    } else if (res.url.match(/me\/tracks/g)) {
+      action = 'saveTracks';
+      data = track;
+    } else if (res.url.match(/player\/repeat/g)) {
+      action = 'setRepeatState';
+      data = res.url.split('state=')[1] || 'off';
+    } else if (res.url.match(/player\/shuffle/g)) {
+      action = 'setShuffleState';
+      data = res.url.split('state=')[1] === 'true';
+    } else if (res.url.match(/player\/seek/g)) {
+      action = 'seekToPosition';
+      data = Number(res.url.split('position_ms=')[1]) || 0;
+    } else if (res.url.match(/player\/volume/g)) {
+      action = 'setPlaybackVolume';
+      data = Number(res.url.split('volume_percent=')[1]) || 100;
+    } else if (res.url.match(/player\/next/g)) {
+      action = 'skipNextOrPrevious';
+      data = true;
+    } else if (res.url.match(/player\/previous/g)) {
+      action = 'skipNextOrPrevious';
+      data = false;
+    }
+
+    if (action && res.status === 401) {
+      const fetched = await spotifyAPI.fetchToken(currentAccountId);
+      if (fetched.ok) {
+        accounts[currentAccountId].accessToken = fetched.body.access_token;
+        spotifyAPI[action](fetched.body.access_token, data);
+      }
+    }
+  } else if (res.status === 401) {
+    common.toast.toast(
+      '[SpotifyModal]: To continue using controls, please update your state manually in the Spotify app',
+      2,
+    );
+  }
+
+  return res;
 };
 
 const componentListeners = {
@@ -109,9 +143,15 @@ const componentListeners = {
       ).then(componentListenerErrorHandler);
     else common.toast.toast('[SpotifyModal] Current account ID is empty', 2);
   },
-  skipPrevClick: (ev: CustomEvent<{ event: React.MouseEvent; currentProgress: number }>): void => {
+  skipPrevClick: (
+    ev: CustomEvent<{ event: React.MouseEvent; currentProgress: number; duration: number }>,
+  ): void => {
     if (currentAccountId) {
-      if (ev.detail.currentProgress >= 6000)
+      if (
+        config.get('skipPreviousShouldResetProgress', true) &&
+        ev.detail.currentProgress >=
+          Math.round(ev.detail.duration * config.get('skipPreviousResetProgressDuration', 0.15))
+      )
         (
           spotifyAPI.seekToPosition(
             getAccessTokenFromAccountId(currentAccountId),
@@ -128,32 +168,33 @@ const componentListeners = {
     } else common.toast.toast('[SpotifyModal] Current account ID is empty', 2);
   },
   artistRightClick: (ev: CustomEvent<{ name: string; id?: string }>): void => {
-    if (typeof ev.detail.id === 'string') {
+    if (typeof ev.detail.id === 'string' && config.get('copyingArtistURLEnabled', true)) {
       DiscordNative.clipboard.copy(`https://open.spotify.com/artist/${ev.detail.id}`);
       common.toast.toast(`Copied artist (${ev.detail.name})'s URL`);
     }
   },
   coverArtRightClick: (ev: CustomEvent<{ name: string; id?: string }>): void => {
-    if (typeof ev.detail.id === 'string') {
+    if (typeof ev.detail.id === 'string' && config.get('copyingAlbumURLEnabled', true)) {
       DiscordNative.clipboard.copy(`https://open.spotify.com/album/${ev.detail.id}`);
       common.toast.toast(`Copied album (${ev.detail.name})'s URL`);
     }
   },
   titleRightClick: (ev: CustomEvent<{ name: string; id?: string }>): void => {
-    if (typeof ev.detail.id === 'string') {
+    if (typeof ev.detail.id === 'string' && config.get('copyingTrackURLEnabled', true)) {
       DiscordNative.clipboard.copy(`https://open.spotify.com/track/${ev.detail.id}`);
       common.toast.toast(`Copied track (${ev.detail.name})'s URL`);
     }
   },
   progressUpdate: (ev: CustomEvent<number>): void => {
-    if (currentAccountId)
+    if (currentAccountId && config.get('seekbarEnabled', true)) {
       (
         spotifyAPI.seekToPosition(
           getAccessTokenFromAccountId(currentAccountId),
           ev.detail,
         ) as Promise<Response>
       ).then(componentListenerErrorHandler);
-    else common.toast.toast('[SpotifyModal] Current account ID is empty', 2);
+    } else if (!currentAccountId)
+      common.toast.toast('[SpotifyModal] Current account ID is empty', 2);
   },
 };
 
@@ -218,7 +259,7 @@ const handleMessageInjection = (res: MessageEvent[], self: SpotifyWebSocket): Pr
   }
 };
 
-export const functions = {
+const functions = {
   componentListenerErrorHandler,
   componentListeners,
   getAccessTokenFromAccountId,
@@ -228,7 +269,7 @@ export const functions = {
   uninjectModal,
 };
 
-export async function start(): Promise<void> {
+async function start(): Promise<void> {
   store = await getStore();
   accounts = await getAllSpotifyAccounts();
 
@@ -244,7 +285,7 @@ export async function start(): Promise<void> {
   injector.after(store.__getLocalVars().logger, 'info', handleLoggerInjection);
 }
 
-export function stop(): void {
+function stop(): void {
   for (const [name, callback] of Object.entries(componentListeners)) {
     // @ts-expect-error - Callback is a valid listener damn you
     componentEventTarget.removeEventListener(name, callback);
@@ -254,3 +295,18 @@ export function stop(): void {
     delete (account.socket as SpotifyWebSocket).accountId;
   injector.uninjectAll();
 }
+
+export {
+  Settings,
+  accounts,
+  config,
+  currentAccountId,
+  injectedAccounts,
+  modalInjected,
+  root,
+  status,
+  store,
+  functions,
+  start,
+  stop,
+};

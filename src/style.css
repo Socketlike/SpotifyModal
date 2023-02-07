@@ -23,6 +23,10 @@
   display: none !important;
 }
 
+.categoryMargin div div:first-child :not(div[class]) [class^='labelRow-'] {
+  margin-top: 20px;
+}
+
 .spotify-modal .header {
   display: flex;
   height: 45px;
@@ -146,10 +150,10 @@
 
 .spotify-modal .dock .controls svg {
   color: var(--text-normal);
-  background-color: var(--background-tertiary);
+  background-color: var(--background-primary);
   border-radius: 8px;
-  min-width: 28px;
-  height: 28px;
+  min-width: 26px;
+  height: 26px;
   transition-duration: 400ms;
 }
 

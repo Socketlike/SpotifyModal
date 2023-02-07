@@ -1,4 +1,22 @@
+import { settings } from 'replugged';
 export const componentEventTarget = new EventTarget();
+
+export const config = await replugged.settings.init('lib.evelyn.SpotifyModal', {
+  automaticReauthentication: false,
+  controlsVisibilityState: 0,
+  copyingArtistURLEnabled: true,
+  copyingAlbumURLEnabled: true,
+  copyingTrackURLEnabled: true,
+  hyperlinkArtistEnabled: true,
+  hyperlinkAlbumEnabled: true,
+  hyperlinkTrackEnabled: true,
+  hyperlinkURI: true,
+  progressDisplayVisibilityState: 0,
+  seekbarEnabled: true,
+  seekbarVisibilityState: 2,
+  skipPreviousShouldResetProgress: true,
+  skipPreviousResetProgressDuration: 0.15,
+});
 
 export const paths = {
   pause: 'M14,19H18V5H14M6,19H10V5H6V19Z',

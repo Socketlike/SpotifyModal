@@ -2,7 +2,7 @@ import { common } from 'replugged';
 import { ControlContext, Controls } from './Controls';
 import { ProgressContainer, ProgressContext } from './ProgressDisplay';
 import { TrackInfo, TrackInfoContext } from './TrackInfo';
-import { componentEventTarget } from './global';
+import { config, componentEventTarget } from './global';
 import { SpotifyTrack, SpotifyWebSocketState } from '../types';
 
 const { React } = common;
@@ -31,7 +31,15 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
   const [shouldShowModal, setShouldShowModal] = React.useState<boolean>(
     typeof props?.state === 'object',
   );
-  const [shouldShowControls, setShouldShowControls] = React.useState<boolean>(false);
+  const [shouldShowControls, setShouldShowControls] = React.useState<boolean>(
+    ![0, 1].includes(config.get('controlsVisibilityState', 0)),
+  );
+  const [shouldShowProgressDisplay, setShouldShowProgressDisplay] = React.useState<boolean>(
+    ![0, 1].includes(config.get('progressDisplayVisibilityState', 0)),
+  );
+  const [shouldShowSeekbar, setShouldShowSeekbar] = React.useState<boolean>(
+    ![0, 1].includes(config.get('seekbarVisibilityState', 2)),
+  );
 
   // Controls context
   const [shuffle, setShuffle] = React.useState<boolean>(false);
@@ -183,15 +191,43 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
     if (!elementRef?.current) return;
 
     const hoverListener = () => {
-      setShouldShowControls(true);
+      if (!config.get('controlsVisibilityState', 0)) setShouldShowControls(true);
+      if (!config.get('progressDisplayVisibilityState', 0)) setShouldShowProgressDisplay(true);
+      if (!config.get('seekbarVisibilityState', 2)) setShouldShowSeekbar(true);
     };
 
     const leaveListener = () => {
-      setShouldShowControls(false);
+      if (!config.get('controlsVisibilityState', 0)) setShouldShowControls(false);
+      if (!config.get('progressDisplayVisibilityState', 0)) setShouldShowProgressDisplay(false);
+      if (!config.get('seekbarVisibilityState', 2)) setShouldShowSeekbar(false);
     };
 
+    const componentVisibilityUpdateListener = (
+      ev: CustomEvent<{
+        type:
+          | 'controlsVisibilityState'
+          | 'progressDisplayVisibilityState'
+          | 'seekbarVisibilityState';
+        state: number;
+      }>,
+    ): void => {
+      (() => {
+        if (ev.detail.type === 'controlsVisibilityState') return setShouldShowControls;
+        else if (ev.detail.type === 'progressDisplayVisibilityState')
+          return setShouldShowProgressDisplay;
+        else if (ev.detail.type === 'seekbarVisibilityState') return setShouldShowSeekbar;
+      })()(![0, 1].includes(ev.detail.state));
+    };
+
+    // @ts-expect-error - Oh please it's a valid listener
     elementRef.current.addEventListener('mouseenter', hoverListener);
+    // @ts-expect-error - Oh please it's a valid listener
     elementRef.current.addEventListener('mouseleave', leaveListener);
+    // @ts-expect-error - Oh please it's a valid listener
+    componentEventTarget.addEventListener(
+      'componentVisibilityUpdate',
+      componentVisibilityUpdateListener,
+    );
 
     // eslint-disable-next-line consistent-return ---- This function can return a destructor
     return (): void => {
@@ -200,6 +236,11 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
         elementRef.removeEventListener('mouseenter', hoverListener);
         // @ts-expect-error - Oh please it's a valid listener
         elementRef.removeEventListener('mouseleave', leaveListener);
+        // @ts-expect-error - Oh please it's a valid listener
+        componentEventTarget.removeEventListener(
+          'componentVisibilityUpdate',
+          componentVisibilityUpdateListener,
+        );
       }
     };
   }, [elementRef]);
@@ -212,12 +253,21 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
       </TrackInfoContext.Provider>
       <div className='dock'>
         <ProgressContext.Provider
-          value={{ duration, playing, progress, modifyProgress, onProgressModified }}>
+          value={{
+            duration,
+            playing,
+            progress,
+            modifyProgress,
+            onProgressModified,
+            shouldShowProgressDisplay,
+            shouldShowSeekbar,
+          }}>
           <ProgressContainer />
         </ProgressContext.Provider>
         <ControlContext.Provider
           value={{
             currentProgress: progress,
+            duration,
             shouldShow: shouldShowControls,
             on: controlListeners,
             modify: modifyControls,

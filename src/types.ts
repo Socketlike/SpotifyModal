@@ -1,13 +1,12 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 
-export { createRoot as ReactDOMCreateRoot } from 'react-dom/client';
-
 export interface SpotifyWebSocket extends WebSocket {
   accountId: string;
 }
 
 export interface ControlContextInterface {
   currentProgress: number;
+  duration: number;
   modify: {
     playing: (newPlaying: boolean | ((previousPlaying: boolean) => boolean)) => void;
     repeat: (
@@ -27,7 +26,11 @@ export interface ControlContextInterface {
     ) => boolean;
     shuffleClick: (mouseEvent: React.MouseEvent, currentState: boolean) => boolean;
     skipNextClick: (mouseEvent: React.MouseEvent) => boolean;
-    skipPrevClick: (mouseEvent: React.MouseEvent, currentProgress: number) => boolean;
+    skipPrevClick: (
+      mouseEvent: React.MouseEvent,
+      currentProgress: number,
+      duration: number,
+    ) => boolean;
   };
   playing: boolean;
   repeat: 'off' | 'context' | 'track';
@@ -41,6 +44,8 @@ export interface ProgressContextInterface {
   onProgressModified: (newProgress: number) => boolean;
   playing: boolean;
   progress: number;
+  shouldShowProgressDisplay: boolean;
+  shouldShowSeekbar: boolean;
 }
 
 export interface TrackInfoContextInterface {

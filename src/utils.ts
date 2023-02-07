@@ -3,28 +3,50 @@
 */
 
 import { Logger, common, webpack } from 'replugged';
-import { Root } from 'react-dom/client';
-import { ReactDOMCreateRoot, SpotifySocket, SpotifyStore } from './types';
+import type { Root, createRoot } from 'react-dom/client';
+import { SpotifySocket, SpotifyStore } from './types';
 
 const { ReactDOM } = common;
-// @ts-expect-error - No other way to type ReactDOM.createRoot
-const { createRoot }: { createRoot: ReactDOMCreateRoot } = ReactDOM;
+const { createRoot } = ReactDOM;
+
+export function connectionAccessTokenEndpoint(service: string, id: string): string {
+  return `/users/@me/connections/${service}/${id}/access-token`;
+}
 
 const baseURL = 'https://api.spotify.com/v1/me/';
 let store = (await webpack.waitForModule(
   webpack.filters.byProps('getActiveSocketAndDevice'),
 )) as unknown as SpotifyStore;
+export let fetcher = (await webpack.waitForModule(
+  webpack.filters.byProps('V8APIError', 'get', 'post', 'patch'),
+)) as unknown as {
+  get: (data: { url: string; oldFormErrors: boolean }) => {
+    body: Record<string, string>;
+    ok: boolean;
+    status: number;
+    text: string;
+  };
+};
 
 export const logger = Logger.plugin('SpotifyModal');
 
 export const spotifyAPI = {
-  sendGenericRequest(
+  fetchToken: (
+    accountId: string,
+  ): Promise<{
+    body: Record<string, string>;
+    ok: boolean;
+    status: number;
+    text: string;
+  }> =>
+    fetcher.get({ url: connectionAccessTokenEndpoint('spotify', accountId), oldFormErrors: true }),
+  sendGenericRequest: (
     accessToken: string,
     endpoint: string,
     method?: string,
     query?: Record<string, string | number | boolean>,
     body?: BodyInit,
-  ): void | Promise<Response> {
+  ): void | Promise<Response> => {
     if (
       typeof accessToken !== 'string' ||
       typeof endpoint !== 'string' ||
@@ -64,58 +86,37 @@ export const spotifyAPI = {
       undefined,
       JSON.stringify({ ids: tracks }),
     ) as Promise<Response>,
-  setPlaybackState: (
-    accessToken: string,
-    state: boolean,
-    deviceId?: string,
-  ): void | Promise<Response> =>
-    spotifyAPI.sendGenericRequest(accessToken, `player/${state ? 'play' : 'pause'}`, 'PUT', {
-      device_id: deviceId,
-    }) as Promise<Response>,
+  setPlaybackState: (accessToken: string, state: boolean): void | Promise<Response> =>
+    spotifyAPI.sendGenericRequest(
+      accessToken,
+      `player/${state ? 'play' : 'pause'}`,
+      'PUT',
+    ) as Promise<Response>,
   setRepeatState: (
     accessToken: string,
     state: 'off' | 'context' | 'track',
-    deviceId?: string,
   ): void | Promise<Response> =>
     spotifyAPI.sendGenericRequest(accessToken, 'player/repeat', 'PUT', {
       state,
-      device_id: deviceId,
     }) as Promise<Response>,
-  setShuffleState: (
-    accessToken: string,
-    state: boolean,
-    deviceId?: string,
-  ): void | Promise<Response> =>
+  setShuffleState: (accessToken: string, state: boolean): void | Promise<Response> =>
     spotifyAPI.sendGenericRequest(accessToken, 'player/shuffle', 'PUT', {
       state,
-      device_id: deviceId,
     }) as Promise<Response>,
-  seekToPosition: (
-    accessToken: string,
-    position: number,
-    deviceId?: string,
-  ): void | Promise<Response> =>
+  seekToPosition: (accessToken: string, position: number): void | Promise<Response> =>
     spotifyAPI.sendGenericRequest(accessToken, 'player/seek', 'PUT', {
       position_ms: position,
-      device_id: deviceId,
     }) as Promise<Response>,
-  setPlaybackVolume: (
-    accessToken: string,
-    volume: number,
-    deviceId?: string,
-  ): void | Promise<Response> =>
+  setPlaybackVolume: (accessToken: string, volume: number): void | Promise<Response> =>
     spotifyAPI.sendGenericRequest(accessToken, 'player/volume', 'PUT', {
       volume_percent: volume,
-      device_id: deviceId,
     }) as Promise<Response>,
-  skipNextOrPrevious: (
-    accessToken: string,
-    next = true,
-    deviceId?: string,
-  ): void | Promise<Response> =>
-    spotifyAPI.sendGenericRequest(accessToken, `player/${next ? 'next' : 'previous'}`, 'POST', {
-      device_id: deviceId,
-    }) as Promise<Response>,
+  skipNextOrPrevious: (accessToken: string, next = true): void | Promise<Response> =>
+    spotifyAPI.sendGenericRequest(
+      accessToken,
+      `player/${next ? 'next' : 'previous'}`,
+      'POST',
+    ) as Promise<Response>,
 };
 
 export async function getStore(): Promise<SpotifyStore> {

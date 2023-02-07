@@ -5,6 +5,7 @@ const { React } = common;
 
 export const ControlContext = React.createContext<ControlContextInterface>({
   currentProgress: 0,
+  duration: 0,
   modify: {
     playing: (): boolean => false,
     repeat: (): boolean => false,
@@ -34,11 +35,14 @@ export const ControlContext = React.createContext<ControlContextInterface>({
       componentEventTarget.dispatchEvent(
         new CustomEvent<React.MouseEvent>('skipNextClick', { detail: event }),
       ),
-    skipPrevClick: (event: React.MouseEvent, currentProgress: number): boolean =>
+    skipPrevClick: (event: React.MouseEvent, currentProgress: number, duration: number): boolean =>
       componentEventTarget.dispatchEvent(
-        new CustomEvent<{ event: React.MouseEvent; currentProgress: number }>('skipPrevClick', {
-          detail: { event, currentProgress },
-        }),
+        new CustomEvent<{ event: React.MouseEvent; currentProgress: number; duration: number }>(
+          'skipPrevClick',
+          {
+            detail: { event, currentProgress, duration },
+          },
+        ),
       ),
   },
   playing: false,
@@ -79,7 +83,7 @@ export function Controls(): JSX.Element {
       <Icon
         className='skip-prev'
         onClick={(e: React.MouseEvent): boolean =>
-          context.on.skipPrevClick(e, context.currentProgress)
+          context.on.skipPrevClick(e, context.currentProgress, context.duration)
         }
         path={paths.skipPrevious}
         title='Skip to previous track'
