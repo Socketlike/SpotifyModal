@@ -1,26 +1,8 @@
 import { common } from 'replugged';
-import { SpotifyTrack, SpotifyUser, TrackInfoContextInterface } from '../types';
-import { CSSProperties } from '@types/react';
+import { ModalDispatchers, SpotifyTrack, SpotifyUser } from '../types';
+import type { CSSProperties } from 'react';
 import { config } from './global';
 const { React } = common;
-
-export const TrackInfoContext = React.createContext<TrackInfoContextInterface>({
-  artistRightClick: (): boolean => false,
-  coverArtRightClick: (): boolean => false,
-  titleRightClick: (): boolean => false,
-  track: {
-    album: {
-      name: 'None',
-      images: [{}],
-    },
-    artists: [
-      {
-        name: 'None',
-      },
-    ],
-    name: 'None',
-  } as SpotifyTrack,
-});
 
 function Artists(props: {
   artists: SpotifyUser[];
@@ -121,38 +103,39 @@ function Title(props: {
   );
 }
 
-export function TrackInfo(): JSX.Element {
-  const context = React.useContext<TrackInfoContextInterface>(TrackInfoContext);
-
+export function TrackInfo(props: {
+  dispatchers: ModalDispatchers;
+  track: SpotifyTrack;
+}): JSX.Element {
   return (
     <div className='header'>
       <img
         className='cover-art'
         src={
-          typeof context?.track?.album?.images?.[0]?.url === 'string'
-            ? context.track.album.images[0].url
+          typeof props?.track?.album?.images?.[0]?.url === 'string'
+            ? props.track.album.images[0].url
             : ''
         }
         onClick={(): void => {
           if (
-            typeof context.track?.album?.id === 'string' &&
+            typeof props.track?.album?.id === 'string' &&
             config.get('hyperlinkAlbumEnabled', true)
           )
             window.open(
               config.get('hyperlinkURI', true)
-                ? `spotify:album:${context.track.album.id}`
-                : `https://open.spotify.com/album/${context.track.album.id}`,
+                ? `spotify:album:${props.track.album.id}`
+                : `https://open.spotify.com/album/${props.track.album.id}`,
               '_blank',
             );
         }}
         onContextMenu={(): boolean =>
-          context.coverArtRightClick(context.track.album.name, context.track?.album?.id)
+          props.dispatchers.coverArtRightClick(props.track.album.name, props.track?.album?.id)
         }
-        title={context.track.album.name}
+        title={props.track.album.name}
       />
       <div className='track-info'>
-        <Title track={context.track} onRightClick={context.titleRightClick} />
-        <Artists artists={context.track.artists} onRightClick={context.artistRightClick} />
+        <Title track={props.track} onRightClick={props.dispatchers.titleRightClick} />
+        <Artists artists={props.track.artists} onRightClick={props.dispatchers.artistRightClick} />
       </div>
     </div>
   );

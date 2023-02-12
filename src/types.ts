@@ -4,55 +4,20 @@ export interface SpotifyWebSocket extends WebSocket {
   accountId: string;
 }
 
-export interface ControlContextInterface {
-  currentProgress: number;
-  duration: number;
-  modify: {
-    playing: (newPlaying: boolean | ((previousPlaying: boolean) => boolean)) => void;
-    repeat: (
-      newRepeat:
-        | 'off'
-        | 'context'
-        | 'track'
-        | ((previousRepeat: 'off' | 'context' | 'track') => 'off' | 'context' | 'track'),
-    ) => void;
-    shuffle: (newShuffle: boolean | ((previousShuffle: boolean) => boolean)) => void;
-  };
-  on: {
-    playPauseClick: (mouseEvent: React.MouseEvent, currentState: boolean) => boolean;
-    repeatClick: (
-      mouseEvent: React.MouseEvent,
-      currentState: 'off' | 'context' | 'track',
-    ) => boolean;
-    shuffleClick: (mouseEvent: React.MouseEvent, currentState: boolean) => boolean;
-    skipNextClick: (mouseEvent: React.MouseEvent) => boolean;
-    skipPrevClick: (
-      mouseEvent: React.MouseEvent,
-      currentProgress: number,
-      duration: number,
-    ) => boolean;
-  };
-  playing: boolean;
-  repeat: 'off' | 'context' | 'track';
-  shuffle: boolean;
-  shouldShow: boolean;
-}
-
-export interface ProgressContextInterface {
-  duration: number;
-  modifyProgress: (newProgress: number | ((previousProgress: number) => number)) => void;
-  onProgressModified: (newProgress: number) => boolean;
-  playing: boolean;
-  progress: number;
-  shouldShowProgressDisplay: boolean;
-  shouldShowSeekbar: boolean;
-}
-
-export interface TrackInfoContextInterface {
+export interface ModalDispatchers {
   artistRightClick: (name: string, id?: string) => boolean;
   coverArtRightClick: (name: string, id?: string) => boolean;
+  playPauseClick: (mouseEvent: React.MouseEvent, currentState: boolean) => boolean;
+  repeatClick: (mouseEvent: React.MouseEvent, currentState: 'off' | 'context' | 'track') => boolean;
+  seeked: (newProgress: number) => boolean;
+  shuffleClick: (mouseEvent: React.MouseEvent, currentState: boolean) => boolean;
+  skipNextClick: (mouseEvent: React.MouseEvent) => boolean;
+  skipPrevClick: (
+    mouseEvent: React.MouseEvent,
+    currentProgress: number,
+    currentDuration: number,
+  ) => boolean;
   titleRightClick: (name: string, id?: string) => boolean;
-  track: SpotifyTrack;
 }
 
 export interface SpotifySocket {

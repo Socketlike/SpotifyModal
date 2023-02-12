@@ -23,10 +23,6 @@
   display: none !important;
 }
 
-.categoryMargin div div:first-child :not(div[class]) [class^='labelRow-'] {
-  margin-top: 20px;
-}
-
 .spotify-modal .header {
   display: flex;
   height: 45px;

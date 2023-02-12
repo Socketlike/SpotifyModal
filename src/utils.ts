@@ -3,11 +3,13 @@
 */
 
 import { Logger, common, webpack } from 'replugged';
-import type { Root, createRoot } from 'react-dom/client';
 import { SpotifySocket, SpotifyStore } from './types';
+import ReactDOMTypes from 'react-dom/client';
 
 const { ReactDOM } = common;
-const { createRoot } = ReactDOM;
+const { createRoot } = ReactDOM as unknown as {
+  createRoot: (container: Element | DocumentFragment, options?: ReactDOMTypes.RootOptions) => ReactDOMTypes.Root;
+};
 
 export function connectionAccessTokenEndpoint(service: string, id: string): string {
   return `/users/@me/connections/${service}/${id}/access-token`;
@@ -20,12 +22,12 @@ let store = (await webpack.waitForModule(
 export let fetcher = (await webpack.waitForModule(
   webpack.filters.byProps('V8APIError', 'get', 'post', 'patch'),
 )) as unknown as {
-  get: (data: { url: string; oldFormErrors: boolean }) => {
+  get: (data: { url: string; oldFormErrors: boolean }) => Promise<{
     body: Record<string, string>;
     ok: boolean;
     status: number;
     text: string;
-  };
+  }>;
 };
 
 export const logger = Logger.plugin('SpotifyModal');
@@ -141,7 +143,7 @@ export function panelExists(): boolean {
   return Boolean(panels.length);
 }
 
-export function addRootToPanel(): void | { element: HTMLDivElement; root: Root } {
+export function addRootToPanel(): void | { element: HTMLDivElement; root: ReactDOMTypes.Root } {
   if (!panelExists()) return;
   const element = document.createElement('div');
   element.classList.add('spotify-modal-root');
@@ -157,7 +159,7 @@ export function addRootToPanel(): void | { element: HTMLDivElement; root: Root }
   return { element, root };
 }
 
-export function removeRootFromPanelAndUnmount(root: { element: HTMLDivElement; root: Root }): void {
+export function removeRootFromPanelAndUnmount(root: { element: HTMLDivElement; root: ReactDOMTypes.Root }): void {
   if (!(root?.element instanceof HTMLDivElement) || (root?.root && !('_internalRoot' in root.root)))
     return;
 

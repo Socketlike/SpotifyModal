@@ -1,55 +1,5 @@
-import { common } from 'replugged';
-import { ControlContextInterface } from '../types';
-import { componentEventTarget, paths } from './global';
-const { React } = common;
-
-export const ControlContext = React.createContext<ControlContextInterface>({
-  currentProgress: 0,
-  duration: 0,
-  modify: {
-    playing: (): boolean => false,
-    repeat: (): boolean => false,
-    shuffle: (): boolean => false,
-  },
-  on: {
-    playPauseClick: (event: React.MouseEvent, currentState: boolean): boolean =>
-      componentEventTarget.dispatchEvent(
-        new CustomEvent<{ event: React.MouseEvent; currentState: boolean }>('playPauseClick', {
-          detail: { event, currentState },
-        }),
-      ),
-    repeatClick: (event: React.MouseEvent, currentState: 'off' | 'context' | 'track'): boolean =>
-      componentEventTarget.dispatchEvent(
-        new CustomEvent<{ event: React.MouseEvent; currentState: 'off' | 'context' | 'track' }>(
-          'repeatClick',
-          { detail: { event, currentState } },
-        ),
-      ),
-    shuffleClick: (event: React.MouseEvent, currentState: boolean): boolean =>
-      componentEventTarget.dispatchEvent(
-        new CustomEvent<{ event: React.MouseEvent; currentState: boolean }>('shuffleClick', {
-          detail: { event, currentState },
-        }),
-      ),
-    skipNextClick: (event: React.MouseEvent): boolean =>
-      componentEventTarget.dispatchEvent(
-        new CustomEvent<React.MouseEvent>('skipNextClick', { detail: event }),
-      ),
-    skipPrevClick: (event: React.MouseEvent, currentProgress: number, duration: number): boolean =>
-      componentEventTarget.dispatchEvent(
-        new CustomEvent<{ event: React.MouseEvent; currentProgress: number; duration: number }>(
-          'skipPrevClick',
-          {
-            detail: { event, currentProgress, duration },
-          },
-        ),
-      ),
-  },
-  playing: false,
-  repeat: 'off',
-  shouldShow: false,
-  shuffle: false,
-});
+import { ModalDispatchers, SpotifyTrack } from '../types';
+import { paths } from './global';
 
 function Icon(props: {
   className?: string;
@@ -69,42 +19,51 @@ function Icon(props: {
   );
 }
 
-export function Controls(): JSX.Element {
-  const context = React.useContext<ControlContextInterface>(ControlContext);
-
+export function Controls(props: {
+  duration: number;
+  dispatchers: ModalDispatchers;
+  playing: boolean;
+  progress: React.MutableRefObject<number>;
+  shuffle: boolean;
+  repeat: 'off' | 'context' | 'track';
+  shouldShow: boolean;
+  track: SpotifyTrack;
+}): JSX.Element {
   return (
-    <div className={`controls${context.shouldShow ? '' : ' hidden'}`}>
+    <div className={`controls${props.shouldShow ? '' : ' hidden'}`}>
       <Icon
-        className={`shuffle${context.shuffle ? ' active' : ''}`}
-        onClick={(e: React.MouseEvent): boolean => context.on.shuffleClick(e, context.shuffle)}
+        className={`shuffle${props.shuffle ? ' active' : ''}`}
+        onClick={(e: React.MouseEvent): boolean => props.dispatchers.shuffleClick(e, props.shuffle)}
         path={paths.shuffle}
-        title={`Shuffle ${context.shuffle ? 'on' : 'off'}`}
+        title={`Shuffle ${props.shuffle ? 'on' : 'off'}`}
       />
       <Icon
         className='skip-prev'
         onClick={(e: React.MouseEvent): boolean =>
-          context.on.skipPrevClick(e, context.currentProgress, context.duration)
+          props.dispatchers.skipPrevClick(e, props.progress.current, props.duration)
         }
         path={paths.skipPrevious}
         title='Skip to previous track'
       />
       <Icon
         className='play-pause'
-        onClick={(e: React.MouseEvent): boolean => context.on.playPauseClick(e, context.playing)}
-        path={context.playing ? paths.pause : paths.play}
-        title={`${context.playing ? 'Pause' : 'Resume'} track`}
+        onClick={(e: React.MouseEvent): boolean =>
+          props.dispatchers.playPauseClick(e, props.playing)
+        }
+        path={props.playing ? paths.pause : paths.play}
+        title={`${props.playing ? 'Pause' : 'Resume'} track`}
       />
       <Icon
         className='skip-next'
-        onClick={context.on.skipNextClick}
+        onClick={props.dispatchers.skipNextClick}
         path={paths.skipNext}
         title='Skip to next track'
       />
       <Icon
-        className={`repeat${context.repeat !== 'off' ? ' active' : ''}`}
-        onClick={(e: React.MouseEvent): boolean => context.on.repeatClick(e, context.repeat)}
-        path={context.repeat !== 'track' ? paths.repeatAll : paths.repeatOne}
-        title={`Repeat ${context.repeat !== 'context' ? context.repeat : 'all'}`}
+        className={`repeat${props.repeat !== 'off' ? ' active' : ''}`}
+        onClick={(e: React.MouseEvent): boolean => props.dispatchers.repeatClick(e, props.repeat)}
+        path={props.repeat !== 'track' ? paths.repeatAll : paths.repeatOne}
+        title={`Repeat ${props.repeat !== 'context' ? props.repeat : 'all'}`}
       />
     </div>
   );

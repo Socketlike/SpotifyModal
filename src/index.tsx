@@ -1,5 +1,5 @@
 /* eslint-disable no-use-before-define, @typescript-eslint/naming-convention */
-import { Injector, common, components } from 'replugged';
+import { Injector, common } from 'replugged';
 import { Root } from 'react-dom/client';
 import { Modal, Settings, config, componentEventTarget } from './components/index';
 import {
@@ -38,6 +38,7 @@ let status = { state: undefined, devices: undefined } as {
   state: undefined | SpotifyWebSocketState;
   devices: undefined | SpotifyDevice[];
 };
+let persist = false;
 let store: SpotifyStore;
 const injector = new Injector();
 
@@ -49,6 +50,8 @@ const getAccessTokenFromAccountId = (accountId: string): string => {
 };
 
 const componentListenerErrorHandler = async (res: Response, track?: string): Promise<Response> => {
+  persist = !res.ok;
+
   if (config.get('automaticReauthentication', false)) {
     let action = '';
     let data: unknown;
@@ -150,7 +153,7 @@ const componentListeners = {
       if (
         config.get('skipPreviousShouldResetProgress', true) &&
         ev.detail.currentProgress >=
-          Math.round(ev.detail.duration * config.get('skipPreviousResetProgressDuration', 0.15))
+          Math.round(ev.detail.duration * config.get('skipPreviousProgressResetThreshold', 0.15))
       )
         (
           spotifyAPI.seekToPosition(
@@ -252,10 +255,12 @@ const handleMessageInjection = (res: MessageEvent[], self: SpotifyWebSocket): Pr
     componentEventTarget.dispatchEvent(new CustomEvent('stateUpdate', { detail: status.state }));
   } else if (parsed.payloads[0].events[0].type === 'DEVICE_STATE_CHANGED') {
     status.devices = parsed.payloads[0].events[0].event.devices;
-    if (!status.devices.length) currentAccountId = '';
-    componentEventTarget.dispatchEvent(
-      new CustomEvent('shouldShowUpdate', { detail: Boolean(status.devices.length) }),
-    );
+    if (!persist) {
+      if (!status.devices.length) currentAccountId = '';
+      componentEventTarget.dispatchEvent(
+        new CustomEvent('shouldShowUpdate', { detail: Boolean(status.devices.length) }),
+      );
+    } else persist = false;
   }
 };
 

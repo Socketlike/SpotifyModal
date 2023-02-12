@@ -1,20 +1,6 @@
 import { common } from 'replugged';
-import { ProgressContextInterface } from '../types';
-import { componentEventTarget } from './global';
+import { ModalDispatchers } from '../types';
 const { React } = common;
-
-export const ProgressContext = React.createContext<ProgressContextInterface>({
-  duration: 0,
-  modifyProgress: (): void => {},
-  onProgressModified: (newProgress: number): boolean =>
-    componentEventTarget.dispatchEvent(
-      new CustomEvent<number>('progressChange', { detail: newProgress }),
-    ),
-  playing: false,
-  progress: 0,
-  shouldShowProgressDisplay: false,
-  shouldShowSeekbar: true,
-});
 
 function calculatePercentage(current: number, end: number): string {
   if (!end) return '0%';
@@ -38,45 +24,68 @@ function parseTime(ms: number): string {
   }:${raw.seconds < 10 ? `0${raw.seconds}` : raw.seconds}`;
 }
 
-export function ProgressContainer(): JSX.Element {
-  const context = React.useContext<ProgressContextInterface>(ProgressContext);
+export function ProgressContainer(props: {
+  duration: number;
+  dispatchers: ModalDispatchers;
+  playing: boolean;
+  progress: React.MutableRefObject<number>;
+  showProgress: boolean;
+  showSeekbar: boolean;
+}): JSX.Element {
   const interval = React.useRef<number>(null);
   const seekBarRef = React.useRef<HTMLDivElement>(null);
+  const seekBarInnerRef = React.useRef<HTMLDivElement>(null);
+  const currentRef = React.useRef<HTMLSpanElement>(null);
+  const durationRef = React.useRef<HTMLSpanElement>(null);
 
   React.useEffect((): (() => void) => {
-    if (context.playing) {
-      interval.current = setInterval(
-        () =>
-          context.modifyProgress((previous: number): number =>
-            previous + 500 >= context.duration ? context.duration : previous + 500,
-          ),
-        500,
-      ) as unknown as number;
-    } else clearInterval(interval.current);
+    interval.current = setInterval((): void => {
+      if (props.playing)
+        props.progress.current =
+          props.progress.current >= props.duration ? props.duration : props.progress.current + 500;
+      if (
+        seekBarInnerRef.current &&
+        seekBarInnerRef.current.style.width !==
+          calculatePercentage(props.progress.current, props.duration)
+      )
+        seekBarInnerRef.current.style.width = calculatePercentage(
+          props.progress.current,
+          props.duration,
+        );
+      if (currentRef.current && currentRef.current.innerText !== parseTime(props.progress.current))
+        currentRef.current.innerText = parseTime(props.progress.current);
+      if (durationRef.current && durationRef.current.innerText !== parseTime(props.duration))
+        durationRef.current.innerText = parseTime(props.duration);
+    }, 500) as unknown as number;
 
     return () => clearInterval(interval.current);
-  }, [context.playing]);
+  }, [props.playing]);
 
   return (
     <>
-      <div className={`progress-display${!context.shouldShowProgressDisplay ? ' hidden' : ''}`}>
-        <span className='current'>{parseTime(context.progress)}</span>
-        <span className='duration'>{parseTime(context.duration)}</span>
+      <div className={`progress-display${!props.showProgress ? ' hidden' : ''}`}>
+        <span ref={currentRef} className='current'>
+          {parseTime(props.progress.current)}
+        </span>
+        <span ref={durationRef} className='duration'>
+          {parseTime(props.duration)}
+        </span>
       </div>
       <div
-        className={`seek-bar${!context.shouldShowSeekbar ? ' hidden' : ''}`}
+        className={`seek-bar${!props.showSeekbar ? ' hidden' : ''}`}
         ref={seekBarRef}
         onClick={(event: React.MouseEvent) =>
-          context.onProgressModified(
+          props.dispatchers.seeked(
             Math.round(
-              context.duration *
+              props.duration *
                 (event.nativeEvent.offsetX / (seekBarRef.current as HTMLDivElement).offsetWidth),
             ),
           )
         }>
         <div
           className='inner'
-          style={{ width: calculatePercentage(context.progress, context.duration) }}
+          ref={seekBarInnerRef}
+          style={{ width: calculatePercentage(props.progress.current, props.duration) }}
         />
       </div>
     </>

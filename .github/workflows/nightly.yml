@@ -45,7 +45,7 @@ jobs:
 
       - uses: ncipollo/release-action@v1
         with:
-          artifacts: 'budnle/*'
+          artifacts: 'bundle/*'
           makeLatest: true
           allowUpdates: true
           tag: nightly
