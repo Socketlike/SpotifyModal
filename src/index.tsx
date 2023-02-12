@@ -188,7 +188,7 @@ const componentListeners = {
       common.toast.toast(`Copied track (${ev.detail.name})'s URL`);
     }
   },
-  progressUpdate: (ev: CustomEvent<number>): void => {
+  seeked: (ev: CustomEvent<number>): void => {
     if (currentAccountId && config.get('seekbarEnabled', true)) {
       (
         spotifyAPI.seekToPosition(
