@@ -8,7 +8,10 @@ import ReactDOMTypes from 'react-dom/client';
 
 const { ReactDOM } = common;
 const { createRoot } = ReactDOM as unknown as {
-  createRoot: (container: Element | DocumentFragment, options?: ReactDOMTypes.RootOptions) => ReactDOMTypes.Root;
+  createRoot: (
+    container: Element | DocumentFragment,
+    options?: ReactDOMTypes.RootOptions,
+  ) => ReactDOMTypes.Root;
 };
 
 export function connectionAccessTokenEndpoint(service: string, id: string): string {
@@ -159,7 +162,10 @@ export function addRootToPanel(): void | { element: HTMLDivElement; root: ReactD
   return { element, root };
 }
 
-export function removeRootFromPanelAndUnmount(root: { element: HTMLDivElement; root: ReactDOMTypes.Root }): void {
+export function removeRootFromPanelAndUnmount(root: {
+  element: HTMLDivElement;
+  root: ReactDOMTypes.Root;
+}): void {
   if (!(root?.element instanceof HTMLDivElement) || (root?.root && !('_internalRoot' in root.root)))
     return;
 

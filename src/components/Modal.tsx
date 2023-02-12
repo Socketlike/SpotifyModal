@@ -7,6 +7,17 @@ import { ModalDispatchers, SpotifyTrack, SpotifyWebSocketState } from '../types'
 
 const { React } = common;
 
+export function getCustomThemeType(): string {
+  const html = document.getElementsByTagName('html')[0] as HTMLHtmlElement;
+
+  if (html.classList.contains('theme-custom')) {
+    if (html.classList.contains('theme-dark')) return ' custom-dark';
+    else if (html.classList.contains('theme-light')) return ' custom-light';
+  }
+
+  return '';
+}
+
 export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
   const elementRef = React.useRef<HTMLDivElement>(null);
 
@@ -14,13 +25,13 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
     typeof props?.state === 'object',
   );
   const [shouldShowControls, setShouldShowControls] = React.useState<boolean>(
-    !['auto', 'hidden'].includes(config.get('controlsVisibilityState', 'auto')),
+    config.get('controlsVisibilityState', 'auto') === 'always',
   );
   const [shouldShowProgressDisplay, setShouldShowProgressDisplay] = React.useState<boolean>(
-    !['auto', 'hidden'].includes(config.get('progressDisplayVisibilityState', 'auto')),
+    config.get('progressDisplayVisibilityState', 'auto') === 'always',
   );
   const [shouldShowSeekbar, setShouldShowSeekbar] = React.useState<boolean>(
-    !['auto', 'hidden'].includes(config.get('seekbarVisibilityState', 'always')),
+    config.get('seekbarVisibilityState', 'always') === 'always',
   );
   const [track, setTrack] = React.useState<SpotifyTrack>(
     props?.state?.item
@@ -42,61 +53,59 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
   );
   const [shuffle, setShuffle] = React.useState<boolean>(false);
   const [repeat, setRepeat] = React.useState<'off' | 'context' | 'track'>('off');
-  const [dispatchers] = React.useState<ModalDispatchers>(
-    () => ({
-      artistRightClick: (name: string, id?: string): boolean =>
-        componentEventTarget.dispatchEvent(
-          new CustomEvent('artistRightClick', { detail: { name, id } }),
+  const [dispatchers] = React.useState<ModalDispatchers>(() => ({
+    artistRightClick: (name: string, id?: string): boolean =>
+      componentEventTarget.dispatchEvent(
+        new CustomEvent('artistRightClick', { detail: { name, id } }),
+      ),
+    coverArtRightClick: (name: string, id?: string): boolean =>
+      componentEventTarget.dispatchEvent(
+        new CustomEvent('coverArtRightClick', { detail: { name, id } }),
+      ),
+    playPauseClick: (event: React.MouseEvent, currentState: boolean): boolean =>
+      componentEventTarget.dispatchEvent(
+        new CustomEvent<{ event: React.MouseEvent; currentState: boolean }>('playPauseClick', {
+          detail: { event, currentState },
+        }),
+      ),
+    repeatClick: (event: React.MouseEvent, currentState: 'off' | 'context' | 'track'): boolean =>
+      componentEventTarget.dispatchEvent(
+        new CustomEvent<{ event: React.MouseEvent; currentState: 'off' | 'context' | 'track' }>(
+          'repeatClick',
+          { detail: { event, currentState } },
         ),
-      coverArtRightClick: (name: string, id?: string): boolean =>
-        componentEventTarget.dispatchEvent(
-          new CustomEvent('coverArtRightClick', { detail: { name, id } }),
-        ),
-      playPauseClick: (event: React.MouseEvent, currentState: boolean): boolean =>
-        componentEventTarget.dispatchEvent(
-          new CustomEvent<{ event: React.MouseEvent; currentState: boolean }>('playPauseClick', {
-            detail: { event, currentState },
-          }),
-        ),
-      repeatClick: (event: React.MouseEvent, currentState: 'off' | 'context' | 'track'): boolean =>
-        componentEventTarget.dispatchEvent(
-          new CustomEvent<{ event: React.MouseEvent; currentState: 'off' | 'context' | 'track' }>(
-            'repeatClick',
-            { detail: { event, currentState } },
-          ),
-        ),
-      seeked: (newProgress: number): boolean =>
-        componentEventTarget.dispatchEvent(new CustomEvent('seeked', { detail: newProgress })),
-      shuffleClick: (event: React.MouseEvent, currentState: boolean): boolean =>
-        componentEventTarget.dispatchEvent(
-          new CustomEvent<{ event: React.MouseEvent; currentState: boolean }>('shuffleClick', {
-            detail: { event, currentState },
-          }),
-        ),
-      skipNextClick: (event: React.MouseEvent): boolean =>
-        componentEventTarget.dispatchEvent(
-          new CustomEvent<React.MouseEvent>('skipNextClick', { detail: event }),
-        ),
-      skipPrevClick: (
-        event: React.MouseEvent,
-        currentProgress: number,
-        currentDuration: number,
-      ): boolean =>
-        componentEventTarget.dispatchEvent(
-          new CustomEvent<{
-            currentProgress: number;
-            currentDuration: number;
-            event: React.MouseEvent;
-          }>('skipPrevClick', {
-            detail: { currentDuration, currentProgress, event },
-          }),
-        ),
-      titleRightClick: (name: string, id?: string): boolean =>
-        componentEventTarget.dispatchEvent(
-          new CustomEvent('titleRightClick', { detail: { name, id } }),
-        ),
-    }),
-  );
+      ),
+    seeked: (newProgress: number): boolean =>
+      componentEventTarget.dispatchEvent(new CustomEvent('seeked', { detail: newProgress })),
+    shuffleClick: (event: React.MouseEvent, currentState: boolean): boolean =>
+      componentEventTarget.dispatchEvent(
+        new CustomEvent<{ event: React.MouseEvent; currentState: boolean }>('shuffleClick', {
+          detail: { event, currentState },
+        }),
+      ),
+    skipNextClick: (event: React.MouseEvent): boolean =>
+      componentEventTarget.dispatchEvent(
+        new CustomEvent<React.MouseEvent>('skipNextClick', { detail: event }),
+      ),
+    skipPrevClick: (
+      event: React.MouseEvent,
+      currentProgress: number,
+      currentDuration: number,
+    ): boolean =>
+      componentEventTarget.dispatchEvent(
+        new CustomEvent<{
+          currentProgress: number;
+          currentDuration: number;
+          event: React.MouseEvent;
+        }>('skipPrevClick', {
+          detail: { currentDuration, currentProgress, event },
+        }),
+      ),
+    titleRightClick: (name: string, id?: string): boolean =>
+      componentEventTarget.dispatchEvent(
+        new CustomEvent('titleRightClick', { detail: { name, id } }),
+      ),
+  }));
 
   React.useEffect(() => {
     const stateUpdateListener = (event: CustomEvent<SpotifyWebSocketState>): void => {
@@ -163,12 +172,12 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
         state: 'auto' | 'hidden' | 'always';
       }>,
     ): void => {
-      (() => {
-        if (ev.detail.type === 'controlsVisibilityState') return setShouldShowControls;
-        else if (ev.detail.type === 'progressDisplayVisibilityState')
-          return setShouldShowProgressDisplay;
-        else if (ev.detail.type === 'seekbarVisibilityState') return setShouldShowSeekbar;
-      })()(!['auto', 'hidden'].includes(ev.detail.state));
+      if (ev.detail.type === 'controlsVisibilityState')
+        setShouldShowControls(ev.detail.state === 'always');
+      else if (ev.detail.type === 'progressDisplayVisibilityState')
+        setShouldShowProgressDisplay(ev.detail.state === 'always');
+      else if (ev.detail.type === 'seekbarVisibilityState')
+        setShouldShowSeekbar(ev.detail.state === 'always');
     };
 
     elementRef.current.addEventListener('mouseenter', hoverListener);
@@ -191,7 +200,9 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
   }, [elementRef]);
 
   return (
-    <div className={`spotify-modal${shouldShowModal ? '' : ' hidden'}`} ref={elementRef}>
+    <div
+      className={`spotify-modal${shouldShowModal ? '' : ' hidden'}${getCustomThemeType()}`}
+      ref={elementRef}>
       <TrackInfo dispatchers={dispatchers} track={track} />
       <div className='dock'>
         <ProgressContainer

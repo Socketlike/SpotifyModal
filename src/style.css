@@ -17,6 +17,15 @@
   --spotify-darker: #0a963c;
   display: flex;
   flex-direction: column;
+  background: var(--background-secondary-alt);
+}
+
+.spotify-modal.custom-dark {
+  background: var(--bg-overlay-2, var(--background-secondary-alt));
+}
+
+.spotify-modal.custom-light {
+  background: var(--bg-overlay-3, var(--background-secondary-alt));
 }
 
 .hidden {
@@ -145,9 +154,9 @@
 }
 
 .spotify-modal .dock .controls svg {
-  color: var(--text-normal);
-  background-color: var(--background-primary);
+  background: var(--bg-overlay-1, var(--background-primary));
   border-radius: 8px;
+  color: var(--text-normal);
   min-width: 26px;
   height: 26px;
   transition-duration: 400ms;
