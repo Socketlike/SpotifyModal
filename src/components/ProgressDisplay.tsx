@@ -54,8 +54,6 @@ export function ProgressContainer(props: {
         );
       if (currentRef.current && currentRef.current.innerText !== parseTime(props.progress.current))
         currentRef.current.innerText = parseTime(props.progress.current);
-      if (durationRef.current && durationRef.current.innerText !== parseTime(props.duration))
-        durationRef.current.innerText = parseTime(props.duration);
     }, 500) as unknown as number;
 
     return () => clearInterval(interval.current);

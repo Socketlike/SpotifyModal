@@ -88,7 +88,7 @@
   animation-iteration-count: infinite;
   animation-name: scrolling;
   animation-play-state: running;
-  animation-timing-function: ease;
+  animation-timing-function: linear;
 }
 
 .spotify-modal .header .track-info .title.overflow:hover,

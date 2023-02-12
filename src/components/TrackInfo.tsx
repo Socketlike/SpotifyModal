@@ -9,23 +9,55 @@ function Artists(props: {
   onRightClick: (name: string, id?: string) => void;
 }): JSX.Element {
   const elementRef = React.useRef<HTMLSpanElement>(null);
-  let overflow = 0;
 
-  if (elementRef.current && elementRef.current.scrollWidth > elementRef.current.offsetWidth + 10)
-    overflow = elementRef.current.scrollWidth - elementRef.current.offsetWidth;
+  React.useEffect(() => {
+    if (
+      elementRef.current &&
+      elementRef.current.scrollWidth > elementRef.current.offsetWidth + 10
+    ) {
+      elementRef.current.style.setProperty(
+        '--scroll-space',
+        `-${(elementRef.current.scrollWidth - elementRef.current.offsetWidth).toString()}px`,
+      );
+      elementRef.current.style.setProperty(
+        '--animation-duration',
+        `${((elementRef.current.scrollWidth - elementRef.current.offsetWidth) * 50).toString()}ms`,
+      );
+      if (!elementRef.current.classList.contains('overflow'))
+        elementRef.current.classList.add('overflow');
+    } else if (
+      elementRef.current &&
+      elementRef.current.scrollWidth <= elementRef.current.offsetWidth + 10
+    )
+      if (elementRef.current.classList.contains('overflow'))
+        elementRef.current.classList.remove('overflow');
+  });
+
+  React.useEffect(() => {
+    if (
+      elementRef.current &&
+      elementRef.current.scrollWidth > elementRef.current.offsetWidth + 10
+    ) {
+      elementRef.current.style.setProperty(
+        '--scroll-space',
+        `-${(elementRef.current.scrollWidth - elementRef.current.offsetWidth).toString()}px`,
+      );
+      elementRef.current.style.setProperty(
+        '--animation-duration',
+        `${((elementRef.current.scrollWidth - elementRef.current.offsetWidth) * 50).toString()}ms`,
+      );
+      if (!elementRef.current.classList.contains('overflow'))
+        elementRef.current.classList.add('overflow');
+    } else if (
+      elementRef.current &&
+      elementRef.current.scrollWidth <= elementRef.current.offsetWidth + 10
+    )
+      if (elementRef.current.classList.contains('overflow'))
+        elementRef.current.classList.remove('overflow');
+  }, [elementRef.current]);
 
   return (
-    <span
-      className={`artists${overflow ? ' overflow' : ''}`}
-      ref={elementRef}
-      style={
-        (overflow
-          ? {
-              ['--scroll-space']: `-${overflow}px`,
-              ['--animation-duration']: `${overflow * 50}ms`,
-            }
-          : {}) as CSSProperties
-      }>
+    <span className='artists' ref={elementRef}>
       {Array.isArray(props.artists)
         ? props.artists.map((artist: SpotifyUser, index: number): React.ReactElement => {
             if (typeof artist.id === 'string')
@@ -67,25 +99,57 @@ function Title(props: {
   onRightClick: (name: string, id?: string) => void;
 }): JSX.Element {
   const elementRef = React.useRef<HTMLAnchorElement>(null);
-  let overflow = 0;
 
-  if (elementRef.current && elementRef.current.scrollWidth > elementRef.current.offsetWidth + 10)
-    overflow = elementRef.current.scrollWidth - elementRef.current.offsetWidth;
+  React.useEffect(() => {
+    if (
+      elementRef.current &&
+      elementRef.current.scrollWidth > elementRef.current.offsetWidth + 10
+    ) {
+      elementRef.current.style.setProperty(
+        '--scroll-space',
+        `-${(elementRef.current.scrollWidth - elementRef.current.offsetWidth).toString()}px`,
+      );
+      elementRef.current.style.setProperty(
+        '--animation-duration',
+        `${((elementRef.current.scrollWidth - elementRef.current.offsetWidth) * 50).toString()}ms`,
+      );
+      if (!elementRef.current.classList.contains('overflow'))
+        elementRef.current.classList.add('overflow');
+    } else if (
+      elementRef.current &&
+      elementRef.current.scrollWidth <= elementRef.current.offsetWidth + 10
+    )
+      if (elementRef.current.classList.contains('overflow'))
+        elementRef.current.classList.remove('overflow');
+  });
+
+  React.useEffect(() => {
+    if (
+      elementRef.current &&
+      elementRef.current.scrollWidth > elementRef.current.offsetWidth + 10
+    ) {
+      elementRef.current.style.setProperty(
+        '--scroll-space',
+        `-${(elementRef.current.scrollWidth - elementRef.current.offsetWidth).toString()}px`,
+      );
+      elementRef.current.style.setProperty(
+        '--animation-duration',
+        `${((elementRef.current.scrollWidth - elementRef.current.offsetWidth) * 50).toString()}ms`,
+      );
+      if (!elementRef.current.classList.contains('overflow'))
+        elementRef.current.classList.add('overflow');
+    } else if (
+      elementRef.current &&
+      elementRef.current.scrollWidth <= elementRef.current.offsetWidth + 10
+    )
+      if (elementRef.current.classList.contains('overflow'))
+        elementRef.current.classList.remove('overflow');
+  }, [elementRef.current]);
 
   return (
     <a
-      className={`title${overflow ? ' overflow' : ''}${
-        typeof props.track.id === 'string' ? ' href' : ''
-      }`}
+      className={`title${typeof props.track.id === 'string' ? ' href' : ''}`}
       ref={elementRef}
-      style={
-        (overflow
-          ? {
-              ['--scroll-space']: `-${overflow}px`,
-              ['--animation-duration']: `${overflow * 50}ms`,
-            }
-          : {}) as CSSProperties
-      }
       onClick={(e: React.MouseEvent): void => {
         e.preventDefault();
         if (typeof props.track.id === 'string' && config.get('hyperlinkTrackEnabled', true))
