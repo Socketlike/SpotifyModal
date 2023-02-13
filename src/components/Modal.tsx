@@ -2,12 +2,12 @@ import { common } from 'replugged';
 import { Controls } from './Controls';
 import { ProgressContainer } from './ProgressDisplay';
 import { TrackInfo } from './TrackInfo';
-import { config, componentEventTarget } from './global';
+import { config, componentEventTarget, logger } from './global';
 import { ModalDispatchers, SpotifyTrack, SpotifyWebSocketState } from '../types';
 
 const { React } = common;
 
-export function getCustomThemeType(): string {
+function getCustomThemeType(): string {
   const html = document.getElementsByTagName('html')[0] as HTMLHtmlElement;
 
   if (html.classList.contains('theme-custom')) {
@@ -117,12 +117,18 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
         setPlaying(event.detail.is_playing);
         setShuffle(event.detail.shuffle_state);
         setRepeat(event.detail.repeat_state);
+
+        if (config.get('debuggingLogComponentsUpdates', false))
+          logger.log('Component update for new state', event.detail);
       }
     };
 
     const shouldShowListener = (event: CustomEvent<boolean>): void => {
       setShouldShowModal(event.detail);
       if (!event.detail) setPlaying(false);
+
+      if (config.get('debuggingLogComponentsUpdates', false))
+        logger.log('Component update for modal visibility', event.detail);
     };
 
     componentEventTarget.addEventListener(
@@ -154,6 +160,20 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
       if (config.get('progressDisplayVisibilityState', 'auto') === 'auto')
         setShouldShowProgressDisplay(true);
       if (config.get('seekbarVisibilityState', 'always') === 'auto') setShouldShowSeekbar(true);
+
+      if (config.get('debuggingLogComponentsUpdates', false))
+        logger.log(
+          'Component update for modal component visibility:',
+          `\n- Controls: ${['auto', 'always'].includes(
+            config.get('controlsVisibilityState', 'auto'),
+          )};`,
+          `\n- Progress display: ${['auto', 'always'].includes(
+            config.get('progressDisplayVisibilityState', 'auto'),
+          )};`,
+          `\n- Seek bar: ${['auto', 'always'].includes(
+            config.get('seekbarVisibilityState', 'always'),
+          )};`,
+        );
     };
 
     const leaveListener = () => {
@@ -161,6 +181,16 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
       if (config.get('progressDisplayVisibilityState', 'auto') === 'auto')
         setShouldShowProgressDisplay(false);
       if (config.get('seekbarVisibilityState', 'always') === 'auto') setShouldShowSeekbar(false);
+
+      if (config.get('debuggingLogComponentsUpdates', false))
+        logger.log(
+          'Component update for modal component visibility:',
+          `\n- Controls: ${config.get('controlsVisibilityState', 'auto') === 'always'};`,
+          `\n- Progress display: ${
+            config.get('progressDisplayVisibilityState', 'auto') === 'always'
+          };`,
+          `\n- Seek bar: ${config.get('seekbarVisibilityState', 'always') === 'always'};`,
+        );
     };
 
     const componentVisibilityUpdateListener = (
@@ -178,6 +208,18 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
         setShouldShowProgressDisplay(ev.detail.state === 'always');
       else if (ev.detail.type === 'seekbarVisibilityState')
         setShouldShowSeekbar(ev.detail.state === 'always');
+
+      if (config.get('debuggingLogComponentsUpdates', false))
+        logger.log(
+          'Component update for modal component visbility (set by settings):',
+          `\n- ${
+            {
+              controlsVisibilityState: 'Controls',
+              progressDisplayVisibilityState: 'Progress display',
+              seekbarVisibilityState: 'Seek bar',
+            }[ev.detail.type]
+          }: ${ev.detail.state === 'always'}`,
+        );
     };
 
     elementRef.current.addEventListener('mouseenter', hoverListener);

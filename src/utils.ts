@@ -2,7 +2,8 @@
   @typescript-eslint/naming-convention
 */
 
-import { Logger, common, webpack } from 'replugged';
+import { common, webpack } from 'replugged';
+import { config, logger } from './components/index';
 import { SpotifySocket, SpotifyStore } from './types';
 import ReactDOMTypes from 'react-dom/client';
 
@@ -14,6 +15,7 @@ const { createRoot } = ReactDOM as unknown as {
   ) => ReactDOMTypes.Root;
 };
 
+// This is also a webpack module but I don't really want to process another module just for string manipulation
 export function connectionAccessTokenEndpoint(service: string, id: string): string {
   return `/users/@me/connections/${service}/${id}/access-token`;
 }
@@ -32,8 +34,6 @@ export let fetcher = (await webpack.waitForModule(
     text: string;
   }>;
 };
-
-export const logger = Logger.plugin('SpotifyModal');
 
 export const spotifyAPI = {
   fetchToken: (
@@ -91,37 +91,50 @@ export const spotifyAPI = {
       undefined,
       JSON.stringify({ ids: tracks }),
     ) as Promise<Response>,
-  setPlaybackState: (accessToken: string, state: boolean): void | Promise<Response> =>
-    spotifyAPI.sendGenericRequest(
+  setPlaybackState: (accessToken: string, state: boolean): void | Promise<Response> => {
+    if (config.get('debuggingLogControls', false)) logger.log('Set playback state:', state);
+    return spotifyAPI.sendGenericRequest(
       accessToken,
       `player/${state ? 'play' : 'pause'}`,
       'PUT',
-    ) as Promise<Response>,
+    ) as Promise<Response>;
+  },
   setRepeatState: (
     accessToken: string,
     state: 'off' | 'context' | 'track',
-  ): void | Promise<Response> =>
-    spotifyAPI.sendGenericRequest(accessToken, 'player/repeat', 'PUT', {
+  ): void | Promise<Response> => {
+    if (config.get('debuggingLogControls', false)) logger.log('Set repeat state:', state);
+    return spotifyAPI.sendGenericRequest(accessToken, 'player/repeat', 'PUT', {
       state,
-    }) as Promise<Response>,
-  setShuffleState: (accessToken: string, state: boolean): void | Promise<Response> =>
-    spotifyAPI.sendGenericRequest(accessToken, 'player/shuffle', 'PUT', {
+    }) as Promise<Response>;
+  },
+  setShuffleState: (accessToken: string, state: boolean): void | Promise<Response> => {
+    if (config.get('debuggingLogControls', false)) logger.log('Set shuffle state:', state);
+    return spotifyAPI.sendGenericRequest(accessToken, 'player/shuffle', 'PUT', {
       state,
-    }) as Promise<Response>,
-  seekToPosition: (accessToken: string, position: number): void | Promise<Response> =>
-    spotifyAPI.sendGenericRequest(accessToken, 'player/seek', 'PUT', {
+    }) as Promise<Response>;
+  },
+  seekToPosition: (accessToken: string, position: number): void | Promise<Response> => {
+    if (config.get('debuggingLogControls', false)) logger.log('Seek to position:', position);
+    return spotifyAPI.sendGenericRequest(accessToken, 'player/seek', 'PUT', {
       position_ms: position,
-    }) as Promise<Response>,
-  setPlaybackVolume: (accessToken: string, volume: number): void | Promise<Response> =>
-    spotifyAPI.sendGenericRequest(accessToken, 'player/volume', 'PUT', {
+    }) as Promise<Response>;
+  },
+  setPlaybackVolume: (accessToken: string, volume: number): void | Promise<Response> => {
+    if (config.get('debuggingLogControls', false)) logger.log('Set playback volume:', volume);
+    return spotifyAPI.sendGenericRequest(accessToken, 'player/volume', 'PUT', {
       volume_percent: volume,
-    }) as Promise<Response>,
-  skipNextOrPrevious: (accessToken: string, next = true): void | Promise<Response> =>
+    }) as Promise<Response>;
+  },
+  skipNextOrPrevious: (accessToken: string, next = true): void | Promise<Response> => {
+    if (config.get('debuggingLogControls', false))
+      logger.log('Skipping to:', next ? 'next' : 'previous', 'track');
     spotifyAPI.sendGenericRequest(
       accessToken,
       `player/${next ? 'next' : 'previous'}`,
       'POST',
-    ) as Promise<Response>,
+    ) as Promise<Response>;
+  },
 };
 
 export async function getStore(): Promise<SpotifyStore> {
@@ -159,6 +172,9 @@ export function addRootToPanel(): void | { element: HTMLDivElement; root: ReactD
   panel.insertAdjacentElement('afterbegin', element);
   const root = createRoot(element);
 
+  if (config.get('debuggingLogModalInjection', false))
+    logger.log('Modal root injected at', element);
+
   return { element, root };
 }
 
@@ -175,5 +191,8 @@ export function removeRootFromPanelAndUnmount(root: {
   else return;
 
   panel.removeChild(root.element);
+  if (config.get('debuggingLogModalInjection', false)) logger.log('Modal root uninjected');
+
   root.root.unmount();
+  if (config.get('debuggingLogModalInjection', false)) logger.log('Modal unmounted');
 }

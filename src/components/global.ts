@@ -1,4 +1,6 @@
-import { settings } from 'replugged';
+import { Logger, settings } from 'replugged';
+
+export const logger = Logger.plugin('SpotifyModal');
 export const componentEventTarget = new EventTarget();
 
 export const config = await settings.init('lib.evelyn.SpotifyModal', {
@@ -7,6 +9,12 @@ export const config = await settings.init('lib.evelyn.SpotifyModal', {
   copyingArtistURLEnabled: true,
   copyingAlbumURLEnabled: true,
   copyingTrackURLEnabled: true,
+  debuggingLogActiveAccountId: false,
+  debuggingLogAccountInjection: false,
+  debuggingLogComponentsUpdates: false,
+  debuggingLogControls: false,
+  debuggingLogModalInjection: false,
+  debuggingLogState: false,
   hyperlinkArtistEnabled: true,
   hyperlinkAlbumEnabled: true,
   hyperlinkTrackEnabled: true,

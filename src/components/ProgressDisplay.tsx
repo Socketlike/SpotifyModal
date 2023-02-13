@@ -7,6 +7,7 @@ function calculatePercentage(current: number, end: number): string {
   return `${((current / end) * 100).toFixed(4)}%`;
 }
 
+// This is the best solution so far though not quite performant (I tried moment.js)
 function parseTime(ms: number): string {
   if (typeof ms !== 'number') return '';
   const dateObject = new Date(ms);

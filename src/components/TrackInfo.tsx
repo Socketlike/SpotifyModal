@@ -1,6 +1,5 @@
 import { common } from 'replugged';
 import { ModalDispatchers, SpotifyTrack, SpotifyUser } from '../types';
-import type { CSSProperties } from 'react';
 import { config } from './global';
 const { React } = common;
 
@@ -9,8 +8,7 @@ function Artists(props: {
   onRightClick: (name: string, id?: string) => void;
 }): JSX.Element {
   const elementRef = React.useRef<HTMLSpanElement>(null);
-
-  React.useEffect(() => {
+  const overflowCheck = React.useCallback((): void => {
     if (
       elementRef.current &&
       elementRef.current.scrollWidth > elementRef.current.offsetWidth + 10
@@ -31,30 +29,10 @@ function Artists(props: {
     )
       if (elementRef.current.classList.contains('overflow'))
         elementRef.current.classList.remove('overflow');
-  });
+  }, []);
 
-  React.useEffect(() => {
-    if (
-      elementRef.current &&
-      elementRef.current.scrollWidth > elementRef.current.offsetWidth + 10
-    ) {
-      elementRef.current.style.setProperty(
-        '--scroll-space',
-        `-${(elementRef.current.scrollWidth - elementRef.current.offsetWidth).toString()}px`,
-      );
-      elementRef.current.style.setProperty(
-        '--animation-duration',
-        `${((elementRef.current.scrollWidth - elementRef.current.offsetWidth) * 50).toString()}ms`,
-      );
-      if (!elementRef.current.classList.contains('overflow'))
-        elementRef.current.classList.add('overflow');
-    } else if (
-      elementRef.current &&
-      elementRef.current.scrollWidth <= elementRef.current.offsetWidth + 10
-    )
-      if (elementRef.current.classList.contains('overflow'))
-        elementRef.current.classList.remove('overflow');
-  }, [elementRef.current]);
+  React.useEffect(overflowCheck);
+  React.useEffect(overflowCheck, [elementRef.current]);
 
   return (
     <span className='artists' ref={elementRef}>
@@ -99,8 +77,7 @@ function Title(props: {
   onRightClick: (name: string, id?: string) => void;
 }): JSX.Element {
   const elementRef = React.useRef<HTMLAnchorElement>(null);
-
-  React.useEffect(() => {
+  const overflowCheck = React.useCallback((): void => {
     if (
       elementRef.current &&
       elementRef.current.scrollWidth > elementRef.current.offsetWidth + 10
@@ -121,30 +98,10 @@ function Title(props: {
     )
       if (elementRef.current.classList.contains('overflow'))
         elementRef.current.classList.remove('overflow');
-  });
+  }, []);
 
-  React.useEffect(() => {
-    if (
-      elementRef.current &&
-      elementRef.current.scrollWidth > elementRef.current.offsetWidth + 10
-    ) {
-      elementRef.current.style.setProperty(
-        '--scroll-space',
-        `-${(elementRef.current.scrollWidth - elementRef.current.offsetWidth).toString()}px`,
-      );
-      elementRef.current.style.setProperty(
-        '--animation-duration',
-        `${((elementRef.current.scrollWidth - elementRef.current.offsetWidth) * 50).toString()}ms`,
-      );
-      if (!elementRef.current.classList.contains('overflow'))
-        elementRef.current.classList.add('overflow');
-    } else if (
-      elementRef.current &&
-      elementRef.current.scrollWidth <= elementRef.current.offsetWidth + 10
-    )
-      if (elementRef.current.classList.contains('overflow'))
-        elementRef.current.classList.remove('overflow');
-  }, [elementRef.current]);
+  React.useEffect(overflowCheck);
+  React.useEffect(overflowCheck, [elementRef.current]);
 
   return (
     <a

@@ -1,9 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 
-export interface SpotifyWebSocket extends WebSocket {
-  accountId: string;
-}
-
 export interface ModalDispatchers {
   artistRightClick: (name: string, id?: string) => boolean;
   coverArtRightClick: (name: string, id?: string) => boolean;
@@ -18,6 +14,10 @@ export interface ModalDispatchers {
     currentDuration: number,
   ) => boolean;
   titleRightClick: (name: string, id?: string) => boolean;
+}
+
+export interface SpotifyWebSocket extends WebSocket {
+  account: SpotifySocket;
 }
 
 export interface SpotifySocket {
@@ -40,7 +40,7 @@ export interface SpotifySocket {
   pingInterval: {
     _ref: number;
   };
-  socket: WebSocket;
+  socket: WebSocket | SpotifyWebSocket;
   _requestedConnect: boolean;
   _requestedDisconnect: boolean;
   connected: boolean;

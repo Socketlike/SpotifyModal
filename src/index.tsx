@@ -1,7 +1,7 @@
 /* eslint-disable no-use-before-define, @typescript-eslint/naming-convention */
 import { Injector, common } from 'replugged';
 import { Root } from 'react-dom/client';
-import { Modal, Settings, config, componentEventTarget } from './components/index';
+import { Modal, Settings, config, componentEventTarget, logger } from './components/index';
 import {
   SpotifyDevice,
   SpotifySocket,
@@ -204,11 +204,13 @@ const componentListeners = {
 const injectIntoSocket = (account: SpotifySocket): void => {
   // @ts-expect-error - self is WebSocket
   injector.before(account.socket, 'onmessage', handleMessageInjection);
-  Object.defineProperty(account.socket, 'accountId', {
-    value: account.accountId,
+  Object.defineProperty(account.socket, 'account', {
+    value: account,
     configurable: true,
   });
   injectedAccounts.push(account.accountId);
+  if (config.get('debuggingLogAccountInjection', false))
+    logger.log('Injected into account', account.accountId, account);
 };
 
 const handleLoggerInjection = (_args: unknown[]): void => {
@@ -232,6 +234,7 @@ const injectModal = (state?: SpotifyWebSocketState): void => {
 
   root.root.render(<Modal state={state} />);
   modalInjected = true;
+  if (config.get('debuggingLogModalInjection', false)) logger.log('Modal mounted on modal root');
 };
 
 const uninjectModal = (): void => {
@@ -246,17 +249,28 @@ const handleMessageInjection = (res: MessageEvent[], self: SpotifyWebSocket): Pr
 
   if (parsed.type === 'pong' || !parsed?.payloads?.[0]?.events?.[0]) return;
 
-  if (!currentAccountId) currentAccountId = self.accountId;
-  if (currentAccountId !== self.accountId) return;
+  if (!currentAccountId) {
+    currentAccountId = self.account.accountId;
+    if (config.get('debuggingLogActiveAccountId', false))
+      logger.log('New active account ID:', currentAccountId);
+  }
+
+  if (currentAccountId !== self.account.accountId) return;
 
   if (parsed.payloads[0].events[0].type === 'PLAYER_STATE_CHANGED') {
     status.state = parsed.payloads[0].events[0].event.state;
     if (!modalInjected) injectModal(status.state);
     componentEventTarget.dispatchEvent(new CustomEvent('stateUpdate', { detail: status.state }));
+    if (config.get('debuggingLogState', false))
+      logger.log(`State update for ${currentAccountId}:`, status.state);
   } else if (parsed.payloads[0].events[0].type === 'DEVICE_STATE_CHANGED') {
     status.devices = parsed.payloads[0].events[0].event.devices;
     if (!persist) {
-      if (!status.devices.length) currentAccountId = '';
+      if (!status.devices.length) {
+        if (config.get('debuggingLogActiveAccountId', false))
+          logger.log('Cleared active account ID. Was previously', currentAccountId);
+        currentAccountId = '';
+      }
       componentEventTarget.dispatchEvent(
         new CustomEvent('shouldShowUpdate', { detail: Boolean(status.devices.length) }),
       );
@@ -287,6 +301,7 @@ async function start(): Promise<void> {
     for (const account of Object.values(accounts)) injectIntoSocket(account);
     injectModal();
   }
+
   injector.after(store.__getLocalVars().logger, 'info', handleLoggerInjection);
 }
 
@@ -295,9 +310,15 @@ function stop(): void {
     // @ts-expect-error - Callback is a valid listener damn you
     componentEventTarget.removeEventListener(name, callback);
   }
+
   uninjectModal();
-  for (const account of Object.values(accounts))
-    delete (account.socket as SpotifyWebSocket).accountId;
+
+  for (const account of Object.values(accounts)) {
+    delete (account.socket as SpotifyWebSocket).account;
+    if (config.get('debuggingLogAccountInjection', false))
+      logger.log('Uninjected from account', account.accountId, account);
+  }
+
   injector.uninjectAll();
 }
 

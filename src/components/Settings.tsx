@@ -33,7 +33,7 @@ export function Settings(): JSX.Element {
             componentEventTarget.dispatchEvent(
               new CustomEvent('componentVisibilityUpdate', {
                 detail: {
-                  type: 'controlVisibilityState',
+                  type: 'controlsVisibilityState',
                   state: newValue,
                 },
               }),
@@ -65,7 +65,7 @@ export function Settings(): JSX.Element {
           Progress display
         </SelectItem>
         <SelectItem
-          note="Changes the seekbar's visibility"
+          note="Changes the seek bar's visibility"
           options={[
             { label: 'Shown', value: 'always' },
             { label: 'Hidden', value: 'hidden' },
@@ -84,7 +84,7 @@ export function Settings(): JSX.Element {
             );
             onSeekbarVisibiltyChange(newValue);
           }}>
-          Seekbar
+          Seek bar
         </SelectItem>
       </Category>
       <Category title='Copying' note='Controls right click copying of album / artist / track URL'>
@@ -143,15 +143,51 @@ export function Settings(): JSX.Element {
           Skip previous should reset progress
         </SwitchItem>
         <FormItem
-          title='Skip previous reset progress duration'
+          title='Skip previous reset progress threshold'
           note='The percentage of the track duration to ignore playback progress reset on clicking skip previous.'>
           <Slider
             disabled={!config.get('skipPreviousShouldResetProgress', true)}
             minValue={0}
             maxValue={1}
+            markers={[
+              0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.85,
+              0.9, 0.95, 1,
+            ]}
             {...util.useSetting(config, 'skipPreviousProgressResetThreshold', 0.15)}
           />
         </FormItem>
+      </Category>
+      <Category title='Debugging' note='Enable more verbose console logs'>
+        <SwitchItem
+          note='Logs to console whenever active account ID is changed'
+          {...util.useSetting(config, 'debuggingLogActiveAccountId', false)}>
+          Account ID
+        </SwitchItem>
+        <SwitchItem
+          note='Logs to console whenever an account gets injected'
+          {...util.useSetting(config, 'debuggingLogAccountInjection', false)}>
+          Account injection
+        </SwitchItem>
+        <SwitchItem
+          note='Logs to console whenever components are supposed to be updated (does not include progress bar / progress display changes)'
+          {...util.useSetting(config, 'debuggingLogComponentsUpdates', false)}>
+          Component updates
+        </SwitchItem>
+        <SwitchItem
+          note='Logs to console whenever controls are used'
+          {...util.useSetting(config, 'debuggingLogControls', false)}>
+          Controls
+        </SwitchItem>
+        <SwitchItem
+          note='Logs to console whenever modal root is injected / modal is mounted'
+          {...util.useSetting(config, 'debuggingLogModalInjection', false)}>
+          Modal injection
+        </SwitchItem>
+        <SwitchItem
+          note='Logs to console whenever state changes'
+          {...util.useSetting(config, 'debuggingLogState', false)}>
+          State
+        </SwitchItem>
       </Category>
     </div>
   );
