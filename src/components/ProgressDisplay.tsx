@@ -29,11 +29,14 @@ export function ProgressContainer(props: {
   duration: number;
   dispatchers: ModalDispatchers;
   playing: boolean;
-  progress: React.MutableRefObject<number>;
+  progress: number;
+  progressRef: React.MutableRefObject<number>;
   showProgress: boolean;
   showSeekbar: boolean;
 }): JSX.Element {
   const interval = React.useRef<number>(null);
+  const progressTimestampRef = React.useRef<number>(0);
+  const durationTimestampRef = React.useRef<number>(0);
   const seekBarRef = React.useRef<HTMLDivElement>(null);
   const seekBarInnerRef = React.useRef<HTMLDivElement>(null);
   const currentRef = React.useRef<HTMLSpanElement>(null);
@@ -41,30 +44,50 @@ export function ProgressContainer(props: {
 
   React.useEffect((): (() => void) => {
     interval.current = setInterval((): void => {
-      if (props.playing)
-        props.progress.current =
-          props.progress.current >= props.duration ? props.duration : props.progress.current + 500;
-      if (
-        seekBarInnerRef.current &&
-        seekBarInnerRef.current.style.width !==
-          calculatePercentage(props.progress.current, props.duration)
-      )
-        seekBarInnerRef.current.style.width = calculatePercentage(
-          props.progress.current,
-          props.duration,
-        );
-      if (currentRef.current && currentRef.current.innerText !== parseTime(props.progress.current))
-        currentRef.current.innerText = parseTime(props.progress.current);
+      const now = Date.now();
+      if (!durationTimestampRef.current)
+        durationTimestampRef.current = now + props.duration - props.progress;
+      progressTimestampRef.current = now;
+
+      props.progressRef.current = props.playing
+        ? progressTimestampRef.current >= durationTimestampRef.current
+          ? props.duration
+          : props.duration - (durationTimestampRef.current - progressTimestampRef.current)
+        : props.progress;
+
+      if (seekBarInnerRef.current)
+        seekBarInnerRef.current.style.width = props.playing
+          ? calculatePercentage(
+              progressTimestampRef.current >= durationTimestampRef.current
+                ? props.duration
+                : props.duration - (durationTimestampRef.current - progressTimestampRef.current),
+              props.duration,
+            )
+          : calculatePercentage(props.progress, props.duration);
+
+      if (currentRef.current)
+        currentRef.current.innerText = props.playing
+          ? parseTime(
+              progressTimestampRef.current >= durationTimestampRef.current
+                ? props.duration
+                : props.duration - (durationTimestampRef.current - progressTimestampRef.current),
+            )
+          : parseTime(props.progress);
+
+      if (durationRef.current) durationRef.current.innerText = parseTime(props.duration);
     }, 500) as unknown as number;
 
-    return () => clearInterval(interval.current);
-  }, [props.playing]);
+    return () => {
+      clearInterval(interval.current);
+      durationTimestampRef.current = 0;
+    };
+  });
 
   return (
     <>
       <div className={`progress-display${!props.showProgress ? ' hidden' : ''}`}>
         <span ref={currentRef} className='current'>
-          {parseTime(props.progress.current)}
+          {parseTime(props.progress)}
         </span>
         <span ref={durationRef} className='duration'>
           {parseTime(props.duration)}
@@ -84,7 +107,7 @@ export function ProgressContainer(props: {
         <div
           className='inner'
           ref={seekBarInnerRef}
-          style={{ width: calculatePercentage(props.progress.current, props.duration) }}
+          style={{ width: calculatePercentage(props.progress, props.duration) }}
         />
       </div>
     </>

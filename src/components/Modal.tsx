@@ -42,13 +42,19 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
           name: 'None',
         } as SpotifyTrack),
   );
+  const [timestamp, setTimestamp] = React.useState<number>(
+    typeof props?.state?.timestamp === 'number' ? props.state.timestamp : 0,
+  );
   const [duration, setDuration] = React.useState<number>(
     typeof props?.state?.item?.duration_ms === 'number' ? props.state.item.duration_ms : 0,
   );
   const [playing, setPlaying] = React.useState<boolean>(
     typeof props?.state?.is_playing === 'boolean' ? props.state.is_playing : false,
   );
-  const progress = React.useRef<number>(
+  const [progress, setProgress] = React.useState<number>(
+    typeof props?.state?.progress_ms === 'number' ? props.state.progress_ms : 0,
+  );
+  const progressRef = React.useRef<number>(
     typeof props?.state?.progress_ms === 'number' ? props.state.progress_ms : 0,
   );
   const [shuffle, setShuffle] = React.useState<boolean>(false);
@@ -112,8 +118,9 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
       if (event.detail.item) {
         if (!shouldShowModal) setShouldShowModal(true);
         setTrack(event.detail.item);
+        setTimestamp(event.detail.timestamp);
         setDuration(event.detail.item.duration_ms);
-        progress.current = event.detail.progress_ms;
+        setProgress(event.detail.progress_ms);
         setPlaying(event.detail.is_playing);
         setShuffle(event.detail.shuffle_state);
         setRepeat(event.detail.repeat_state);
@@ -252,14 +259,16 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
           dispatchers={dispatchers}
           playing={playing}
           progress={progress}
+          progressRef={progressRef}
           showProgress={shouldShowProgressDisplay}
           showSeekbar={shouldShowSeekbar}
+          timestamp={timestamp}
         />
         <Controls
           duration={duration}
           dispatchers={dispatchers}
           playing={playing}
-          progress={progress}
+          progress={progressRef}
           shuffle={shuffle}
           repeat={repeat}
           shouldShow={shouldShowControls}
