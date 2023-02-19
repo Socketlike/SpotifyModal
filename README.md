@@ -1,4 +1,9 @@
-# SpotifyModal
+<p>
+  <div style="width: 100%; text-align: center">
+    <h1>SpotifyModal</h1>
+  </div>
+</p>
+<p><img alt="Lint Status" src="https://img.shields.io/github/actions/workflow/status/Socketlike/SpotifyModal/lint.yml?label=lint"> <img alt="GitHub release (latest SemVer)" src="https://img.shields.io/github/v/release/Socketlike/SpotifyModal?label=version"></p>
 
 A Post-SWC Replugged plugin that shows a little modal on your user dock that lets you see & control
 what you're playing on Spotify.
@@ -7,25 +12,30 @@ what you're playing on Spotify.
 > This plugin does **not** require Spotify Premium to function.
 > All functionality are built upon Discord's Spotify WebSocket + Spotify WebAPI calls
 
-# Install
+<div style="width: 100%; text-align: center"><h1>Install</h1></div>
 
 - [Download plugin ASAR file from releases](https://github.com/Socketlike/SpotifyModal/releases)
 - Move plugin ASAR file to Replugged plugin directory
 - Reload Discord (if running)
 
-# How to use
+**OR**
+
+[![Install in Replugged](https://img.shields.io/badge/-Install%20in%20Replugged-blue?style=for-the-badge&logo=none)](https://replugged.dev/install?identifier=Socketlike/SpotifyModal&source=github)
+
+<div style="width: 100%; text-align: center"><h1>How to use</h1></div>
 
 - Link your Spotify account to Discord if you haven't already  
 - Play any Spotify song (that's literally it)
 
-# Preview
+<div style="width: 100%; text-align: center"><h1>Preview</h1></div>
 
 ![Preview](Preview.gif)
 
-# Customization & debugging
+<div style="width: 100%; text-align: center"><h1>Customization & debugging</h1></div>
 
-UI elements, the modal class instance and classes are exposed via
+UI components, utility functions, variables (current account ID, Spotify store...) are exposed via
 `replugged.plugins.getExports('lib.evelyn.SpotifyModal')`.  
+  
 UI elements are also exposed to CSS via these classes:
 
 - React Root: `spotify-modal-root`
@@ -48,6 +58,8 @@ UI elements are also exposed to CSS via these classes:
       - Play/pause icon: `play-pause`
       - Skip next icon: `skip-next`
       - Repeat icon: `repeat`
+  
+There also exists a settings menu which allows for some degrees of customization.
 
 # Known issues
 
