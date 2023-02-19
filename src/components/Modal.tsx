@@ -42,9 +42,6 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
           name: 'None',
         } as SpotifyTrack),
   );
-  const [timestamp, setTimestamp] = React.useState<number>(
-    typeof props?.state?.timestamp === 'number' ? props.state.timestamp : 0,
-  );
   const [duration, setDuration] = React.useState<number>(
     typeof props?.state?.item?.duration_ms === 'number' ? props.state.item.duration_ms : 0,
   );
@@ -118,7 +115,6 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
       if (event.detail.item) {
         if (!shouldShowModal) setShouldShowModal(true);
         setTrack(event.detail.item);
-        setTimestamp(event.detail.timestamp);
         setDuration(event.detail.item.duration_ms);
         setProgress(event.detail.progress_ms);
         setPlaying(event.detail.is_playing);
@@ -262,7 +258,6 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
           progressRef={progressRef}
           showProgress={shouldShowProgressDisplay}
           showSeekbar={shouldShowSeekbar}
-          timestamp={timestamp}
         />
         <Controls
           duration={duration}
