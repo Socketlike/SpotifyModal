@@ -1,6 +1,7 @@
 name: Release (Dev/Nightly)
 
 on:
+  workflow_dispatch
   push:
     paths:
       - src/**/*.ts
