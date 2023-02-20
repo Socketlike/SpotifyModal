@@ -95,14 +95,14 @@ export function ProgressContainer(props: {
     const updateListener = (
       ev: CustomEvent<{ controls: boolean; seekBar: boolean; progressDisplay: boolean }>,
     ): void => {
-      if (!ev.detail.seekBar !== seekBarRef.current.classList.contains('hidden')) {
+      if (ev.detail.seekBar !== !seekBarRef.current.classList.contains('hidden')) {
         if (ev.detail.seekBar) seekBarRef.current.classList.remove('hidden');
         else seekBarRef.current.classList.add('hidden');
       }
 
-      if (!ev.detail.progressDisplay !== progressDisplayRef.current.classList.contains('hidden')) {
-        if (ev.detail.progressDisplay) seekBarRef.current.classList.remove('hidden');
-        else seekBarRef.current.classList.add('hidden');
+      if (ev.detail.progressDisplay !== !progressDisplayRef.current.classList.contains('hidden')) {
+        if (ev.detail.progressDisplay) progressDisplayRef.current.classList.remove('hidden');
+        else progressDisplayRef.current.classList.add('hidden');
       }
     };
 
