@@ -33,6 +33,9 @@ jobs:
       - name: Install Node.js dependencies
         run: pnpm install
 
+      - name: Patch version manifest
+        run: "sed -E 's/\"version\": \"([0-9]+)\.([0-9]+)\.([0-9]+)\"/\"version\": \"\1\.\2\.\3\-nightly\"/g' manifest.json > manifest.json"
+
       - name: Build TypeScript and bundle into asar
         run: pnpm run build:dev:bundle
 
