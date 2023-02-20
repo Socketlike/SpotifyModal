@@ -40,7 +40,7 @@ export function Controls(props: {
       ev: CustomEvent<{ controls: boolean; seekBar: boolean; progressDisplay: boolean }>,
     ) => {
       if (ev.detail.controls === !controlsRef.current.classList.contains('hidden')) return;
-      
+
       if (ev.detail.controls) controlsRef.current.classList.remove('hidden');
       else controlsRef.current.classList.add('hidden');
     };
