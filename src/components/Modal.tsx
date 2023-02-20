@@ -2,7 +2,7 @@ import { common } from 'replugged';
 import { Controls } from './Controls';
 import { ProgressContainer } from './ProgressDisplay';
 import { TrackInfo } from './TrackInfo';
-import { config, componentEventTarget, logger } from './global';
+import { componentEventTarget, config, logger } from './global';
 import { ModalDispatchers, SpotifyTrack, SpotifyWebSocketState } from '../types';
 
 const { React } = common;
@@ -24,15 +24,16 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
   const [shouldShowModal, setShouldShowModal] = React.useState<boolean>(
     typeof props?.state === 'object',
   );
-  const [shouldShowControls, setShouldShowControls] = React.useState<boolean>(
+  const shouldShowControls = React.useRef<boolean>(
     config.get('controlsVisibilityState', 'auto') === 'always',
   );
-  const [shouldShowProgressDisplay, setShouldShowProgressDisplay] = React.useState<boolean>(
+  const shouldShowProgressDisplay = React.useRef<boolean>(
     config.get('progressDisplayVisibilityState', 'auto') === 'always',
   );
-  const [shouldShowSeekbar, setShouldShowSeekbar] = React.useState<boolean>(
+  const shouldShowSeekbar = React.useRef<boolean>(
     config.get('seekbarVisibilityState', 'always') === 'always',
   );
+
   const [track, setTrack] = React.useState<SpotifyTrack>(
     props?.state?.item
       ? props?.state?.item
@@ -48,6 +49,9 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
   const [playing, setPlaying] = React.useState<boolean>(
     typeof props?.state?.is_playing === 'boolean' ? props.state.is_playing : false,
   );
+  const [timestamp, setTimestamp] = React.useState<number>(
+    typeof props?.state?.timestamp === 'number' ? props.state.timestamp : 0,
+  );
   const [progress, setProgress] = React.useState<number>(
     typeof props?.state?.progress_ms === 'number' ? props.state.progress_ms : 0,
   );
@@ -56,59 +60,6 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
   );
   const [shuffle, setShuffle] = React.useState<boolean>(false);
   const [repeat, setRepeat] = React.useState<'off' | 'context' | 'track'>('off');
-  const [dispatchers] = React.useState<ModalDispatchers>(() => ({
-    artistRightClick: (name: string, id?: string): boolean =>
-      componentEventTarget.dispatchEvent(
-        new CustomEvent('artistRightClick', { detail: { name, id } }),
-      ),
-    coverArtRightClick: (name: string, id?: string): boolean =>
-      componentEventTarget.dispatchEvent(
-        new CustomEvent('coverArtRightClick', { detail: { name, id } }),
-      ),
-    playPauseClick: (event: React.MouseEvent, currentState: boolean): boolean =>
-      componentEventTarget.dispatchEvent(
-        new CustomEvent<{ event: React.MouseEvent; currentState: boolean }>('playPauseClick', {
-          detail: { event, currentState },
-        }),
-      ),
-    repeatClick: (event: React.MouseEvent, currentState: 'off' | 'context' | 'track'): boolean =>
-      componentEventTarget.dispatchEvent(
-        new CustomEvent<{ event: React.MouseEvent; currentState: 'off' | 'context' | 'track' }>(
-          'repeatClick',
-          { detail: { event, currentState } },
-        ),
-      ),
-    seeked: (newProgress: number): boolean =>
-      componentEventTarget.dispatchEvent(new CustomEvent('seeked', { detail: newProgress })),
-    shuffleClick: (event: React.MouseEvent, currentState: boolean): boolean =>
-      componentEventTarget.dispatchEvent(
-        new CustomEvent<{ event: React.MouseEvent; currentState: boolean }>('shuffleClick', {
-          detail: { event, currentState },
-        }),
-      ),
-    skipNextClick: (event: React.MouseEvent): boolean =>
-      componentEventTarget.dispatchEvent(
-        new CustomEvent<React.MouseEvent>('skipNextClick', { detail: event }),
-      ),
-    skipPrevClick: (
-      event: React.MouseEvent,
-      currentProgress: number,
-      currentDuration: number,
-    ): boolean =>
-      componentEventTarget.dispatchEvent(
-        new CustomEvent<{
-          currentProgress: number;
-          currentDuration: number;
-          event: React.MouseEvent;
-        }>('skipPrevClick', {
-          detail: { currentDuration, currentProgress, event },
-        }),
-      ),
-    titleRightClick: (name: string, id?: string): boolean =>
-      componentEventTarget.dispatchEvent(
-        new CustomEvent('titleRightClick', { detail: { name, id } }),
-      ),
-  }));
 
   React.useEffect(() => {
     const stateUpdateListener = (event: CustomEvent<SpotifyWebSocketState>): void => {
@@ -117,6 +68,7 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
         setTrack(event.detail.item);
         setDuration(event.detail.item.duration_ms);
         setProgress(event.detail.progress_ms);
+        setTimestamp(event.detail.timestamp);
         setPlaying(event.detail.is_playing);
         setShuffle(event.detail.shuffle_state);
         setRepeat(event.detail.repeat_state);
@@ -155,14 +107,26 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
     };
   }, []);
 
-  React.useEffect((): (() => void) => {
+  React.useEffect((): (() => void) | void => {
     if (!elementRef?.current) return;
 
     const hoverListener = () => {
-      if (config.get('controlsVisibilityState', 'auto') === 'auto') setShouldShowControls(true);
+      if (config.get('controlsVisibilityState', 'auto') === 'auto')
+        shouldShowControls.current = true;
       if (config.get('progressDisplayVisibilityState', 'auto') === 'auto')
-        setShouldShowProgressDisplay(true);
-      if (config.get('seekbarVisibilityState', 'always') === 'auto') setShouldShowSeekbar(true);
+        shouldShowProgressDisplay.current = true;
+      if (config.get('seekbarVisibilityState', 'always') === 'auto')
+        shouldShowSeekbar.current = true;
+
+      componentEventTarget.dispatchEvent(
+        new CustomEvent('componentsVisibilityUpdate', {
+          detail: {
+            controls: shouldShowControls.current,
+            seekBar: shouldShowSeekbar.current,
+            progressDisplay: shouldShowProgressDisplay.current,
+          },
+        }),
+      );
 
       if (config.get('debuggingLogComponentsUpdates', false))
         logger.log(
@@ -180,10 +144,12 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
     };
 
     const leaveListener = () => {
-      if (config.get('controlsVisibilityState', 'auto') === 'auto') setShouldShowControls(false);
+      if (config.get('controlsVisibilityState', 'auto') === 'auto')
+        shouldShowControls.current = false;
       if (config.get('progressDisplayVisibilityState', 'auto') === 'auto')
-        setShouldShowProgressDisplay(false);
-      if (config.get('seekbarVisibilityState', 'always') === 'auto') setShouldShowSeekbar(false);
+        shouldShowProgressDisplay.current = false;
+      if (config.get('seekbarVisibilityState', 'always') === 'auto')
+        shouldShowSeekbar.current = false;
 
       if (config.get('debuggingLogComponentsUpdates', false))
         logger.log(
@@ -194,6 +160,16 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
           };`,
           `\n- Seek bar: ${config.get('seekbarVisibilityState', 'always') === 'always'};`,
         );
+
+      componentEventTarget.dispatchEvent(
+        new CustomEvent('componentsVisibilityUpdate', {
+          detail: {
+            controls: shouldShowControls.current,
+            seekBar: shouldShowSeekbar.current,
+            progressDisplay: shouldShowProgressDisplay.current,
+          },
+        }),
+      );
     };
 
     const componentVisibilityUpdateListener = (
@@ -206,11 +182,11 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
       }>,
     ): void => {
       if (ev.detail.type === 'controlsVisibilityState')
-        setShouldShowControls(ev.detail.state === 'always');
+        shouldShowControls.current = ev.detail.state === 'always';
       else if (ev.detail.type === 'progressDisplayVisibilityState')
-        setShouldShowProgressDisplay(ev.detail.state === 'always');
+        shouldShowProgressDisplay.current = ev.detail.state === 'always';
       else if (ev.detail.type === 'seekbarVisibilityState')
-        setShouldShowSeekbar(ev.detail.state === 'always');
+        shouldShowSeekbar.current = ev.detail.state === 'always';
 
       if (config.get('debuggingLogComponentsUpdates', false))
         logger.log(
@@ -223,12 +199,22 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
             }[ev.detail.type]
           }: ${ev.detail.state === 'always'}`,
         );
+
+      componentEventTarget.dispatchEvent(
+        new CustomEvent('componentsVisibilityUpdate', {
+          detail: {
+            controls: shouldShowControls.current,
+            seekBar: shouldShowSeekbar.current,
+            progressDisplay: shouldShowProgressDisplay.current,
+          },
+        }),
+      );
     };
 
     elementRef.current.addEventListener('mouseenter', hoverListener);
     elementRef.current.addEventListener('mouseleave', leaveListener);
     componentEventTarget.addEventListener(
-      'componentVisibilityUpdate',
+      'componentVisibilityUpdateSettings',
       componentVisibilityUpdateListener as EventListenerOrEventListenerObject,
     );
 
@@ -237,31 +223,30 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
         elementRef.current.removeEventListener('mouseenter', hoverListener);
         elementRef.current.removeEventListener('mouseleave', leaveListener);
         componentEventTarget.removeEventListener(
-          'componentVisibilityUpdate',
+          'componentVisibilityUpdateSettings',
           componentVisibilityUpdateListener as EventListenerOrEventListenerObject,
         );
       }
     };
-  }, [elementRef]);
+  }, []);
 
   return (
     <div
       className={`spotify-modal${shouldShowModal ? '' : ' hidden'}${getCustomThemeType()}`}
       ref={elementRef}>
-      <TrackInfo dispatchers={dispatchers} track={track} />
+      <TrackInfo track={track} />
       <div className='dock'>
         <ProgressContainer
           duration={duration}
-          dispatchers={dispatchers}
           playing={playing}
           progress={progress}
           progressRef={progressRef}
           showProgress={shouldShowProgressDisplay}
           showSeekbar={shouldShowSeekbar}
+          timestamp={timestamp}
         />
         <Controls
           duration={duration}
-          dispatchers={dispatchers}
           playing={playing}
           progress={progressRef}
           shuffle={shuffle}

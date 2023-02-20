@@ -31,7 +31,7 @@ export function Settings(): JSX.Element {
           onChange={(newValue: string): void => {
             config.set('controlsVisibilityState', newValue);
             componentEventTarget.dispatchEvent(
-              new CustomEvent('componentVisibilityUpdate', {
+              new CustomEvent('componentVisibilityUpdateSettings', {
                 detail: {
                   type: 'controlsVisibilityState',
                   state: newValue,
@@ -53,7 +53,7 @@ export function Settings(): JSX.Element {
           onChange={(newValue: string): void => {
             config.set('progressDisplayVisibilityState', newValue);
             componentEventTarget.dispatchEvent(
-              new CustomEvent('componentVisibilityUpdate', {
+              new CustomEvent('componentVisibilityUpdateSettings', {
                 detail: {
                   type: 'progressDisplayVisibilityState',
                   state: newValue,
@@ -75,7 +75,7 @@ export function Settings(): JSX.Element {
           onChange={(newValue: string): void => {
             config.set('seekbarVisibilityState', newValue);
             componentEventTarget.dispatchEvent(
-              new CustomEvent('componentVisibilityUpdate', {
+              new CustomEvent('componentVisibilityUpdateSettings', {
                 detail: {
                   type: 'seekbarVisibilityState',
                   state: newValue,

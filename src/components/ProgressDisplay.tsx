@@ -1,5 +1,6 @@
 import { common } from 'replugged';
 import { ModalDispatchers } from '../types';
+import { componentEventTarget } from './global';
 const { React } = common;
 
 function calculatePercentage(current: number, end: number): string {
@@ -27,22 +28,27 @@ function parseTime(ms: number): string {
 
 export function ProgressContainer(props: {
   duration: number;
-  dispatchers: ModalDispatchers;
   playing: boolean;
   progress: number;
   progressRef: React.MutableRefObject<number>;
-  showProgress: boolean;
-  showSeekbar: boolean;
+  showProgress: React.MutableRefObject<boolean>;
+  showSeekbar: React.MutableRefObject<boolean>;
+  timestamp: number;
 }): JSX.Element {
   const interval = React.useRef<number>(null);
+
   const progressTimestampRef = React.useRef<number>(0);
   const durationTimestampRef = React.useRef<number>(0);
+
   const seekBarRef = React.useRef<HTMLDivElement>(null);
   const seekBarInnerRef = React.useRef<HTMLDivElement>(null);
+  const progressDisplayRef = React.useRef<HTMLDivElement>(null);
   const currentRef = React.useRef<HTMLSpanElement>(null);
   const durationRef = React.useRef<HTMLSpanElement>(null);
 
   React.useEffect((): (() => void) => {
+    if (!props.timestamp) return;
+
     interval.current = setInterval((): void => {
       const now = Date.now();
       if (!durationTimestampRef.current)
@@ -81,11 +87,42 @@ export function ProgressContainer(props: {
       clearInterval(interval.current);
       durationTimestampRef.current = 0;
     };
-  });
+  }, [props.timestamp]);
+
+  React.useEffect((): (() => void) | void => {
+    if (!seekBarRef?.current || !progressDisplayRef?.current) return;
+
+    const updateListener = (
+      ev: CustomEvent<{ controls: boolean; seekBar: boolean; progressDisplay: boolean }>,
+    ): void => {
+      if (!ev.detail.seekBar !== seekBarRef.current.classList.contains('hidden')) {
+        if (ev.detail.seekBar) seekBarRef.current.classList.remove('hidden');
+        else seekBarRef.current.classList.add('hidden');
+      }
+
+      if (!ev.detail.progressDisplay !== progressDisplayRef.current.classList.contains('hidden')) {
+        if (ev.detail.progressDisplay) seekBarRef.current.classList.remove('hidden');
+        else seekBarRef.current.classList.add('hidden');
+      }
+    };
+
+    componentEventTarget.addEventListener(
+      'componentsVisibilityUpdate',
+      updateListener as EventListenerOrEventListenerObject,
+    );
+
+    return (): void =>
+      componentEventTarget.removeEventListener(
+        'componentsVisibilityUpdate',
+        updateListener as EventListenerOrEventListenerObject,
+      );
+  }, []);
 
   return (
     <>
-      <div className={`progress-display${!props.showProgress ? ' hidden' : ''}`}>
+      <div
+        className={`progress-display${!props.showProgress.current ? ' hidden' : ''}`}
+        ref={progressDisplayRef}>
         <span ref={currentRef} className='current'>
           {parseTime(props.progress)}
         </span>
@@ -94,14 +131,16 @@ export function ProgressContainer(props: {
         </span>
       </div>
       <div
-        className={`seek-bar${!props.showSeekbar ? ' hidden' : ''}`}
+        className={`seek-bar${!props.showSeekbar.current ? ' hidden' : ''}`}
         ref={seekBarRef}
         onClick={(event: React.MouseEvent) =>
-          props.dispatchers.seeked(
-            Math.round(
-              props.duration *
-                (event.nativeEvent.offsetX / (seekBarRef.current as HTMLDivElement).offsetWidth),
-            ),
+          componentEventTarget.dispatchEvent(
+            new CustomEvent('seeked', {
+              detail: Math.round(
+                props.duration *
+                  (event.nativeEvent.offsetX / (seekBarRef.current as HTMLDivElement).offsetWidth),
+              ),
+            }),
           )
         }>
         <div

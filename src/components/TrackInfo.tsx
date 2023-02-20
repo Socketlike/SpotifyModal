@@ -1,12 +1,10 @@
 import { common } from 'replugged';
 import { ModalDispatchers, SpotifyTrack, SpotifyUser } from '../types';
-import { config } from './global';
+import { componentEventTarget, config } from './global';
+
 const { React } = common;
 
-function Artists(props: {
-  artists: SpotifyUser[];
-  onRightClick: (name: string, id?: string) => void;
-}): JSX.Element {
+function Artists(props: { artists: SpotifyUser[] }): JSX.Element {
   const elementRef = React.useRef<HTMLSpanElement>(null);
   const overflowCheck = React.useCallback((): void => {
     if (
@@ -43,7 +41,13 @@ function Artists(props: {
                 <>
                   <a
                     className='artist'
-                    onContextMenu={() => props.onRightClick(artist.name, artist.id)}
+                    onContextMenu={(): boolean =>
+                      componentEventTarget.dispatchEvent(
+                        new CustomEvent('artistRightClick', {
+                          detail: { name: artist.name, id: artist.id },
+                        }),
+                      )
+                    }
                     onClick={(e: React.MouseEvent): void => {
                       e.preventDefault();
                       if (config.get('hyperlinkArtistEnabled', true))
@@ -72,10 +76,7 @@ function Artists(props: {
   );
 }
 
-function Title(props: {
-  track: SpotifyTrack;
-  onRightClick: (name: string, id?: string) => void;
-}): JSX.Element {
+function Title(props: { track: SpotifyTrack }): JSX.Element {
   const elementRef = React.useRef<HTMLAnchorElement>(null);
   const overflowCheck = React.useCallback((): void => {
     if (
@@ -117,17 +118,23 @@ function Title(props: {
             '_blank',
           );
       }}
-      onContextMenu={() => props.onRightClick(props.track.name, props.track?.id)}
+      onContextMenu={(): boolean =>
+        componentEventTarget.dispatchEvent(
+          new CustomEvent('titleRightClick', {
+            detail: {
+              name: props.track.name,
+              id: props.track.id,
+            },
+          }),
+        )
+      }
       title={props.track.name}>
       {props.track.name}
     </a>
   );
 }
 
-export function TrackInfo(props: {
-  dispatchers: ModalDispatchers;
-  track: SpotifyTrack;
-}): JSX.Element {
+export function TrackInfo(props: { track: SpotifyTrack }): JSX.Element {
   return (
     <div className='header'>
       <img
@@ -150,13 +157,20 @@ export function TrackInfo(props: {
             );
         }}
         onContextMenu={(): boolean =>
-          props.dispatchers.coverArtRightClick(props.track.album.name, props.track?.album?.id)
+          componentEventTarget.dispatchEvent(
+            new CustomEvent('coverArtRightClick', {
+              detail: {
+                name: props.track.album.name,
+                id: props.track?.album?.id,
+              },
+            }),
+          )
         }
         title={props.track.album.name}
       />
       <div className='track-info'>
-        <Title track={props.track} onRightClick={props.dispatchers.titleRightClick} />
-        <Artists artists={props.track.artists} onRightClick={props.dispatchers.artistRightClick} />
+        <Title track={props.track} />
+        <Artists artists={props.track.artists} />
       </div>
     </div>
   );

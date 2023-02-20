@@ -1,5 +1,8 @@
+import { common, components } from 'replugged';
 import { ModalDispatchers, SpotifyTrack } from '../types';
-import { paths } from './global';
+import { componentEventTarget, paths } from './global';
+
+const { React } = common;
 
 function Icon(props: {
   className?: string;
@@ -21,47 +24,111 @@ function Icon(props: {
 
 export function Controls(props: {
   duration: number;
-  dispatchers: ModalDispatchers;
   playing: boolean;
   progress: React.MutableRefObject<number>;
   shuffle: boolean;
   repeat: 'off' | 'context' | 'track';
-  shouldShow: boolean;
+  shouldShow: React.MutableRefObject<boolean>;
   track: SpotifyTrack;
 }): JSX.Element {
+  const controlsRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect((): (() => void) | void => {
+    if (!controlsRef?.current) return;
+
+    const updateListener = (
+      ev: CustomEvent<{ controls: boolean; seekBar: boolean; progressDisplay: boolean }>,
+    ) => {
+      if (!ev.detail.controls !== controlsRef.current.classList.contains('hidden')) {
+        if (ev.detail.controls) controlsRef.current.classList.remove('hidden');
+        else controlsRef.current.classList.add('hidden');
+      }
+    };
+
+    componentEventTarget.addEventListener(
+      'componentsVisibilityUpdate',
+      updateListener as EventListenerOrEventListenerObject,
+    );
+
+    return (): void =>
+      componentEventTarget.removeEventListener(
+        'componentsVisibilityUpdate',
+        updateListener as EventListenerOrEventListenerObject,
+      );
+  }, []);
+
   return (
-    <div className={`controls${props.shouldShow ? '' : ' hidden'}`}>
+    <div className={`controls${props.shouldShow.current ? '' : ' hidden'}`} ref={controlsRef}>
       <Icon
         className={`shuffle${props.shuffle ? ' active' : ''}`}
-        onClick={(e: React.MouseEvent): boolean => props.dispatchers.shuffleClick(e, props.shuffle)}
+        onClick={(event: React.MouseEvent): boolean =>
+          componentEventTarget.dispatchEvent(
+            new CustomEvent('shuffleClick', {
+              detail: {
+                event,
+                currentState: props.shuffle,
+              },
+            }),
+          )
+        }
         path={paths.shuffle}
         title={`Shuffle ${props.shuffle ? 'on' : 'off'}`}
       />
       <Icon
         className='skip-prev'
-        onClick={(e: React.MouseEvent): boolean =>
-          props.dispatchers.skipPrevClick(e, props.progress.current, props.duration)
+        onClick={(event: React.MouseEvent): boolean =>
+          componentEventTarget.dispatchEvent(
+            new CustomEvent('skipPrevClick', {
+              detail: {
+                event,
+                currentProgress: props.progress.current,
+                currentDuration: props.duration,
+              },
+            }),
+          )
         }
         path={paths.skipPrevious}
         title='Skip to previous track'
       />
       <Icon
         className='play-pause'
-        onClick={(e: React.MouseEvent): boolean =>
-          props.dispatchers.playPauseClick(e, props.playing)
+        onClick={(event: React.MouseEvent): boolean =>
+          componentEventTarget.dispatchEvent(
+            new CustomEvent('playPauseClick', {
+              detail: {
+                event,
+                currentState: props.playing,
+              },
+            }),
+          )
         }
         path={props.playing ? paths.pause : paths.play}
         title={`${props.playing ? 'Pause' : 'Resume'} track`}
       />
       <Icon
         className='skip-next'
-        onClick={props.dispatchers.skipNextClick}
+        onClick={(event: React.MouseEvent): boolean =>
+          componentEventTarget.dispatchEvent(
+            new CustomEvent('skipNextClick', {
+              detail: event,
+            }),
+          )
+        }
         path={paths.skipNext}
         title='Skip to next track'
       />
       <Icon
         className={`repeat${props.repeat !== 'off' ? ' active' : ''}`}
-        onClick={(e: React.MouseEvent): boolean => props.dispatchers.repeatClick(e, props.repeat)}
+        onClick={(event: React.MouseEvent): boolean =>
+          componentEventTarget.dispatchEvent(
+            new CustomEvent('repeatClick', {
+              detail: {
+                event,
+                currentState: props.repeat,
+              },
+            }),
+          )
+        }
         path={props.repeat !== 'track' ? paths.repeatAll : paths.repeatOne}
         title={`Repeat ${props.repeat !== 'context' ? props.repeat : 'all'}`}
       />
