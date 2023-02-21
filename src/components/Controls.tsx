@@ -1,5 +1,5 @@
-import { common, components } from 'replugged';
-import { ModalDispatchers, SpotifyTrack } from '../types';
+import { common } from 'replugged';
+import { SpotifyTrack } from '../types';
 import { componentEventTarget, paths } from './global';
 
 const { React } = common;
@@ -33,8 +33,8 @@ export function Controls(props: {
 }): JSX.Element {
   const controlsRef = React.useRef<HTMLDivElement>(null);
 
-  React.useEffect((): (() => void) | void => {
-    if (!controlsRef?.current) return;
+  React.useEffect((): (() => void) => {
+    if (!controlsRef?.current) return (): void => {};
 
     const updateListener = (
       ev: CustomEvent<{ controls: boolean; seekBar: boolean; progressDisplay: boolean }>,
@@ -63,9 +63,10 @@ export function Controls(props: {
         className={`shuffle${props.shuffle ? ' active' : ''}`}
         onClick={(event: React.MouseEvent): boolean =>
           componentEventTarget.dispatchEvent(
-            new CustomEvent('shuffleClick', {
+            new CustomEvent('controlInteraction', {
               detail: {
                 event,
+                type: 'shuffle',
                 currentState: props.shuffle,
               },
             }),
@@ -78,9 +79,10 @@ export function Controls(props: {
         className='skip-prev'
         onClick={(event: React.MouseEvent): boolean =>
           componentEventTarget.dispatchEvent(
-            new CustomEvent('skipPrevClick', {
+            new CustomEvent('controlInteraction', {
               detail: {
                 event,
+                type: 'skipPrev',
                 currentProgress: props.progress.current,
                 currentDuration: props.duration,
               },
@@ -94,9 +96,10 @@ export function Controls(props: {
         className='play-pause'
         onClick={(event: React.MouseEvent): boolean =>
           componentEventTarget.dispatchEvent(
-            new CustomEvent('playPauseClick', {
+            new CustomEvent('controlInteraction', {
               detail: {
                 event,
+                type: 'playPause',
                 currentState: props.playing,
               },
             }),
@@ -109,8 +112,11 @@ export function Controls(props: {
         className='skip-next'
         onClick={(event: React.MouseEvent): boolean =>
           componentEventTarget.dispatchEvent(
-            new CustomEvent('skipNextClick', {
-              detail: event,
+            new CustomEvent('controlInteraction', {
+              detail: {
+                event,
+                type: 'skipNext',
+              },
             }),
           )
         }
@@ -121,9 +127,10 @@ export function Controls(props: {
         className={`repeat${props.repeat !== 'off' ? ' active' : ''}`}
         onClick={(event: React.MouseEvent): boolean =>
           componentEventTarget.dispatchEvent(
-            new CustomEvent('repeatClick', {
+            new CustomEvent('controlInteraction', {
               detail: {
                 event,
+                type: 'repeat',
                 currentState: props.repeat,
               },
             }),

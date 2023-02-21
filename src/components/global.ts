@@ -3,7 +3,7 @@ import { Logger, settings } from 'replugged';
 export const logger = Logger.plugin('SpotifyModal');
 export const componentEventTarget = new EventTarget();
 
-export const config = await settings.init('lib.evelyn.SpotifyModal', {
+export const defaultConfig = {
   automaticReauthentication: false,
   controlsVisibilityState: 'auto',
   copyingArtistURLEnabled: true,
@@ -24,7 +24,9 @@ export const config = await settings.init('lib.evelyn.SpotifyModal', {
   seekbarVisibilityState: 'always',
   skipPreviousShouldResetProgress: true,
   skipPreviousProgressResetThreshold: 0.15,
-});
+};
+
+export const config = await settings.init('lib.evelyn.SpotifyModal', defaultConfig);
 
 export const paths = {
   pause: 'M14,19H18V5H14M6,19H10V5H6V19Z',

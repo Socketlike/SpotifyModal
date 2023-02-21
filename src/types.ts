@@ -1,21 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 
-export interface ModalDispatchers {
-  artistRightClick: (name: string, id?: string) => boolean;
-  coverArtRightClick: (name: string, id?: string) => boolean;
-  playPauseClick: (mouseEvent: React.MouseEvent, currentState: boolean) => boolean;
-  repeatClick: (mouseEvent: React.MouseEvent, currentState: 'off' | 'context' | 'track') => boolean;
-  seeked: (newProgress: number) => boolean;
-  shuffleClick: (mouseEvent: React.MouseEvent, currentState: boolean) => boolean;
-  skipNextClick: (mouseEvent: React.MouseEvent) => boolean;
-  skipPrevClick: (
-    mouseEvent: React.MouseEvent,
-    currentProgress: number,
-    currentDuration: number,
-  ) => boolean;
-  titleRightClick: (name: string, id?: string) => boolean;
-}
-
 export interface SpotifyWebSocket extends WebSocket {
   account: SpotifySocket;
 }
@@ -40,7 +24,7 @@ export interface SpotifySocket {
   pingInterval: {
     _ref: number;
   };
-  socket: WebSocket | SpotifyWebSocket;
+  socket: SpotifyWebSocket;
   _requestedConnect: boolean;
   _requestedDisconnect: boolean;
   connected: boolean;

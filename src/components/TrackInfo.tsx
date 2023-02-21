@@ -1,6 +1,12 @@
 import { common } from 'replugged';
-import { ModalDispatchers, SpotifyTrack, SpotifyUser } from '../types';
-import { componentEventTarget, config } from './global';
+import { SpotifyTrack, SpotifyUser } from '../types';
+import { config, defaultConfig } from './global';
+
+declare const DiscordNative: {
+  clipboard: {
+    copy: (content: string) => void;
+  };
+};
 
 const { React } = common;
 
@@ -41,18 +47,23 @@ function Artists(props: { artists: SpotifyUser[] }): JSX.Element {
                 <>
                   <a
                     className='artist'
-                    onContextMenu={(): boolean =>
-                      componentEventTarget.dispatchEvent(
-                        new CustomEvent('artistRightClick', {
-                          detail: { name: artist.name, id: artist.id },
-                        }),
-                      )
-                    }
+                    onContextMenu={(): void => {
+                      if (
+                        config.get('copyingArtistURLEnabled', defaultConfig.copyingArtistURLEnabled)
+                      ) {
+                        DiscordNative.clipboard.copy(
+                          `https://open.spotify.com/artist/${artist.id}`,
+                        );
+                        common.toast.toast('Copied artist URL to clipboard', 1);
+                      }
+                    }}
                     onClick={(e: React.MouseEvent): void => {
                       e.preventDefault();
-                      if (config.get('hyperlinkArtistEnabled', true))
+                      if (
+                        config.get('hyperlinkArtistEnabled', defaultConfig.hyperlinkArtistEnabled)
+                      )
                         window.open(
-                          config.get('hyperlinkURI', true)
+                          config.get('hyperlinkURI', defaultConfig.hyperlinkURI)
                             ? `spotify:artist:${artist.id}`
                             : `https://open.spotify.com/artist/${artist.id}`,
                           'blank_',
@@ -110,24 +121,26 @@ function Title(props: { track: SpotifyTrack }): JSX.Element {
       ref={elementRef}
       onClick={(e: React.MouseEvent): void => {
         e.preventDefault();
-        if (typeof props.track.id === 'string' && config.get('hyperlinkTrackEnabled', true))
+        if (
+          typeof props.track.id === 'string' &&
+          config.get('hyperlinkTrackEnabled', defaultConfig.hyperlinkTrackEnabled)
+        )
           window.open(
-            config.get('hyperlinkURI', true)
+            config.get('hyperlinkURI', defaultConfig.hyperlinkURI)
               ? `spotify:track:${props.track.id}`
               : `https://open.spotify.com/track/${props.track.id}`,
             '_blank',
           );
       }}
-      onContextMenu={(): boolean =>
-        componentEventTarget.dispatchEvent(
-          new CustomEvent('titleRightClick', {
-            detail: {
-              name: props.track.name,
-              id: props.track.id,
-            },
-          }),
-        )
-      }
+      onContextMenu={() => {
+        if (
+          config.get('copyingTrackURLEnabled', defaultConfig.copyingTrackURLEnabled) &&
+          typeof props.track.id === 'string'
+        ) {
+          DiscordNative.clipboard.copy(`https://open.spotify.com/track/${props.track.id}`);
+          common.toast.toast('Copied track URL to clipboard', 1);
+        }
+      }}
       title={props.track.name}>
       {props.track.name}
     </a>
@@ -147,25 +160,24 @@ export function TrackInfo(props: { track: SpotifyTrack }): JSX.Element {
         onClick={(): void => {
           if (
             typeof props.track?.album?.id === 'string' &&
-            config.get('hyperlinkAlbumEnabled', true)
+            config.get('hyperlinkAlbumEnabled', defaultConfig.hyperlinkAlbumEnabled)
           )
             window.open(
-              config.get('hyperlinkURI', true)
+              config.get('hyperlinkURI', defaultConfig.hyperlinkURI)
                 ? `spotify:album:${props.track.album.id}`
                 : `https://open.spotify.com/album/${props.track.album.id}`,
               '_blank',
             );
         }}
-        onContextMenu={(): boolean =>
-          componentEventTarget.dispatchEvent(
-            new CustomEvent('coverArtRightClick', {
-              detail: {
-                name: props.track.album.name,
-                id: props.track?.album?.id,
-              },
-            }),
-          )
-        }
+        onContextMenu={(): void => {
+          if (
+            config.get('copyingAlbumURLEnabled', defaultConfig.copyingAlbumURLEnabled) &&
+            typeof props.track.album?.id === 'string'
+          ) {
+            DiscordNative.clipboard.copy(`https://open.spotify.com/album/${props.track.album.id}`);
+            common.toast.toast('Copied album URL to clipboard', 1);
+          }
+        }}
         title={props.track.album.name}
       />
       <div className='track-info'>

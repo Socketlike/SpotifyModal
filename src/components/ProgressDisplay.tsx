@@ -1,5 +1,4 @@
 import { common } from 'replugged';
-import { ModalDispatchers } from '../types';
 import { componentEventTarget } from './global';
 const { React } = common;
 
@@ -135,11 +134,15 @@ export function ProgressContainer(props: {
         ref={seekBarRef}
         onClick={(event: React.MouseEvent) =>
           componentEventTarget.dispatchEvent(
-            new CustomEvent('seeked', {
-              detail: Math.round(
-                props.duration *
-                  (event.nativeEvent.offsetX / (seekBarRef.current as HTMLDivElement).offsetWidth),
-              ),
+            new CustomEvent('controlInteraction', {
+              detail: {
+                type: 'seek',
+                newProgress: Math.round(
+                  props.duration *
+                    (event.nativeEvent.offsetX /
+                      (seekBarRef.current as HTMLDivElement).offsetWidth),
+                ),
+              },
             }),
           )
         }>

@@ -1,20 +1,24 @@
 import { components, util } from 'replugged';
-import { config, componentEventTarget } from './global';
+import { config, componentEventTarget, defaultConfig } from './global';
 
-const { Category, FormItem, SelectItem, Slider, SwitchItem, Text } = components;
+const { Category, FormItem, SelectItem, Slider, SwitchItem } = components;
 
 export function Settings(): JSX.Element {
   const { value: controlsVisiblityState, onChange: onControlsVisibilityChange } = util.useSetting(
     config,
     'controlsVisibilityState',
-    'auto',
+    defaultConfig.controlsVisibilityState,
   );
   const { value: progressDisplayVisibilityState, onChange: onProgressDisplayVisibilityChange } =
-    util.useSetting(config, 'progressDisplayVisibilityState', 'auto');
+    util.useSetting(
+      config,
+      'progressDisplayVisibilityState',
+      defaultConfig.progressDisplayVisibilityState,
+    );
   const { value: seekbarVisibilityState, onChange: onSeekbarVisibiltyChange } = util.useSetting(
     config,
     'seekbarVisibilityState',
-    'always',
+    defaultConfig.seekbarVisibilityState,
   );
 
   return (
@@ -90,102 +94,159 @@ export function Settings(): JSX.Element {
       <Category title='Copying' note='Controls right click copying of album / artist / track URL'>
         <SwitchItem
           note='Enable copying of artist URL'
-          {...util.useSetting(config, 'copyingArtistURLEnabled', true)}>
+          {...util.useSetting(
+            config,
+            'copyingArtistURLEnabled',
+            defaultConfig.copyingArtistURLEnabled,
+          )}>
           Artist
         </SwitchItem>
         <SwitchItem
           note='Enable copying of album URL'
-          {...util.useSetting(config, 'copyingAlbumURLEnabled', true)}>
+          {...util.useSetting(
+            config,
+            'copyingAlbumURLEnabled',
+            defaultConfig.copyingAlbumURLEnabled,
+          )}>
           Album
         </SwitchItem>
         <SwitchItem
           note='Enable copying of track URL'
-          {...util.useSetting(config, 'copyingTrackURLEnabled', true)}>
+          {...util.useSetting(
+            config,
+            'copyingTrackURLEnabled',
+            defaultConfig.copyingTrackURLEnabled,
+          )}>
           Track
         </SwitchItem>
       </Category>
       <Category title='Hyperlinks' note='Controls album / artist / track hyperlinks'>
         <SwitchItem
           note='Enable artist hyperlinks'
-          {...util.useSetting(config, 'hyperlinkArtistEnabled', true)}>
+          {...util.useSetting(
+            config,
+            'hyperlinkArtistEnabled',
+            defaultConfig.hyperlinkArtistEnabled,
+          )}>
           Artists
         </SwitchItem>
         <SwitchItem
           note='Enable album hyperlinks'
-          {...util.useSetting(config, 'hyperlinkAlbumEnabled', true)}>
+          {...util.useSetting(
+            config,
+            'hyperlinkAlbumEnabled',
+            defaultConfig.hyperlinkAlbumEnabled,
+          )}>
           Album
         </SwitchItem>
         <SwitchItem
           note='Enable track hyperlinks'
-          {...util.useSetting(config, 'hyperlinkTrackEnabled', true)}>
+          {...util.useSetting(
+            config,
+            'hyperlinkTrackEnabled',
+            defaultConfig.hyperlinkTrackEnabled,
+          )}>
           Track
         </SwitchItem>
         <SwitchItem
           note='Use Spotify URIs (open directly in Spotify) instead of normal links'
-          {...util.useSetting(config, 'hyperlinkURI', true)}>
+          {...util.useSetting(config, 'hyperlinkURI', defaultConfig.hyperlinkURI)}>
           Use Spotify URI
         </SwitchItem>
       </Category>
       <Category title='Controls' note='Control your controls. Over the Revolution!'>
         <SwitchItem
           note='Reauthenticate Spotify access token & retry automatically on control failure (Highly experimental)'
-          {...util.useSetting(config, 'automaticReauthentication', false)}>
+          {...util.useSetting(
+            config,
+            'automaticReauthentication',
+            defaultConfig.automaticReauthentication,
+          )}>
           Reauthenticate & retry automatically on failure
         </SwitchItem>
         <SwitchItem
           note='Enable seeking by tapping on the seekbar'
-          {...util.useSetting(config, 'seekbarEnabled', true)}>
+          {...util.useSetting(config, 'seekbarEnabled', defaultConfig.seekbarEnabled)}>
           Enable track seeking
         </SwitchItem>
         <SwitchItem
           note='Make the skip previous control reset your track playback progress when it is past a percentage of the track'
-          {...util.useSetting(config, 'skipPreviousShouldResetProgress', true)}>
+          {...util.useSetting(
+            config,
+            'skipPreviousShouldResetProgress',
+            defaultConfig.skipPreviousShouldResetProgress,
+          )}>
           Skip previous should reset progress
         </SwitchItem>
         <FormItem
           title='Skip previous reset progress threshold'
           note='The percentage of the track duration to ignore playback progress reset on clicking skip previous.'>
           <Slider
-            disabled={!config.get('skipPreviousShouldResetProgress', true)}
+            disabled={
+              !config.get(
+                'skipPreviousShouldResetProgress',
+                defaultConfig.skipPreviousShouldResetProgress,
+              )
+            }
             minValue={0}
             maxValue={1}
             markers={[
               0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.8,
               0.85, 0.9, 0.95, 1,
             ]}
-            {...util.useSetting(config, 'skipPreviousProgressResetThreshold', 0.15)}
+            {...util.useSetting(
+              config,
+              'skipPreviousProgressResetThreshold',
+              defaultConfig.skipPreviousProgressResetThreshold,
+            )}
           />
         </FormItem>
       </Category>
       <Category title='Debugging' note='Enable more verbose console logs'>
         <SwitchItem
           note='Logs to console whenever active account ID is changed'
-          {...util.useSetting(config, 'debuggingLogActiveAccountId', false)}>
+          {...util.useSetting(
+            config,
+            'debuggingLogActiveAccountId',
+            defaultConfig.debuggingLogActiveAccountId,
+          )}>
           Account ID
         </SwitchItem>
         <SwitchItem
           note='Logs to console whenever an account gets injected'
-          {...util.useSetting(config, 'debuggingLogAccountInjection', false)}>
+          {...util.useSetting(
+            config,
+            'debuggingLogAccountInjection',
+            defaultConfig.debuggingLogAccountInjection,
+          )}>
           Account injection
         </SwitchItem>
         <SwitchItem
           note='Logs to console whenever components are supposed to be updated (does not include progress bar / progress display changes)'
-          {...util.useSetting(config, 'debuggingLogComponentsUpdates', false)}>
+          {...util.useSetting(
+            config,
+            'debuggingLogComponentsUpdates',
+            defaultConfig.debuggingLogComponentsUpdates,
+          )}>
           Component updates
         </SwitchItem>
         <SwitchItem
           note='Logs to console whenever controls are used'
-          {...util.useSetting(config, 'debuggingLogControls', false)}>
+          {...util.useSetting(config, 'debuggingLogControls', defaultConfig.debuggingLogControls)}>
           Controls
         </SwitchItem>
         <SwitchItem
           note='Logs to console whenever modal root is injected / modal is mounted'
-          {...util.useSetting(config, 'debuggingLogModalInjection', false)}>
+          {...util.useSetting(
+            config,
+            'debuggingLogModalInjection',
+            defaultConfig.debuggingLogModalInjection,
+          )}>
           Modal injection
         </SwitchItem>
         <SwitchItem
           note='Logs to console whenever state changes'
-          {...util.useSetting(config, 'debuggingLogState', false)}>
+          {...util.useSetting(config, 'debuggingLogState', defaultConfig.debuggingLogState)}>
           State
         </SwitchItem>
       </Category>

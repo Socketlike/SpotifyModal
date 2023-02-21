@@ -2,7 +2,7 @@
   @typescript-eslint/naming-convention
 */
 
-import { common, webpack } from 'replugged';
+import { common, types, webpack } from 'replugged';
 import { config, logger } from './components/index';
 import { SpotifySocket, SpotifyStore } from './types';
 import ReactDOMTypes from 'react-dom/client';
@@ -78,20 +78,38 @@ export const spotifyAPI = {
       mode: 'cors',
     });
   },
+  getActionFromResponse: (res: Response): types.AnyFunction => {
+    if (res.url.match(/me\/player\/(play|pause)/g)) return spotifyAPI.setPlaybackState;
+    else if (res.url.match(/me\/player\/shuffle/g)) return spotifyAPI.setShuffleState;
+    else if (res.url.match(/me\/player\/repeat/g)) return spotifyAPI.setRepeatState;
+    else if (res.url.match(/me\/player\/(next|previous)/g)) return spotifyAPI.skipNextOrPrevious;
+    else if (res.url.match(/me\/player\/seek/g)) return spotifyAPI.seekToPosition;
+    else if (res.url.match(/me\/player\/volume/g)) return spotifyAPI.setPlaybackVolume;
+    else if (res.url.match(/me\/player/g)) return spotifyAPI.getPlayerState;
+    else if (res.url.match(/me\/devices/g)) return spotifyAPI.getDevices;
+    else if (res.url.match(/me\/tracks/g)) return spotifyAPI.saveOrRemoveTracks;
+    else return spotifyAPI.sendGenericRequest;
+  },
   getPlayerState: (accessToken: string): Promise<Response> =>
     spotifyAPI.sendGenericRequest(accessToken, 'player', 'GET') as Promise<Response>,
   getDevices: (accessToken: string): void | Promise<Response> =>
     spotifyAPI.sendGenericRequest(accessToken, 'player/devices', 'GET') as Promise<Response>,
-  // it's just the 'like tracks' endpoint but instead of being called like tracks they called it save tracks
-  saveTracks: (accessToken: string, ...tracks: string[]): void | Promise<Response> =>
-    spotifyAPI.sendGenericRequest(
+  saveOrRemoveTracks: (
+    accessToken: string,
+    save = true,
+    ...tracks: string[]
+  ): Promise<Response> => {
+    if (config.get('debuggingLogControls', false))
+      logger.log(save ? 'Adding' : 'Removing', 'tracks:', tracks);
+    return spotifyAPI.sendGenericRequest(
       accessToken,
       'tracks',
-      'PUT',
+      save ? 'PUT' : 'DELETE',
       undefined,
       JSON.stringify({ ids: tracks }),
-    ) as Promise<Response>,
-  setPlaybackState: (accessToken: string, state: boolean): void | Promise<Response> => {
+    ) as Promise<Response>;
+  },
+  setPlaybackState: (accessToken: string, state: boolean): Promise<Response> => {
     if (config.get('debuggingLogControls', false)) logger.log('Set playback state:', state);
     return spotifyAPI.sendGenericRequest(
       accessToken,
@@ -99,37 +117,34 @@ export const spotifyAPI = {
       'PUT',
     ) as Promise<Response>;
   },
-  setRepeatState: (
-    accessToken: string,
-    state: 'off' | 'context' | 'track',
-  ): void | Promise<Response> => {
+  setRepeatState: (accessToken: string, state: 'off' | 'context' | 'track'): Promise<Response> => {
     if (config.get('debuggingLogControls', false)) logger.log('Set repeat state:', state);
     return spotifyAPI.sendGenericRequest(accessToken, 'player/repeat', 'PUT', {
       state,
     }) as Promise<Response>;
   },
-  setShuffleState: (accessToken: string, state: boolean): void | Promise<Response> => {
+  setShuffleState: (accessToken: string, state: boolean): Promise<Response> => {
     if (config.get('debuggingLogControls', false)) logger.log('Set shuffle state:', state);
     return spotifyAPI.sendGenericRequest(accessToken, 'player/shuffle', 'PUT', {
       state,
     }) as Promise<Response>;
   },
-  seekToPosition: (accessToken: string, position: number): void | Promise<Response> => {
+  seekToPosition: (accessToken: string, position: number): Promise<Response> => {
     if (config.get('debuggingLogControls', false)) logger.log('Seek to position:', position);
     return spotifyAPI.sendGenericRequest(accessToken, 'player/seek', 'PUT', {
       position_ms: position,
     }) as Promise<Response>;
   },
-  setPlaybackVolume: (accessToken: string, volume: number): void | Promise<Response> => {
+  setPlaybackVolume: (accessToken: string, volume: number): Promise<Response> => {
     if (config.get('debuggingLogControls', false)) logger.log('Set playback volume:', volume);
     return spotifyAPI.sendGenericRequest(accessToken, 'player/volume', 'PUT', {
       volume_percent: volume,
     }) as Promise<Response>;
   },
-  skipNextOrPrevious: (accessToken: string, next = true): void | Promise<Response> => {
+  skipNextOrPrevious: (accessToken: string, next = true): Promise<Response> => {
     if (config.get('debuggingLogControls', false))
       logger.log('Skipping to:', next ? 'next' : 'previous', 'track');
-    spotifyAPI.sendGenericRequest(
+    return spotifyAPI.sendGenericRequest(
       accessToken,
       `player/${next ? 'next' : 'previous'}`,
       'POST',
