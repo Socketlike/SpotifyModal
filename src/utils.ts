@@ -24,9 +24,9 @@ const baseURL = 'https://api.spotify.com/v1/me/';
 let store = (await webpack.waitForModule(
   webpack.filters.byProps('getActiveSocketAndDevice'),
 )) as unknown as SpotifyStore;
-export let fetcher = (await webpack.waitForModule(
+export let fetcher = webpack.getExportsForProps((await webpack.waitForModule(
   webpack.filters.byProps('V8APIError', 'get', 'post', 'patch'),
-)) as unknown as {
+)), ['get', 'post', 'patch']) as unknown as {
   get: (data: { url: string; oldFormErrors: boolean }) => Promise<{
     body: Record<string, string>;
     ok: boolean;
