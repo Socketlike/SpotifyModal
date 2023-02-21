@@ -69,6 +69,10 @@ const controlInteractionErrorHandler = async (
         );
         logger.error('An error occurred whilst reauthenticating. Response:', newAccessToken);
       } else {
+        common.fluxDispatcher.dispatch({
+          type: 'SPOTIFY_ACCOUNT_ACCESS_TOKEN_REVOKE',
+          accountId: currentAccountId,
+        });
         accounts[currentAccountId].accessToken = newAccessToken.body.access_token;
         common.fluxDispatcher.dispatch({
           type: 'SPOTIFY_ACCOUNT_ACCESS_TOKEN',
