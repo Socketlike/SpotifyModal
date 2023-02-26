@@ -49,9 +49,10 @@ export function ProgressContainer(props: {
     if (!props.timestamp) return;
 
     interval.current = setInterval((): void => {
+      const now = Date.now();
       if (!durationTimestampRef.current)
-        durationTimestampRef.current = props.timestamp + props.duration - props.progress;
-      progressTimestampRef.current = Date.now();
+        durationTimestampRef.current = now + props.duration - props.progress;
+      progressTimestampRef.current = now;
 
       props.progressRef.current = props.playing
         ? progressTimestampRef.current >= durationTimestampRef.current

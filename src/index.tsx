@@ -239,7 +239,6 @@ const handleMessageInjection = (res: MessageEvent[], self: SpotifyWebSocket): Pr
 
   if (parsed.payloads[0].events[0].type === 'PLAYER_STATE_CHANGED') {
     status.state = parsed.payloads[0].events[0].event.state;
-    status.state.timestamp = Date.now();
     if (!modalInjected) injectModal(status.state);
     componentEventTarget.dispatchEvent(new CustomEvent('stateUpdate', { detail: status.state }));
     if (config.get('debuggingLogState', false))
