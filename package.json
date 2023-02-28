@@ -1,6 +1,6 @@
 {
   "name": "SpotifyModal",
-  "version": "1.2.6",
+  "version": "1.2.7",
   "description": "A Post-SWC Replugged plugin that shows a little modal on your user dock that lets you see & control what you're playing on Spotify.",
   "engines": {
     "node": ">=14.0.0"
