@@ -61,6 +61,8 @@
 
 .spotify-modal > .header > .track-info > .title {
   color: var(--header-primary);
+  max-width: -webkit-fill-available;
+  width: fit-content;
   font-size: 14px;
   font-family: var(--font-primary);
   font-weight: 600;
@@ -76,6 +78,8 @@
 
 .spotify-modal > .header > .track-info > .artists {
   color: var(--header-secondary);
+  max-width: -webkit-fill-available;
+  width: fit-content;
   font-size: 12px;
 }
 
