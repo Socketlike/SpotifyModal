@@ -29,12 +29,12 @@ what you're playing on Spotify.
 </p>
 
 > **Note**  
-> This plugin does **not** require Spotify Premium to function.
-> All functionality are built upon Discord's Spotify WebSocket + Spotify WebAPI calls
+> This plugin does **not** require Spotify Premium to function. All functionality are built upon
+> Discord's Spotify WebSocket + Spotify WebAPI calls
 
 ## How to use
 
-- Link your Spotify account to Discord if you haven't already  
+- Link your Spotify account to Discord if you haven't already
 - Play any Spotify song (that's literally it)
 
 <h2 align="center">Preview</h2>
@@ -45,6 +45,7 @@ what you're playing on Spotify.
 
 There exists a settings menu which allows for a certain degree of customization.  
 You can also customize how the modal looks via CSS:
+
 - React Root: `spotify-modal-root`
 - Main modal: `spotify-modal`
   - Header: `header`
@@ -68,9 +69,13 @@ You can also customize how the modal looks via CSS:
 
 ## Known issues
 
-- Leaving Spotify inactive for an hour or so will make the controls stop working until you manually update the player state in the Spotify app **(semi-confirmed to be fixed by enabling the "Automatic Reauthentication" option under the "Miscellaneous" category in plugin settings)**  
-- The progress bar can be off by 1s - 5s at times when the Discord app lags and the Spotify state updates. **(There is no real fix for this as we cannot trust Spotify's timestamp, it is >= ~350000ms off, consistently)**  
-- Updating Discord's language will cause the modal to be removed until you reload the plugin  
+- Leaving Spotify inactive for an hour or so will make the controls stop working until you manually
+  update the player state in the Spotify app **(semi-confirmed to be fixed by enabling the
+  "Automatic Reauthentication" option under the "Miscellaneous" category in plugin settings)**
+- The progress bar can be off by 1s - 5s at times when the Discord app lags and the Spotify state
+  updates. **(There is no real fix for this as we cannot trust Spotify's timestamp, it is >=
+  ~350000ms off, consistently)**
+- Updating Discord's language will cause the modal to be removed until you reload the plugin
 
 ## Miscellaneous
 
@@ -79,7 +84,7 @@ You can also customize how the modal looks via CSS:
 - Right clicking on an artist's name copies the artist's user URL
 - Clicking on the progress bar allows you to set current playback position
 
-## Roadmap  
+## Roadmap
 
 - [x] Add basic functionality
 - [x] Song progress bar

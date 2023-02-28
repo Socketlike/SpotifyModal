@@ -1,52 +1,41 @@
-/* eslint-disable no-use-before-define */
+/* eslint-disable no-use-before-define, no-floating-promises */
 import { Injector, common } from 'replugged';
-import { Root } from 'react-dom/client';
+import { Settings, componentEventTarget, config, defaultConfig, logger } from './components/index';
+import { SpotifySocket, SpotifyWebSocket, SpotifyWebSocketRawParsedMessage } from './types';
 import {
-  Modal,
-  Settings,
-  componentEventTarget,
-  config,
-  defaultConfig,
-  logger,
-} from './components/index';
-import {
-  SpotifyDevice,
-  SpotifySocket,
-  SpotifyStore,
-  SpotifyWebSocket,
-  SpotifyWebSocketRawParsedMessage,
-  SpotifyWebSocketState,
-} from './types';
-import {
-  addRootToPanel,
+  addRootInPanel,
+  autoPauseModule,
+  discordAnalytics,
   getAllSpotifyAccounts,
+  getAutoPauseModule,
+  getDiscordAnalytics,
   getStore,
-  panelExists,
-  removeRootFromPanelAndUnmount,
+  isModalInjected,
+  removeRootFromPanel,
+  root,
   spotifyAPI,
+  store,
 } from './utils';
 import './style.css';
 
 export * as utils from './utils';
 export * as components from './components/index';
 
-let accounts: Record<string, SpotifySocket>;
-let currentAccountId: string;
-let injectedAccounts = [] as string[];
-let modalInjected = false;
-let root: undefined | { element: HTMLDivElement; root: Root };
-let status = { state: undefined, devices: undefined } as {
-  state: undefined | SpotifyWebSocketState;
-  devices: undefined | SpotifyDevice[];
+export const env = {
+  injectedAccounts: [] as string[],
+  persist: { value: false },
+} as {
+  accounts: Record<string, SpotifySocket>;
+  currentAccountId: string;
+  injectedAccounts: string[];
+  persist: { value: boolean };
 };
-let persist = { value: false };
-let store: SpotifyStore;
 
 const injector = new Injector();
 
 const getAccessTokenFromAccountId = (accountId: string): string => {
   if (typeof accountId !== 'string') return '';
-  for (const account of Object.values(accounts))
+  for (const account of Object.values(env.accounts))
     if (account.accountId === accountId) return account.accessToken;
   return '';
 };
@@ -60,7 +49,7 @@ const controlInteractionErrorHandler = async (
     if (res.status === 401) {
       logger.warn('Access token deauthorized. Attempting reauthentication');
 
-      const newAccessToken = await spotifyAPI.fetchToken(currentAccountId);
+      const newAccessToken = await spotifyAPI.fetchToken(env.currentAccountId);
 
       if (!newAccessToken.ok) {
         common.toast.toast(
@@ -71,12 +60,12 @@ const controlInteractionErrorHandler = async (
       } else {
         common.fluxDispatcher.dispatch({
           type: 'SPOTIFY_ACCOUNT_ACCESS_TOKEN_REVOKE',
-          accountId: currentAccountId,
+          accountId: env.currentAccountId,
         });
-        accounts[currentAccountId].accessToken = newAccessToken.body.access_token;
+        env.accounts[env.currentAccountId].accessToken = newAccessToken.body.access_token;
         common.fluxDispatcher.dispatch({
           type: 'SPOTIFY_ACCOUNT_ACCESS_TOKEN',
-          accountId: currentAccountId,
+          accountId: env.currentAccountId,
           accessToken: newAccessToken.body.access_token,
         });
 
@@ -84,7 +73,7 @@ const controlInteractionErrorHandler = async (
 
         (
           spotifyAPI.getActionFromResponse(res)(
-            getAccessTokenFromAccountId(currentAccountId),
+            getAccessTokenFromAccountId(env.currentAccountId),
             ...data,
           ) as Promise<Response>
         ).then((res: Response): Promise<Response> => {
@@ -100,7 +89,7 @@ const controlInteractionErrorHandler = async (
   } else if (res.status === 401)
     common.toast.toast('Access token deauthenticated. Please manually update your state.');
 
-  persist.value = false;
+  env.persist.value = false;
   return res;
 };
 
@@ -118,17 +107,17 @@ const controlInteractionListener = (
     newProgress: number;
   }>,
 ): void => {
-  if (!currentAccountId) {
+  if (!env.currentAccountId) {
     common.toast.toast('[SpotifyModal] Spotify is inactive', common.toast.Kind.FAILURE);
     return;
   }
 
-  persist.value = true;
+  env.persist.value = true;
 
   switch (ev.detail.type) {
     case 'shuffle': {
       spotifyAPI
-        .setShuffleState(getAccessTokenFromAccountId(currentAccountId), !ev.detail.currentState)
+        .setShuffleState(getAccessTokenFromAccountId(env.currentAccountId), !ev.detail.currentState)
         .then(
           (res: Response): Promise<Response> =>
             controlInteractionErrorHandler(res, !ev.detail.currentState),
@@ -145,17 +134,20 @@ const controlInteractionListener = (
           )
       )
         spotifyAPI
-          .seekToPosition(getAccessTokenFromAccountId(currentAccountId), 0)
+          .seekToPosition(getAccessTokenFromAccountId(env.currentAccountId), 0)
           .then((res: Response): Promise<Response> => controlInteractionErrorHandler(res, 0));
       else
         spotifyAPI
-          .skipNextOrPrevious(getAccessTokenFromAccountId(currentAccountId), false)
+          .skipNextOrPrevious(getAccessTokenFromAccountId(env.currentAccountId), false)
           .then((res: Response): Promise<Response> => controlInteractionErrorHandler(res, false));
       break;
     }
     case 'playPause': {
       spotifyAPI
-        .setPlaybackState(getAccessTokenFromAccountId(currentAccountId), !ev.detail.currentState)
+        .setPlaybackState(
+          getAccessTokenFromAccountId(env.currentAccountId),
+          !ev.detail.currentState,
+        )
         .then(
           (res: Response): Promise<Response> =>
             controlInteractionErrorHandler(res, !ev.detail.currentState),
@@ -164,7 +156,7 @@ const controlInteractionListener = (
     }
     case 'skipNext': {
       spotifyAPI
-        .skipNextOrPrevious(getAccessTokenFromAccountId(currentAccountId))
+        .skipNextOrPrevious(getAccessTokenFromAccountId(env.currentAccountId))
         .then((res: Response): Promise<Response> => controlInteractionErrorHandler(res));
       break;
     }
@@ -178,7 +170,7 @@ const controlInteractionListener = (
 
       if (typeof ev.detail.currentState === 'string')
         spotifyAPI
-          .setRepeatState(getAccessTokenFromAccountId(currentAccountId), nextState)
+          .setRepeatState(getAccessTokenFromAccountId(env.currentAccountId), nextState)
           .then(
             (res: Response): Promise<Response> => controlInteractionErrorHandler(res, nextState),
           );
@@ -187,7 +179,7 @@ const controlInteractionListener = (
     }
     case 'seek': {
       spotifyAPI
-        .seekToPosition(getAccessTokenFromAccountId(currentAccountId), ev.detail.newProgress)
+        .seekToPosition(getAccessTokenFromAccountId(env.currentAccountId), ev.detail.newProgress)
         .then(
           (res: Response): Promise<Response> =>
             controlInteractionErrorHandler(res, ev.detail.newProgress),
@@ -198,7 +190,7 @@ const controlInteractionListener = (
     case 'favorite': {
       spotifyAPI
         .saveOrRemoveTracks(
-          getAccessTokenFromAccountId(currentAccountId),
+          getAccessTokenFromAccountId(env.currentAccountId),
           Boolean(ev.detail.favorite.add),
           ev.detail.favorite.id,
         )
@@ -214,14 +206,14 @@ const controlInteractionListener = (
       break;
     }
     default: {
-      persist.value = false;
+      env.persist.value = false;
       break;
     }
   }
 };
 
 const getPersistRefListener = (): void => {
-  componentEventTarget.dispatchEvent(new CustomEvent('persistRef', { detail: persist }));
+  componentEventTarget.dispatchEvent(new CustomEvent('persistRef', { detail: env.persist }));
 };
 
 const handleMessageInjection = (res: MessageEvent[], self: SpotifyWebSocket): Promise<void> => {
@@ -229,38 +221,43 @@ const handleMessageInjection = (res: MessageEvent[], self: SpotifyWebSocket): Pr
 
   if (parsed.type === 'pong' || !parsed?.payloads?.[0]?.events?.[0]) return;
 
-  if (!currentAccountId) {
-    currentAccountId = self.account.accountId;
+  if (!env.currentAccountId) {
+    env.currentAccountId = self.account.accountId;
     if (config.get('debuggingLogActiveAccountId', false))
-      logger.log('New active account ID:', currentAccountId);
+      logger.log('New active account ID:', env.currentAccountId);
   }
 
-  if (currentAccountId !== self.account.accountId) return;
+  if (env.currentAccountId !== self.account.accountId) return;
 
   if (parsed.payloads[0].events[0].type === 'PLAYER_STATE_CHANGED') {
-    status.state = parsed.payloads[0].events[0].event.state;
-    if (!modalInjected) injectModal(status.state);
-    componentEventTarget.dispatchEvent(new CustomEvent('stateUpdate', { detail: status.state }));
+    if (!isModalInjected()) addRootInPanel();
+    componentEventTarget.dispatchEvent(
+      new CustomEvent('stateUpdate', { detail: parsed.payloads[0].events[0].event.state }),
+    );
     if (config.get('debuggingLogState', false))
-      logger.log(`State update for ${currentAccountId}:`, status.state);
+      logger.log(
+        `State update for ${env.currentAccountId}:`,
+        parsed.payloads[0].events[0].event.state,
+      );
   } else if (parsed.payloads[0].events[0].type === 'DEVICE_STATE_CHANGED') {
-    if (!persist.value) {
-      status.devices = parsed.payloads[0].events[0].event.devices;
-      if (!status.devices.length) {
+    if (!env.persist.value) {
+      if (!parsed.payloads[0].events[0].event.devices.length) {
         if (config.get('debuggingLogActiveAccountId', false))
-          logger.log('Cleared active account ID. Was previously', currentAccountId);
-        currentAccountId = '';
+          logger.log('Cleared active account ID. Was previously', env.currentAccountId);
+        env.currentAccountId = '';
       }
       componentEventTarget.dispatchEvent(
-        new CustomEvent('shouldShowUpdate', { detail: Boolean(status.devices.length) }),
+        new CustomEvent('shouldShowUpdate', {
+          detail: Boolean(parsed.payloads[0].events[0].event.devices.length),
+        }),
       );
-    } else persist.value = false;
+    } else env.persist.value = false;
   }
 };
 
 function injectIntoSocket(account: SpotifySocket): void {
   if (
-    !injectedAccounts.includes(account.accountId) &&
+    !env.injectedAccounts.includes(account.accountId) &&
     typeof account?.socket?.onmessage === 'function'
   ) {
     Object.defineProperty(account.socket, 'account', {
@@ -276,46 +273,19 @@ function injectIntoSocket(account: SpotifySocket): void {
   }
 }
 
-const handleLoggerInjection = (args: unknown[]): void => {
-  if (
-    args[0] === 'WS Connected' ||
-    (typeof args[0] === 'string' && args[0].match(/^Added account: .*/))
-  )
-    for (const account of Object.values(accounts)) injectIntoSocket(account);
-};
-
-const injectModal = (state?: SpotifyWebSocketState): void => {
-  if (!panelExists() || modalInjected) return;
-
-  root = addRootToPanel() as { element: HTMLDivElement; root: Root };
-  if (!root) return;
-
-  root.root.render(<Modal state={state} />);
-  modalInjected = true;
-  if (config.get('debuggingLogModalInjection', false)) logger.log('Modal mounted on modal root');
-};
-
-const uninjectModal = (): void => {
-  if (!root || !modalInjected) return;
-  removeRootFromPanelAndUnmount(root);
-  root = undefined;
-  modalInjected = false;
-};
-
-const functions = {
+export const functions = {
   controlInteractionErrorHandler,
   controlInteractionListener,
   getAccessTokenFromAccountId,
   getPersistRefListener,
-  handleMessageInjection,
   injectIntoSocket,
-  injectModal,
-  uninjectModal,
 };
 
 async function start(): Promise<void> {
-  store = await getStore();
-  accounts = await getAllSpotifyAccounts();
+  await getStore();
+  await getDiscordAnalytics();
+  await getAutoPauseModule();
+  env.accounts = await getAllSpotifyAccounts();
 
   componentEventTarget.addEventListener(
     'controlInteraction',
@@ -326,12 +296,59 @@ async function start(): Promise<void> {
     getPersistRefListener as EventListenerOrEventListenerObject,
   );
 
-  if (Object.entries(accounts).length) {
-    for (const account of Object.values(accounts)) injectIntoSocket(account);
-    injectModal();
+  if (Object.entries(env.accounts).length) {
+    for (const account of Object.values(env.accounts)) injectIntoSocket(account);
+    addRootInPanel();
   }
 
-  injector.after(store.__getLocalVars().logger, 'info', handleLoggerInjection);
+  injector.instead(
+    store.__getLocalVars().logger,
+    'info',
+    (args: unknown[], orig: (...data: unknown[]) => void): void => {
+      if (
+        args[0] === 'WS Connected' ||
+        (typeof args[0] === 'string' && args[0].match(/^Added account: .*/))
+      )
+        for (const account of Object.values(env.accounts)) injectIntoSocket(account);
+      else if (
+        typeof args[0] === 'string' &&
+        args[0].match(/auto paused/i) &&
+        config.get('noSpotifyPause', defaultConfig.noSpotifyPause)
+      ) {
+        if (config.get('debuggingLogNoSpotifyPause')) logger.log('Auto Spotify pause stopped');
+        return;
+      }
+
+      return orig(...args);
+    },
+  );
+
+  injector.instead(
+    discordAnalytics.default,
+    'track',
+    (args: [string], orig: (name: string) => void): void => {
+      if (
+        typeof args[0] === 'string' &&
+        args[0].match(/spotify_auto_paused/i) &&
+        config.get('noSpotifyPause', defaultConfig.noSpotifyPause)
+      )
+        return;
+
+      return orig(...args);
+    },
+  );
+
+  injector.instead(autoPauseModule.raw, autoPauseModule.key, (_, orig) => {
+    if (config.get('noSpotifyPause', defaultConfig.noSpotifyPause)) return Promise.resolve(null);
+
+    return orig(..._);
+  });
+
+  injector.instead(store, 'wasAutoPaused', (_, orig) => {
+    if (config.get('noSpotifyPause', defaultConfig.noSpotifyPause)) return false;
+
+    return orig(..._);
+  });
 }
 
 function stop(): void {
@@ -344,9 +361,9 @@ function stop(): void {
     getPersistRefListener as EventListenerOrEventListenerObject,
   );
 
-  uninjectModal();
+  removeRootFromPanel();
 
-  for (const account of Object.values(accounts)) {
+  for (const account of Object.values(env.accounts)) {
     delete account.socket.account;
     if (config.get('debuggingLogAccountInjection', false))
       logger.log('Uninjected from account', account.accountId, account);
@@ -355,18 +372,4 @@ function stop(): void {
   injector.uninjectAll();
 }
 
-export {
-  Settings,
-  accounts,
-  config,
-  currentAccountId,
-  injectedAccounts,
-  modalInjected,
-  persist,
-  root,
-  status,
-  store,
-  functions,
-  start,
-  stop,
-};
+export { Settings, config, root, start, stop };

@@ -154,54 +154,6 @@ export function Settings(): JSX.Element {
           Use Spotify URI
         </SwitchItem>
       </Category>
-      <Category title='Controls' note='Control your controls. Over the Revolution!'>
-        <SwitchItem
-          note='Reauthenticate Spotify access token & retry automatically on control failure (Highly experimental)'
-          {...util.useSetting(
-            config,
-            'automaticReauthentication',
-            defaultConfig.automaticReauthentication,
-          )}>
-          Reauthenticate & retry automatically on failure
-        </SwitchItem>
-        <SwitchItem
-          note='Enable seeking by tapping on the seekbar'
-          {...util.useSetting(config, 'seekbarEnabled', defaultConfig.seekbarEnabled)}>
-          Enable track seeking
-        </SwitchItem>
-        <SwitchItem
-          note='Make the skip previous control reset your track playback progress when it is past a percentage of the track'
-          {...util.useSetting(
-            config,
-            'skipPreviousShouldResetProgress',
-            defaultConfig.skipPreviousShouldResetProgress,
-          )}>
-          Skip previous should reset progress
-        </SwitchItem>
-        <FormItem
-          title='Skip previous reset progress threshold'
-          note='The percentage of the track duration to ignore playback progress reset on clicking skip previous.'>
-          <Slider
-            disabled={
-              !config.get(
-                'skipPreviousShouldResetProgress',
-                defaultConfig.skipPreviousShouldResetProgress,
-              )
-            }
-            minValue={0}
-            maxValue={1}
-            markers={[
-              0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.8,
-              0.85, 0.9, 0.95, 1,
-            ]}
-            {...util.useSetting(
-              config,
-              'skipPreviousProgressResetThreshold',
-              defaultConfig.skipPreviousProgressResetThreshold,
-            )}
-          />
-        </FormItem>
-      </Category>
       <Category title='Debugging' note='Enable more verbose console logs'>
         <SwitchItem
           note='Logs to console whenever active account ID is changed'
@@ -249,6 +201,70 @@ export function Settings(): JSX.Element {
           {...util.useSetting(config, 'debuggingLogState', defaultConfig.debuggingLogState)}>
           State
         </SwitchItem>
+        <SwitchItem
+          note='Logs to console whenever auto Spotify pause is supposed to get stopped'
+          {...util.useSetting(
+            config,
+            'debuggingLogNoSpotifyPause',
+            defaultConfig.debuggingLogNoSpotifyPause,
+          )}>
+          No Spotify pause
+        </SwitchItem>
+      </Category>
+      <Category
+        title='Miscellaneous'
+        note='Includes random things that is not suitable to be in any other category'>
+        <SwitchItem
+          note='Reauthenticate Spotify access token & retry automatically on control failure (Highly experimental)'
+          {...util.useSetting(
+            config,
+            'automaticReauthentication',
+            defaultConfig.automaticReauthentication,
+          )}>
+          Reauthenticate & retry automatically on failure
+        </SwitchItem>
+        <SwitchItem
+          note='Stops Discord from automatically pausing Spotify while talking in a VC'
+          {...util.useSetting(config, 'noSpotifyPause', defaultConfig.noSpotifyPause)}>
+          No Spotify pause
+        </SwitchItem>
+        <SwitchItem
+          note='Enable seeking by tapping on the seekbar'
+          {...util.useSetting(config, 'seekbarEnabled', defaultConfig.seekbarEnabled)}>
+          Enable track seeking
+        </SwitchItem>
+        <SwitchItem
+          note='Make the skip previous control reset your track playback progress when it is past a percentage of the track'
+          {...util.useSetting(
+            config,
+            'skipPreviousShouldResetProgress',
+            defaultConfig.skipPreviousShouldResetProgress,
+          )}>
+          Skip previous should reset progress
+        </SwitchItem>
+        <FormItem
+          title='Skip previous reset progress threshold'
+          note='The percentage of the track duration to ignore playback progress reset on clicking skip previous.'>
+          <Slider
+            disabled={
+              !config.get(
+                'skipPreviousShouldResetProgress',
+                defaultConfig.skipPreviousShouldResetProgress,
+              )
+            }
+            minValue={0}
+            maxValue={1}
+            markers={[
+              0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.8,
+              0.85, 0.9, 0.95, 1,
+            ]}
+            {...util.useSetting(
+              config,
+              'skipPreviousProgressResetThreshold',
+              defaultConfig.skipPreviousProgressResetThreshold,
+            )}
+          />
+        </FormItem>
       </Category>
     </div>
   );

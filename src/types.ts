@@ -247,4 +247,5 @@ export interface SpotifyStore {
     };
     wasAutoPaused: boolean;
   };
+  wasAutoPaused: () => boolean;
 }

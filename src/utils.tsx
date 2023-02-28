@@ -3,17 +3,24 @@
 */
 
 import { common, types, webpack } from 'replugged';
-import { config, logger } from './components/index';
+import { Modal, config, logger, defaultConfig } from './components/index';
 import { SpotifySocket, SpotifyStore } from './types';
-import ReactDOMTypes from 'react-dom/client';
+import { Root, RootOptions } from 'react-dom/client';
 
 const { ReactDOM } = common;
 const { createRoot } = ReactDOM as unknown as {
-  createRoot: (
-    container: Element | DocumentFragment,
-    options?: ReactDOMTypes.RootOptions,
-  ) => ReactDOMTypes.Root;
+  createRoot: (container: Element | DocumentFragment, options?: RootOptions) => Root;
 };
+
+export const root = { element: document.createElement('div') } as {
+  element: HTMLDivElement;
+  react: Root;
+};
+root.element.classList.add('spotify-modal-root');
+root.react = createRoot(root.element);
+
+const modal = <Modal />;
+root.react.render(modal);
 
 // This is also a webpack module but I don't really want to process another module just for string manipulation
 export function connectionAccessTokenEndpoint(service: string, id: string): string {
@@ -21,9 +28,17 @@ export function connectionAccessTokenEndpoint(service: string, id: string): stri
 }
 
 const baseURL = 'https://api.spotify.com/v1/me/';
-let store = (await webpack.waitForModule(
+export let store = (await webpack.waitForModule(
   webpack.filters.byProps('getActiveSocketAndDevice'),
 )) as unknown as SpotifyStore;
+export let discordAnalytics = await webpack.waitForModule<{
+  default: { track: (name: string) => unknown };
+}>(webpack.filters.byProps('track', 'isThrottled'));
+export let autoPauseModule = {} as { raw: Record<string, types.AnyFunction>; key: string };
+autoPauseModule.raw = await webpack.waitForModule<Record<string, types.AnyFunction>>(
+  webpack.filters.bySource(/\.PLAYER_PAUSE/),
+);
+autoPauseModule.key = webpack.getFunctionKeyBySource(autoPauseModule.raw, /\.PLAYER_PAUSE/);
 export let fetcher = webpack.getExportsForProps(
   await webpack.waitForModule(webpack.filters.byProps('V8APIError', 'get', 'post', 'patch')),
   ['get', 'post', 'patch'],
@@ -161,6 +176,31 @@ export async function getStore(): Promise<SpotifyStore> {
   return store;
 }
 
+// For patching out SPOTIFY_AUTO_PAUSED analytics
+export async function getDiscordAnalytics(): Promise<{
+  default: { track: (name: string) => unknown };
+}> {
+  if (!discordAnalytics)
+    discordAnalytics = await webpack.waitForModule<{
+      default: { track: (name: string) => unknown };
+    }>(webpack.filters.byProps('track', 'isThrottled'));
+  return discordAnalytics;
+}
+
+export async function getAutoPauseModule(): Promise<{
+  raw: Record<string, types.AnyFunction>;
+  key: string;
+}> {
+  if (!autoPauseModule.raw || !autoPauseModule.key) {
+    autoPauseModule.raw = await webpack.waitForModule<Record<string, types.AnyFunction>>(
+      webpack.filters.bySource(/\.PLAYER_PAUSE/),
+    );
+    autoPauseModule.key = webpack.getFunctionKeyBySource(autoPauseModule.raw, /\.PLAYER_PAUSE/);
+  }
+
+  return autoPauseModule;
+}
+
 export async function getAllSpotifyAccounts(): Promise<Record<string, SpotifySocket>> {
   if (!store)
     store = (await webpack.waitForModule(
@@ -175,40 +215,33 @@ export function panelExists(): boolean {
   return Boolean(panels.length);
 }
 
-export function addRootToPanel(): void | { element: HTMLDivElement; root: ReactDOMTypes.Root } {
-  if (!panelExists()) return;
-  const element = document.createElement('div');
-  element.classList.add('spotify-modal-root');
-
-  const panels = document.body.querySelectorAll('[class^="panels-"]');
-  let panel: HTMLDivElement;
-  if (panels.length) panel = panels[0] as HTMLDivElement;
-  else return;
-
-  panel.insertAdjacentElement('afterbegin', element);
-  const root = createRoot(element);
-
-  if (config.get('debuggingLogModalInjection', false))
-    logger.log('Modal root injected at', element);
-
-  return { element, root };
+export function isModalInjected(): boolean {
+  return document.body.contains(root.element);
 }
 
-export function removeRootFromPanelAndUnmount(root: {
-  element: HTMLDivElement;
-  root: ReactDOMTypes.Root;
-}): void {
-  if (!(root?.element instanceof HTMLDivElement) || (root?.root && !('_internalRoot' in root.root)))
-    return;
+export function addRootInPanel(): void {
+  if (!panelExists() || isModalInjected()) return;
 
-  const panels = document.body.querySelectorAll('[class^="panels-"]');
-  let panel: HTMLDivElement;
-  if (panels.length) panel = panels[0] as HTMLDivElement;
-  else return;
+  const panelContainer = document.body.querySelectorAll(
+    '[class^="panels-"] > [class^="container-"]',
+  )?.[0];
+  if (!panelContainer) return;
 
-  panel.removeChild(root.element);
-  if (config.get('debuggingLogModalInjection', false)) logger.log('Modal root uninjected');
+  panelContainer.insertAdjacentElement('beforebegin', root.element);
 
-  root.root.unmount();
-  if (config.get('debuggingLogModalInjection', false)) logger.log('Modal unmounted');
+  if (config.get('debuggingLogModalInjection', defaultConfig.debuggingLogModalInjection))
+    logger.log('Modal injected w/ DOM');
+}
+
+export function removeRootFromPanel(): void {
+  if (!panelExists() || !isModalInjected()) return;
+
+  const panels = document.body.querySelectorAll('[class^="panels-"]')?.[0];
+  if (!panels) return;
+
+  panels.removeChild(root.element);
+  root.react.unmount();
+
+  if (config.get('debuggingLogModalInjection', defaultConfig.debuggingLogModalInjection))
+    logger.log('Modal uninjected');
 }

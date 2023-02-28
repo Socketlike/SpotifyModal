@@ -14,6 +14,6 @@
   },
   "license": "MIT",
   "type": "replugged-plugin",
-  "renderer": "src/index.tsx",
+  "renderer": "src/index.ts",
   "reloadRequired": false
 }

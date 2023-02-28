@@ -45,6 +45,18 @@ export function ProgressContainer(props: {
   const currentRef = React.useRef<HTMLSpanElement>(null);
   const durationRef = React.useRef<HTMLSpanElement>(null);
 
+  const getProgressMS = React.useCallback<
+    (playing: boolean, duration: number, progress: number) => number
+  >(
+    (playing: boolean, duration: number, progress: number): number =>
+      playing
+        ? progressTimestampRef.current >= durationTimestampRef.current
+          ? duration
+          : duration - (durationTimestampRef.current - progressTimestampRef.current)
+        : progress,
+    [],
+  );
+
   React.useEffect((): (() => void) => {
     if (!props.timestamp) return;
 
@@ -54,32 +66,35 @@ export function ProgressContainer(props: {
         durationTimestampRef.current = now + props.duration - props.progress;
       progressTimestampRef.current = now;
 
-      props.progressRef.current = props.playing
-        ? progressTimestampRef.current >= durationTimestampRef.current
-          ? props.duration
-          : props.duration - (durationTimestampRef.current - progressTimestampRef.current)
-        : props.progress;
+      if (
+        props.progressRef.current !== getProgressMS(props.playing, props.duration, props.progress)
+      )
+        props.progressRef.current = getProgressMS(props.playing, props.duration, props.progress);
 
-      if (seekBarInnerRef.current)
-        seekBarInnerRef.current.style.width = props.playing
-          ? calculatePercentage(
-              progressTimestampRef.current >= durationTimestampRef.current
-                ? props.duration
-                : props.duration - (durationTimestampRef.current - progressTimestampRef.current),
-              props.duration,
-            )
-          : calculatePercentage(props.progress, props.duration);
+      if (
+        seekBarInnerRef.current &&
+        seekBarInnerRef.current.style.width !==
+          calculatePercentage(
+            getProgressMS(props.playing, props.duration, props.progress),
+            props.duration,
+          )
+      )
+        seekBarInnerRef.current.style.width = calculatePercentage(
+          getProgressMS(props.playing, props.duration, props.progress),
+          props.duration,
+        );
 
-      if (currentRef.current)
-        currentRef.current.innerText = props.playing
-          ? parseTime(
-              progressTimestampRef.current >= durationTimestampRef.current
-                ? props.duration
-                : props.duration - (durationTimestampRef.current - progressTimestampRef.current),
-            )
-          : parseTime(props.progress);
+      if (
+        currentRef.current &&
+        currentRef.current.innerText !==
+          parseTime(getProgressMS(props.playing, props.duration, props.progress))
+      )
+        currentRef.current.innerText = parseTime(
+          getProgressMS(props.playing, props.duration, props.progress),
+        );
 
-      if (durationRef.current) durationRef.current.innerText = parseTime(props.duration);
+      if (durationRef.current && durationRef.current.innerText !== parseTime(props.duration))
+        durationRef.current.innerText = parseTime(props.duration);
     }, 500) as unknown as number;
 
     return () => {

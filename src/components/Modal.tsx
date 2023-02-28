@@ -306,6 +306,7 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
           track={track}
         />
       </div>
+      <div className='divider' />
     </div>
   );
 }
