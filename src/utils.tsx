@@ -222,12 +222,10 @@ export function isModalInjected(): boolean {
 export function addRootInPanel(): void {
   if (!panelExists() || isModalInjected()) return;
 
-  const panelContainer = document.body.querySelectorAll(
-    '[class^="panels-"] > [class^="container-"]',
-  )?.[0];
-  if (!panelContainer) return;
+  const panels = document.body.querySelectorAll('[class^="panels-"]')?.[0];
+  if (!panels) return;
 
-  panelContainer.insertAdjacentElement('beforebegin', root.element);
+  panels.insertAdjacentElement('afterbegin', root.element);
 
   if (config.get('debuggingLogModalInjection', defaultConfig.debuggingLogModalInjection))
     logger.log('Modal injected w/ DOM');
