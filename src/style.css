@@ -54,6 +54,7 @@
 .spotify-modal > .header > .track-info {
   display: flex;
   flex-direction: column;
+  width: -webkit-fill-available;
   overflow: hidden;
   white-space: nowrap;
 }
