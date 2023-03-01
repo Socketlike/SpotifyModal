@@ -1,4 +1,4 @@
-/* eslint-disable no-use-before-define, no-floating-promises */
+/* eslint-disable @typescript-eslint/no-floating-promises */
 import { Injector, common } from 'replugged';
 import { Settings, componentEventTarget, config, defaultConfig, logger } from './components/index';
 import { SpotifySocket, SpotifyWebSocket, SpotifyWebSocketRawParsedMessage } from './types';
