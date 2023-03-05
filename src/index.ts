@@ -281,7 +281,7 @@ export const functions = {
   injectIntoSocket,
 };
 
-async function start(): Promise<void> {
+export async function start(): Promise<void> {
   await getStore();
   await getDiscordAnalytics();
   await getAutoPauseModule();
@@ -351,7 +351,7 @@ async function start(): Promise<void> {
   });
 }
 
-function stop(): void {
+export function stop(): void {
   componentEventTarget.removeEventListener(
     'controlInteraction',
     controlInteractionListener as EventListenerOrEventListenerObject,
@@ -372,4 +372,4 @@ function stop(): void {
   injector.uninjectAll();
 }
 
-export { Settings, config, root, start, stop };
+export { Settings, config, root };
