@@ -18,6 +18,9 @@
   display: flex;
   flex-direction: column;
   background: var(--background-secondary-alt);
+  height: 100%;
+  opacity: 1;
+  transition: opacity 0.3s ease-in, height 0.3s ease-in;
 }
 
 .spotify-modal.custom-dark {
@@ -29,7 +32,13 @@
 }
 
 .spotify-modal-root .hidden {
-  display: none !important;
+  transition: opacity 0.3s ease-out, height 0.3s ease-out, margin 0.3s ease-out,
+    padding 0.3s ease-out;
+  opacity: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden;
 }
 
 .spotify-modal > .header {
@@ -123,30 +132,40 @@
   color: var(--text-normal);
   height: 16px;
   font-size: 12px;
+  opacity: 1;
+  transition: height 0.2s ease-in, margin 0.2s ease-in, opacity 0.2s ease-in;
 }
 
 .spotify-modal > .dock > .seek-bar {
-  border-radius: 8px;
+  border-radius: 2px;
   background-color: var(--background-modifier-accent);
-  height: 5px;
+  height: 3px;
   width: calc(100% - 10px);
+  opacity: 1;
+  transition: height 0.2s ease-in, opacity 0.2s ease-in;
+}
+
+.spotify-modal > .dock > .seek-bar:hover {
+  height: 5px;
 }
 
 .spotify-modal > .dock > .seek-bar > .inner {
   background-color: var(--spotify);
   height: 100%;
   max-width: 100%;
-  border-radius: 8px;
+  border-radius: 2px;
 }
 
 .spotify-modal > .dock > .controls {
   justify-content: space-around;
   gap: 10px;
   height: 24px;
+  opacity: 1;
   padding: 10px 0 5px;
   width: -webkit-fill-available;
   display: flex;
   flex-direction: row;
+  transition: opacity 0.6s ease-in, height 0.3s ease-in, padding 0.1s ease-in;
 }
 
 .spotify-modal > .dock > .controls > svg {
