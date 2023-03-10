@@ -232,17 +232,17 @@ export function isModalInjected(): boolean {
 export function addRootToPanel(): void {
   if (!panelExists() || isModalInjected()) return;
 
-  const panels = document.body.querySelector('[class^="panels-"]');
-  if (!panels) {
+  const panel = document.body.querySelector('[class^="panels-"] > [class^="container-"]');
+  if (!panel) {
     logIfConfigTrue(
       'debuggingLogModalInjection',
       'error',
-      'Adding modal root failed: User panel does not exist',
+      'Adding modal root failed: User panel container does not exist',
     );
     return;
   }
 
-  panels.insertAdjacentElement('afterbegin', root.element);
+  panel.insertAdjacentElement('beforebegin', root.element);
   if (isModalInjected())
     logIfConfigTrue('debuggingLogModalInjection', 'log', 'Modal root added to panel');
   else
