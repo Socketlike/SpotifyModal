@@ -4,7 +4,7 @@
 
 import { Injector, common, util, types, webpack } from 'replugged';
 import { Modal, config, logger } from './components/index';
-import { ConfigType, SpotifySocket, SpotifyStore } from './types';
+import { SpotifySocket, SpotifyStore } from './types';
 import { Root, RootOptions } from 'react-dom/client';
 
 const { ReactDOM } = common;

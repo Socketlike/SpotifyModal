@@ -14,6 +14,7 @@ import {
   logIfConfigTrue,
   patchPanel,
   removeRootFromPanel,
+  root,
   spotifyAPI,
   store,
 } from './utils';
