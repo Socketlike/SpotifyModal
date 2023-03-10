@@ -1,6 +1,6 @@
 import { common } from 'replugged';
 import { SpotifyTrack, SpotifyUser } from '../types';
-import { config, defaultConfig } from './global';
+import { config } from './global';
 
 declare const DiscordNative: {
   clipboard: {
@@ -48,9 +48,7 @@ function Artists(props: { artists: SpotifyUser[] }): JSX.Element {
                   <a
                     className='artist'
                     onContextMenu={(): void => {
-                      if (
-                        config.get('copyingArtistURLEnabled', defaultConfig.copyingArtistURLEnabled)
-                      ) {
+                      if (config.get('copyingArtistURLEnabled')) {
                         DiscordNative.clipboard.copy(
                           `https://open.spotify.com/artist/${artist.id}`,
                         );
@@ -59,11 +57,9 @@ function Artists(props: { artists: SpotifyUser[] }): JSX.Element {
                     }}
                     onClick={(e: React.MouseEvent): void => {
                       e.preventDefault();
-                      if (
-                        config.get('hyperlinkArtistEnabled', defaultConfig.hyperlinkArtistEnabled)
-                      )
+                      if (config.get('hyperlinkArtistEnabled'))
                         window.open(
-                          config.get('hyperlinkURI', defaultConfig.hyperlinkURI)
+                          config.get('hyperlinkURI')
                             ? `spotify:artist:${artist.id}`
                             : `https://open.spotify.com/artist/${artist.id}`,
                           'blank_',
@@ -121,22 +117,16 @@ function Title(props: { track: SpotifyTrack }): JSX.Element {
       ref={elementRef}
       onClick={(e: React.MouseEvent): void => {
         e.preventDefault();
-        if (
-          typeof props.track.id === 'string' &&
-          config.get('hyperlinkTrackEnabled', defaultConfig.hyperlinkTrackEnabled)
-        )
+        if (typeof props.track.id === 'string' && config.get('hyperlinkTrackEnabled'))
           window.open(
-            config.get('hyperlinkURI', defaultConfig.hyperlinkURI)
+            config.get('hyperlinkURI')
               ? `spotify:track:${props.track.id}`
               : `https://open.spotify.com/track/${props.track.id}`,
             '_blank',
           );
       }}
       onContextMenu={() => {
-        if (
-          config.get('copyingTrackURLEnabled', defaultConfig.copyingTrackURLEnabled) &&
-          typeof props.track.id === 'string'
-        ) {
+        if (config.get('copyingTrackURLEnabled') && typeof props.track.id === 'string') {
           DiscordNative.clipboard.copy(`https://open.spotify.com/track/${props.track.id}`);
           common.toast.toast('Copied track URL to clipboard', 1);
         }
@@ -158,22 +148,16 @@ export function TrackInfo(props: { track: SpotifyTrack }): JSX.Element {
             : ''
         }
         onClick={(): void => {
-          if (
-            typeof props.track?.album?.id === 'string' &&
-            config.get('hyperlinkAlbumEnabled', defaultConfig.hyperlinkAlbumEnabled)
-          )
+          if (typeof props.track?.album?.id === 'string' && config.get('hyperlinkAlbumEnabled'))
             window.open(
-              config.get('hyperlinkURI', defaultConfig.hyperlinkURI)
+              config.get('hyperlinkURI')
                 ? `spotify:album:${props.track.album.id}`
                 : `https://open.spotify.com/album/${props.track.album.id}`,
               '_blank',
             );
         }}
         onContextMenu={(): void => {
-          if (
-            config.get('copyingAlbumURLEnabled', defaultConfig.copyingAlbumURLEnabled) &&
-            typeof props.track.album?.id === 'string'
-          ) {
+          if (config.get('copyingAlbumURLEnabled') && typeof props.track.album?.id === 'string') {
             DiscordNative.clipboard.copy(`https://open.spotify.com/album/${props.track.album.id}`);
             common.toast.toast('Copied album URL to clipboard', 1);
           }

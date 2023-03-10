@@ -2,9 +2,9 @@
   @typescript-eslint/naming-convention
 */
 
-import { common, types, webpack } from 'replugged';
-import { Modal, config, logger, defaultConfig } from './components/index';
-import { SpotifySocket, SpotifyStore } from './types';
+import { Injector, common, util, types, webpack } from 'replugged';
+import { Modal, config, logger } from './components/index';
+import { ConfigType, SpotifySocket, SpotifyStore } from './types';
 import { Root, RootOptions } from 'react-dom/client';
 
 const { ReactDOM } = common;
@@ -12,6 +12,7 @@ const { createRoot } = ReactDOM as unknown as {
   createRoot: (container: Element | DocumentFragment, options?: RootOptions) => Root;
 };
 
+export const injector = new Injector();
 export const root = { element: document.createElement('div') } as {
   element: HTMLDivElement;
   react: Root;
@@ -84,6 +85,7 @@ export const spotifyAPI = {
         url.searchParams.append(key, val);
       });
 
+    // eslint-disable-next-line consistent-return
     return fetch(url, {
       method,
       headers: {
@@ -209,37 +211,101 @@ export async function getAllSpotifyAccounts(): Promise<Record<string, SpotifySoc
   return store.__getLocalVars().accounts;
 }
 
+export function logIfConfigTrue(
+  key: string,
+  level: 'log' | 'warn' | 'error' = 'log',
+  ...rest: unknown[]
+): void {
+  // @ts-expect-error - Typing this would be a pain
+  if (config.get(key)) logger[level](`(${key})`, ...rest);
+}
+
 // Components related
 export function panelExists(): boolean {
-  const panels = document.body.querySelectorAll('[class^="panels-"]');
-  return Boolean(panels.length);
+  return Boolean(document.body.querySelectorAll('[class^="panels-"]').length);
 }
 
 export function isModalInjected(): boolean {
-  return document.body.contains(root.element);
+  return Boolean(document.body.querySelectorAll('.spotify-modal-root').length);
 }
 
-export function addRootInPanel(): void {
+export function addRootToPanel(): void {
   if (!panelExists() || isModalInjected()) return;
 
-  const panels = document.body.querySelectorAll('[class^="panels-"]')?.[0];
-  if (!panels) return;
+  const panels = document.body.querySelector('[class^="panels-"]');
+  if (!panels) {
+    logIfConfigTrue(
+      'debuggingLogModalInjection',
+      'error',
+      'Adding modal root failed: User panel does not exist',
+    );
+    return;
+  }
 
   panels.insertAdjacentElement('afterbegin', root.element);
-
-  if (config.get('debuggingLogModalInjection', defaultConfig.debuggingLogModalInjection))
-    logger.log('Modal injected w/ DOM');
+  if (isModalInjected())
+    logIfConfigTrue('debuggingLogModalInjection', 'log', 'Modal root added to panel');
+  else
+    logIfConfigTrue(
+      'debuggingLogModalInjection',
+      'error',
+      'Modal root not added to panel. Please contact plugin developer.',
+    );
 }
 
 export function removeRootFromPanel(): void {
   if (!panelExists() || !isModalInjected()) return;
 
-  const panels = document.body.querySelectorAll('[class^="panels-"]')?.[0];
-  if (!panels) return;
+  const panels = document.body.querySelector('[class^="panels-"]');
+  if (!panels) {
+    logIfConfigTrue(
+      'debuggingLogModalInjection',
+      'error',
+      'Removing modal root failed: User panel does not exist',
+    );
+    return;
+  }
 
   panels.removeChild(root.element);
-  root.react.unmount();
+  if (!isModalInjected())
+    logIfConfigTrue('debuggingLogModalInjection', 'log', 'Modal root removed from panel');
+  else
+    logIfConfigTrue(
+      'debuggingLogModalInjection',
+      'error',
+      'Modal root not removed from panel. Please contact plugin developer.',
+    );
+}
 
-  if (config.get('debuggingLogModalInjection', defaultConfig.debuggingLogModalInjection))
-    logger.log('Modal uninjected');
+export function patchPanel(): void {
+  if (!panelExists() || isModalInjected()) return;
+
+  const panels = document.body.querySelector('[class^="panels-"] > [class^="container-"]');
+  if (!panels) {
+    logIfConfigTrue(
+      'debuggingLogModalInjection',
+      'error',
+      'Patching panel failed: User panel container does not exist',
+    );
+    return;
+  }
+
+  const instance = util.getOwnerInstance(panels);
+
+  if (!instance) {
+    logIfConfigTrue(
+      'debuggingLogModalInjection',
+      'error',
+      "Patching panel failed: Cannot get user panel container's owner instance",
+    );
+    return;
+  }
+
+  injector.after(Object.getPrototypeOf(instance), 'render', (_, res) => {
+    if (!isModalInjected()) addRootToPanel();
+    return res;
+  });
+
+  instance.forceUpdate();
+  logIfConfigTrue('debuggingLogModalInjection', 'log', 'Panel render function patched');
 }

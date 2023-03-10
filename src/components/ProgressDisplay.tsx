@@ -1,5 +1,5 @@
 import { common } from 'replugged';
-import { componentEventTarget } from './global';
+import { dispatchEvent, listenToEvent } from './global';
 const { React } = common;
 
 function calculatePercentage(current: number, end: number): string {
@@ -57,8 +57,8 @@ export function ProgressContainer(props: {
     [],
   );
 
-  React.useEffect((): (() => void) => {
-    if (!props.timestamp) return;
+  React.useEffect(() => {
+    if (!props.timestamp) return () => {};
 
     interval.current = setInterval((): void => {
       const now = Date.now();
@@ -103,33 +103,26 @@ export function ProgressContainer(props: {
     };
   }, [props.timestamp]);
 
-  React.useEffect((): (() => void) | void => {
-    if (!seekBarRef?.current || !progressDisplayRef?.current) return;
-
-    const updateListener = (
-      ev: CustomEvent<{ controls: boolean; seekBar: boolean; progressDisplay: boolean }>,
-    ): void => {
-      if (ev.detail.seekBar !== !seekBarRef.current.classList.contains('hidden')) {
-        if (ev.detail.seekBar) seekBarRef.current.classList.remove('hidden');
-        else seekBarRef.current.classList.add('hidden');
-      }
-
-      if (ev.detail.progressDisplay !== !progressDisplayRef.current.classList.contains('hidden')) {
-        if (ev.detail.progressDisplay) progressDisplayRef.current.classList.remove('hidden');
-        else progressDisplayRef.current.classList.add('hidden');
-      }
-    };
-
-    componentEventTarget.addEventListener(
+  React.useEffect((): (() => void) => {
+    const removeUpdateListener = listenToEvent<{ progressDisplay: boolean; seekBar: boolean }>(
       'componentsVisibilityUpdate',
-      updateListener as EventListenerOrEventListenerObject,
+      (event): void => {
+        if (event.detail.seekBar && seekBarRef.current.classList.contains('hidden'))
+          seekBarRef.current.classList.remove('hidden');
+        else if (!event.detail.seekBar && !seekBarRef.current.classList.contains('hidden'))
+          seekBarRef.current.classList.add('hidden');
+
+        if (event.detail.progressDisplay && progressDisplayRef.current.classList.contains('hidden'))
+          progressDisplayRef.current.classList.remove('hidden');
+        else if (
+          !event.detail.progressDisplay &&
+          !progressDisplayRef.current.classList.contains('hidden')
+        )
+          progressDisplayRef.current.classList.add('hidden');
+      },
     );
 
-    return (): void =>
-      componentEventTarget.removeEventListener(
-        'componentsVisibilityUpdate',
-        updateListener as EventListenerOrEventListenerObject,
-      );
+    return removeUpdateListener;
   }, []);
 
   return (
@@ -148,18 +141,13 @@ export function ProgressContainer(props: {
         className={`seek-bar${!props.showSeekbar.current ? ' hidden' : ''}`}
         ref={seekBarRef}
         onClick={(event: React.MouseEvent) =>
-          componentEventTarget.dispatchEvent(
-            new CustomEvent('controlInteraction', {
-              detail: {
-                type: 'seek',
-                newProgress: Math.round(
-                  props.duration *
-                    (event.nativeEvent.offsetX /
-                      (seekBarRef.current as HTMLDivElement).offsetWidth),
-                ),
-              },
-            }),
-          )
+          dispatchEvent('controlInteraction', {
+            type: 'seek',
+            newProgress: Math.round(
+              props.duration *
+                (event.nativeEvent.offsetX / (seekBarRef.current as HTMLDivElement).offsetWidth),
+            ),
+          })
         }>
         <div
           className='inner'

@@ -2,7 +2,7 @@ import { common } from 'replugged';
 import { Controls } from './Controls';
 import { ProgressContainer } from './ProgressDisplay';
 import { TrackInfo } from './TrackInfo';
-import { componentEventTarget, config, defaultConfig, logger } from './global';
+import { config, dispatchEvent, listenToElementEvent, listenToEvent, logger } from './global';
 import { SpotifyTrack, SpotifyWebSocketState } from '../types';
 
 const { React } = common;
@@ -18,97 +18,57 @@ function getCustomThemeType(): string {
   return '';
 }
 
+function setRef<T>(ref: React.MutableRefObject<T>, value: T, after?: (value: T) => void): void {
+  if (ref.current !== value) {
+    ref.current = value;
+    if (typeof after === 'function') after(value);
+  }
+}
+
 export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
   const elementRef = React.useRef<HTMLDivElement>(null);
-  const persistRef = React.useRef<{ value: boolean }>(null);
 
   const shouldShowModal = React.useRef<boolean>(typeof props?.state === 'object');
-  const setShouldShowModal = React.useMemo<(newState: boolean) => void>((): ((
-    newValue: boolean,
-  ) => void) => {
-    return (newState: boolean): void => {
-      if (shouldShowModal.current === newState) return;
-
-      shouldShowModal.current = newState;
-      if (shouldShowModal.current !== !elementRef.current.classList.contains('hidden')) {
-        if (shouldShowModal.current) elementRef.current.classList.remove('hidden');
-        else elementRef.current.classList.add('hidden');
-      }
-    };
-  }, []);
+  const setShouldShowModal = (value: boolean) =>
+    setRef(shouldShowModal, value, (newValue) => {
+      if (newValue && elementRef.current.classList.contains('hidden'))
+        elementRef.current.classList.remove('hidden');
+      else if (!newValue && !elementRef.current.classList.contains('hidden'))
+        elementRef.current.classList.add('hidden');
+    });
 
   const shouldShowControls = React.useRef<boolean>(
-    config.get('controlsVisibilityState', defaultConfig.controlsVisibilityState) === 'always',
+    config.get('controlsVisibilityState') === 'always',
   );
-  const setShouldShowControls = React.useMemo<(newState: boolean) => void>((): ((
-    newState: boolean,
-  ) => void) => {
-    return (newState: boolean): void => {
-      if (shouldShowControls.current !== newState) shouldShowControls.current = newState;
-    };
-  }, []);
 
   const shouldShowProgressDisplay = React.useRef<boolean>(
-    config.get('progressDisplayVisibilityState', defaultConfig.progressDisplayVisibilityState) ===
-      'always',
+    config.get('progressDisplayVisibilityState') === 'always',
   );
-  const setShouldShowProgressDisplay = React.useMemo<(newState: boolean) => void>((): ((
-    newState: boolean,
-  ) => void) => {
-    return (newState: boolean): void => {
-      if (shouldShowProgressDisplay.current !== newState)
-        shouldShowProgressDisplay.current = newState;
-    };
-  }, []);
 
   const shouldShowSeekbar = React.useRef<boolean>(
-    config.get('seekbarVisibilityState', defaultConfig.seekbarVisibilityState) === 'always',
+    config.get('seekbarVisibilityState') === 'always',
   );
-  const setShouldShowSeekbar = React.useMemo<(newState: boolean) => void>((): ((
-    newState: boolean,
-  ) => void) => {
-    return (newState: boolean): void => {
-      if (shouldShowSeekbar.current !== newState) shouldShowSeekbar.current = newState;
-    };
-  }, []);
 
-  const setOptionalComponentsVisibility = React.useMemo<(newState: boolean) => void>((): ((
-    newState: boolean,
-  ) => void) => {
-    return (newState: boolean): void => {
-      if (config.get('controlsVisibilityState', defaultConfig.controlsVisibilityState) === 'auto')
-        setShouldShowControls(newState);
+  const setOptionalComponentsVisibility = (value: boolean) => {
+    if (config.get('controlsVisibilityState') === 'auto') setRef(shouldShowControls, value);
+    if (config.get('progressDisplayVisibilityState') === 'auto')
+      setRef(shouldShowProgressDisplay, value);
+    if (config.get('seekbarVisibilityState') === 'auto') setRef(shouldShowSeekbar, value);
 
-      if (
-        config.get(
-          'progressDisplayVisibilityState',
-          defaultConfig.progressDisplayVisibilityState,
-        ) === 'auto'
-      )
-        setShouldShowProgressDisplay(newState);
+    dispatchEvent('componentsVisibilityUpdate', {
+      controls: shouldShowControls.current,
+      seekBar: shouldShowSeekbar.current,
+      progressDisplay: shouldShowProgressDisplay.current,
+    });
 
-      if (config.get('seekbarVisibilityState', defaultConfig.seekbarVisibilityState) === 'auto')
-        setShouldShowSeekbar(newState);
-
-      componentEventTarget.dispatchEvent(
-        new CustomEvent('componentsVisibilityUpdate', {
-          detail: {
-            controls: shouldShowControls.current,
-            seekBar: shouldShowSeekbar.current,
-            progressDisplay: shouldShowProgressDisplay.current,
-          },
-        }),
+    if (config.get('debuggingLogComponentsUpdates'))
+      logger.log(
+        'Component update for modal component visibility:',
+        `\n- Controls: ${shouldShowControls.current};`,
+        `\n- Progress display: ${shouldShowProgressDisplay.current};`,
+        `\n- Seek bar: ${shouldShowSeekbar.current};`,
       );
-
-      if (config.get('debuggingLogComponentsUpdates', defaultConfig.debuggingLogComponentsUpdates))
-        logger.log(
-          'Component update for modal component visibility:',
-          `\n- Controls: ${shouldShowControls.current};`,
-          `\n- Progress display: ${shouldShowProgressDisplay.current};`,
-          `\n- Seek bar: ${shouldShowSeekbar.current};`,
-        );
-    };
-  }, []);
+  };
 
   const [track, setTrack] = React.useState<SpotifyTrack>(
     props?.state?.item
@@ -138,97 +98,49 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
   const [repeat, setRepeat] = React.useState<'off' | 'context' | 'track'>('off');
 
   React.useEffect(() => {
-    const stateUpdateListener = (event: CustomEvent<SpotifyWebSocketState>): void => {
-      if (event.detail.item) {
-        setShouldShowModal(true);
-        setTrack(event.detail.item);
-        setDuration(event.detail.item.duration_ms);
-        setProgress(event.detail.progress_ms);
-        setTimestamp(event.detail.timestamp);
-        setPlaying(event.detail.is_playing);
-        setShuffle(event.detail.shuffle_state);
-        setRepeat(event.detail.repeat_state);
-
-        if (
-          config.get('debuggingLogComponentsUpdates', defaultConfig.debuggingLogComponentsUpdates)
-        )
-          logger.log('Component update for new state', event.detail);
-      }
-    };
-
-    const shouldShowListener = (event: CustomEvent<boolean>): void => {
-      if (!persistRef.current?.value) {
-        setShouldShowModal(event.detail);
-        if (!event.detail) setPlaying(false);
-
-        if (
-          config.get('debuggingLogComponentsUpdates', defaultConfig.debuggingLogComponentsUpdates)
-        )
-          logger.log('Component update for modal visibility', event.detail);
-      } else {
-        persistRef.current.value = false;
-
-        if (
-          config.get('debuggingLogComponentsUpdates', defaultConfig.debuggingLogComponentsUpdates)
-        )
-          logger.log(
-            'Component update for modal visibility was overridden since visibility was persisted',
-          );
-      }
-    };
-
-    componentEventTarget.addEventListener(
+    const removeStateUpdateListener = listenToEvent<SpotifyWebSocketState>(
       'stateUpdate',
-      stateUpdateListener as EventListenerOrEventListenerObject,
+      (event) => {
+        if (event.detail.item) {
+          setShouldShowModal(true);
+          setTrack(event.detail.item);
+          setDuration(event.detail.item.duration_ms);
+          setProgress(event.detail.progress_ms);
+          setTimestamp(event.detail.timestamp);
+          setPlaying(event.detail.is_playing);
+          setShuffle(event.detail.shuffle_state);
+          setRepeat(event.detail.repeat_state);
+
+          if (config.get('debuggingLogComponentsUpdates'))
+            logger.log('Component update for new state', event.detail);
+        }
+      },
     );
-    componentEventTarget.addEventListener(
-      'shouldShowUpdate',
-      shouldShowListener as EventListenerOrEventListenerObject,
-    );
 
-    return () => {
-      componentEventTarget.removeEventListener(
-        'stateUpdate',
-        stateUpdateListener as EventListenerOrEventListenerObject,
-      );
-      componentEventTarget.removeEventListener(
-        'shouldShowUpdate',
-        shouldShowListener as EventListenerOrEventListenerObject,
-      );
-    };
-  }, []);
+    const removeShouldShowUpdateListener = listenToEvent<boolean>('shouldShowUpdate', (event) => {
+      setShouldShowModal(event.detail);
+      if (!event.detail) setPlaying(false);
 
-  React.useEffect((): (() => void) => {
-    if (!elementRef?.current) return (): void => {};
+      if (config.get('debuggingLogComponentsUpdates'))
+        logger.log('Component update for modal visibility', event.detail);
+    });
 
-    const hoverListener = (): void => setOptionalComponentsVisibility(true);
-    const leaveListener = (): void => setOptionalComponentsVisibility(false);
+    const removeComponentVisibilityListener = listenToEvent<{
+      type: 'controlsVisibilityState' | 'progressDisplayVisibilityState' | 'seekbarVisibilityState';
+      state: 'auto' | 'hidden' | 'always';
+    }>('componentVisibilityUpdateSettings', (event) => {
+      if (event.detail.type === 'controlsVisibilityState')
+        setRef(shouldShowControls, event.detail.state === 'always');
+      else if (event.detail.type === 'progressDisplayVisibilityState')
+        setRef(shouldShowProgressDisplay, event.detail.state === 'always');
+      else if (event.detail.type === 'seekbarVisibilityState')
+        setRef(shouldShowSeekbar, event.detail.state === 'always');
 
-    const componentVisibilityUpdateListener = (
-      ev: CustomEvent<{
-        type:
-          | 'controlsVisibilityState'
-          | 'progressDisplayVisibilityState'
-          | 'seekbarVisibilityState';
-        state: 'auto' | 'hidden' | 'always';
-      }>,
-    ): void => {
-      if (ev.detail.type === 'controlsVisibilityState')
-        setShouldShowControls(ev.detail.state === 'always');
-      else if (ev.detail.type === 'progressDisplayVisibilityState')
-        setShouldShowProgressDisplay(ev.detail.state === 'always');
-      else if (ev.detail.type === 'seekbarVisibilityState')
-        setShouldShowSeekbar(ev.detail.state === 'always');
-
-      componentEventTarget.dispatchEvent(
-        new CustomEvent('componentsVisibilityUpdate', {
-          detail: {
-            controls: shouldShowControls.current,
-            seekBar: shouldShowSeekbar.current,
-            progressDisplay: shouldShowProgressDisplay.current,
-          },
-        }),
-      );
+      dispatchEvent('componentsVisibilityUpdate', {
+        controls: shouldShowControls.current,
+        seekBar: shouldShowSeekbar.current,
+        progressDisplay: shouldShowProgressDisplay.current,
+      });
 
       if (config.get('debuggingLogComponentsUpdates', false))
         logger.log(
@@ -238,47 +150,28 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
               controlsVisibilityState: 'Controls',
               progressDisplayVisibilityState: 'Progress display',
               seekbarVisibilityState: 'Seek bar',
-            }[ev.detail.type]
-          }: ${ev.detail.state === 'always'}`,
+            }[event.detail.type]
+          }: ${event.detail.state === 'always'}`,
         );
-    };
+    });
 
-    elementRef.current.addEventListener('mouseenter', hoverListener);
-    elementRef.current.addEventListener('mouseleave', leaveListener);
-    componentEventTarget.addEventListener(
-      'componentVisibilityUpdateSettings',
-      componentVisibilityUpdateListener as EventListenerOrEventListenerObject,
+    const removeHoverListener = listenToElementEvent(elementRef.current, 'mouseenter', () =>
+      setOptionalComponentsVisibility(true),
+    );
+    const removeLeaveListener = listenToElementEvent(elementRef.current, 'mouseleave', () =>
+      setOptionalComponentsVisibility(false),
     );
 
     return (): void => {
       if (elementRef?.current) {
-        elementRef.current.removeEventListener('mouseenter', hoverListener);
-        elementRef.current.removeEventListener('mouseleave', leaveListener);
-        componentEventTarget.removeEventListener(
-          'componentVisibilityUpdateSettings',
-          componentVisibilityUpdateListener as EventListenerOrEventListenerObject,
-        );
+        removeHoverListener();
+        removeLeaveListener();
       }
+
+      removeStateUpdateListener();
+      removeShouldShowUpdateListener();
+      removeComponentVisibilityListener();
     };
-  }, []);
-
-  React.useEffect((): (() => void) => {
-    const getPersistRefListener = (ev: CustomEvent<{ value: boolean }>): void => {
-      persistRef.current = ev.detail;
-    };
-
-    componentEventTarget.addEventListener(
-      'persistRef',
-      getPersistRefListener as EventListenerOrEventListenerObject,
-    );
-
-    componentEventTarget.dispatchEvent(new CustomEvent('getPersistRef'));
-
-    return (): void =>
-      componentEventTarget.removeEventListener(
-        'persistRef',
-        getPersistRefListener as EventListenerOrEventListenerObject,
-      );
   }, []);
 
   return (

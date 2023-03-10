@@ -1,23 +1,22 @@
 import { common } from 'replugged';
 import { SpotifyTrack } from '../types';
-import { componentEventTarget, paths } from './global';
+import { dispatchEvent, listenToEvent, paths } from './global';
 
 const { React } = common;
 
-function Icon(props: {
+function ControlButton(props: {
   className?: string;
-  fill?: string;
   onClick?: (mouseEvent: React.MouseEvent) => unknown;
   title?: string;
   path: string;
 }): JSX.Element {
   return (
     <svg
-      className={typeof props.className === 'string' ? props.className : ''}
+      className={`icon${typeof props.className === 'string' ? ` ${props.className}` : ''}`}
       onClick={typeof props.onClick === 'function' ? props.onClick : null}
       viewBox='0 0 24 24'>
       <title>{typeof props.title === 'string' ? props.title : ''}</title>
-      <path fill={typeof props.fill === 'string' ? props.fill : 'currentColor'} d={props.path} />
+      <path fill='currentColor' d={props.path} />
     </svg>
   );
 }
@@ -33,108 +32,79 @@ export function Controls(props: {
 }): JSX.Element {
   const controlsRef = React.useRef<HTMLDivElement>(null);
 
-  React.useEffect((): (() => void) => {
-    if (!controlsRef?.current) return (): void => {};
+  React.useEffect(
+    (): (() => void) =>
+      listenToEvent<{
+        controls: boolean;
+        seekBar: boolean;
+        progressDisplay: boolean;
+      }>('componentsVisibilityUpdate', (ev) => {
+        if (ev.detail.controls === !controlsRef.current.classList.contains('hidden')) return;
 
-    const updateListener = (
-      ev: CustomEvent<{ controls: boolean; seekBar: boolean; progressDisplay: boolean }>,
-    ) => {
-      if (ev.detail.controls === !controlsRef.current.classList.contains('hidden')) return;
-
-      if (ev.detail.controls) controlsRef.current.classList.remove('hidden');
-      else controlsRef.current.classList.add('hidden');
-    };
-
-    componentEventTarget.addEventListener(
-      'componentsVisibilityUpdate',
-      updateListener as EventListenerOrEventListenerObject,
-    );
-
-    return (): void =>
-      componentEventTarget.removeEventListener(
-        'componentsVisibilityUpdate',
-        updateListener as EventListenerOrEventListenerObject,
-      );
-  }, []);
+        if (ev.detail.controls) controlsRef.current.classList.remove('hidden');
+        else controlsRef.current.classList.add('hidden');
+      }),
+    [],
+  );
 
   return (
     <div className={`controls${props.shouldShow.current ? '' : ' hidden'}`} ref={controlsRef}>
-      <Icon
+      <ControlButton
         className={`shuffle${props.shuffle ? ' active' : ''}`}
-        onClick={(event: React.MouseEvent): boolean =>
-          componentEventTarget.dispatchEvent(
-            new CustomEvent('controlInteraction', {
-              detail: {
-                event,
-                type: 'shuffle',
-                currentState: props.shuffle,
-              },
-            }),
-          )
+        onClick={(event: React.MouseEvent): void =>
+          dispatchEvent('controlInteraction', {
+            event,
+            type: 'shuffle',
+            currentState: props.shuffle,
+          })
         }
         path={paths.shuffle}
         title={`Shuffle ${props.shuffle ? 'on' : 'off'}`}
       />
-      <Icon
+      <ControlButton
         className='skip-prev'
-        onClick={(event: React.MouseEvent): boolean =>
-          componentEventTarget.dispatchEvent(
-            new CustomEvent('controlInteraction', {
-              detail: {
-                event,
-                type: 'skipPrev',
-                currentProgress: props.progress.current,
-                currentDuration: props.duration,
-              },
-            }),
-          )
+        onClick={(event: React.MouseEvent): void =>
+          dispatchEvent('controlInteraction', {
+            event,
+            type: 'skipPrev',
+            currentProgress: props.progress.current,
+            currentDuration: props.duration,
+          })
         }
         path={paths.skipPrevious}
         title='Skip to previous track'
       />
-      <Icon
+      <ControlButton
         className='play-pause'
-        onClick={(event: React.MouseEvent): boolean =>
-          componentEventTarget.dispatchEvent(
-            new CustomEvent('controlInteraction', {
-              detail: {
-                event,
-                type: 'playPause',
-                currentState: props.playing,
-              },
-            }),
-          )
+        onClick={(event: React.MouseEvent): void =>
+          dispatchEvent('controlInteraction', {
+            event,
+            type: 'playPause',
+            currentState: props.playing,
+          })
         }
         path={props.playing ? paths.pause : paths.play}
         title={`${props.playing ? 'Pause' : 'Resume'} track`}
       />
-      <Icon
+      <ControlButton
         className='skip-next'
-        onClick={(event: React.MouseEvent): boolean =>
-          componentEventTarget.dispatchEvent(
-            new CustomEvent('controlInteraction', {
-              detail: {
-                event,
-                type: 'skipNext',
-              },
-            }),
-          )
+        onClick={(event: React.MouseEvent): void =>
+          dispatchEvent('controlInteraction', {
+            event,
+            type: 'skipNext',
+          })
         }
         path={paths.skipNext}
         title='Skip to next track'
       />
-      <Icon
+      <ControlButton
         className={`repeat${props.repeat !== 'off' ? ' active' : ''}`}
-        onClick={(event: React.MouseEvent): boolean =>
-          componentEventTarget.dispatchEvent(
-            new CustomEvent('controlInteraction', {
-              detail: {
-                event,
-                type: 'repeat',
-                currentState: props.repeat,
-              },
-            }),
-          )
+        onClick={(event: React.MouseEvent): void =>
+          dispatchEvent('controlInteraction', {
+            event,
+            type: 'repeat',
+            currentState: props.repeat,
+          })
         }
         path={props.repeat !== 'track' ? paths.repeatAll : paths.repeatOne}
         title={`Repeat ${props.repeat !== 'context' ? props.repeat : 'all'}`}
