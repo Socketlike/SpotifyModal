@@ -37,7 +37,7 @@ what you're playing on Spotify.
 - Link your Spotify account to Discord if you haven't already
 - Play any Spotify song (that's literally it)
 
-<h2 align="center">Preview</h2>
+## Preview
 
 ![Preview](Preview.gif)
 
