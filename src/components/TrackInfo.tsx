@@ -12,9 +12,8 @@ const { React } = common;
 
 function Artists(props: { artists: SpotifyUser[] }): JSX.Element {
   const elementRef = React.useRef<HTMLSpanElement>(null);
-  const overflowCheck = React.useCallback((): void => {
+  const overflowCheck = (): void => {
     if (
-      elementRef.current &&
       elementRef.current.scrollWidth > elementRef.current.offsetWidth + 10
     ) {
       elementRef.current.style.setProperty(
@@ -28,15 +27,13 @@ function Artists(props: { artists: SpotifyUser[] }): JSX.Element {
       if (!elementRef.current.classList.contains('overflow'))
         elementRef.current.classList.add('overflow');
     } else if (
-      elementRef.current &&
       elementRef.current.scrollWidth <= elementRef.current.offsetWidth + 10
     )
       if (elementRef.current.classList.contains('overflow'))
         elementRef.current.classList.remove('overflow');
-  }, []);
+  };
 
   React.useEffect(overflowCheck);
-  React.useEffect(overflowCheck, [elementRef.current]);
 
   return (
     <span className='artists' ref={elementRef}>
@@ -85,9 +82,8 @@ function Artists(props: { artists: SpotifyUser[] }): JSX.Element {
 
 function Title(props: { track: SpotifyTrack }): JSX.Element {
   const elementRef = React.useRef<HTMLAnchorElement>(null);
-  const overflowCheck = React.useCallback((): void => {
+  const overflowCheck = (): void => {
     if (
-      elementRef.current &&
       elementRef.current.scrollWidth > elementRef.current.offsetWidth + 10
     ) {
       elementRef.current.style.setProperty(
@@ -101,15 +97,13 @@ function Title(props: { track: SpotifyTrack }): JSX.Element {
       if (!elementRef.current.classList.contains('overflow'))
         elementRef.current.classList.add('overflow');
     } else if (
-      elementRef.current &&
       elementRef.current.scrollWidth <= elementRef.current.offsetWidth + 10
     )
       if (elementRef.current.classList.contains('overflow'))
         elementRef.current.classList.remove('overflow');
-  }, []);
+  };
 
   React.useEffect(overflowCheck);
-  React.useEffect(overflowCheck, [elementRef.current]);
 
   return (
     <a

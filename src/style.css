@@ -85,12 +85,8 @@
 
 .spotify-modal > .header > .track-info > .title.overflow,
 .spotify-modal > .header > .track-info > .artists.overflow {
+  animation: scrolling var(--animation-duration) linear infinite;
   animation-direction: alternate-reverse;
-  animation-duration: var(--animation-duration);
-  animation-iteration-count: infinite;
-  animation-name: scrolling;
-  animation-play-state: running;
-  animation-timing-function: linear;
 }
 
 .spotify-modal > .header > .track-info > .title.overflow:hover,
