@@ -13,9 +13,7 @@ const { React } = common;
 function Artists(props: { artists: SpotifyUser[] }): JSX.Element {
   const elementRef = React.useRef<HTMLSpanElement>(null);
   const overflowCheck = (): void => {
-    if (
-      elementRef.current.scrollWidth > elementRef.current.offsetWidth + 10
-    ) {
+    if (elementRef.current.scrollWidth > elementRef.current.offsetWidth + 10) {
       elementRef.current.style.setProperty(
         '--scroll-space',
         `-${(elementRef.current.scrollWidth - elementRef.current.offsetWidth).toString()}px`,
@@ -26,9 +24,7 @@ function Artists(props: { artists: SpotifyUser[] }): JSX.Element {
       );
       if (!elementRef.current.classList.contains('overflow'))
         elementRef.current.classList.add('overflow');
-    } else if (
-      elementRef.current.scrollWidth <= elementRef.current.offsetWidth + 10
-    )
+    } else if (elementRef.current.scrollWidth <= elementRef.current.offsetWidth + 10)
       if (elementRef.current.classList.contains('overflow'))
         elementRef.current.classList.remove('overflow');
   };
@@ -83,9 +79,7 @@ function Artists(props: { artists: SpotifyUser[] }): JSX.Element {
 function Title(props: { track: SpotifyTrack }): JSX.Element {
   const elementRef = React.useRef<HTMLAnchorElement>(null);
   const overflowCheck = (): void => {
-    if (
-      elementRef.current.scrollWidth > elementRef.current.offsetWidth + 10
-    ) {
+    if (elementRef.current.scrollWidth > elementRef.current.offsetWidth + 10) {
       elementRef.current.style.setProperty(
         '--scroll-space',
         `-${(elementRef.current.scrollWidth - elementRef.current.offsetWidth).toString()}px`,
@@ -96,9 +90,7 @@ function Title(props: { track: SpotifyTrack }): JSX.Element {
       );
       if (!elementRef.current.classList.contains('overflow'))
         elementRef.current.classList.add('overflow');
-    } else if (
-      elementRef.current.scrollWidth <= elementRef.current.offsetWidth + 10
-    )
+    } else if (elementRef.current.scrollWidth <= elementRef.current.offsetWidth + 10)
       if (elementRef.current.classList.contains('overflow'))
         elementRef.current.classList.remove('overflow');
   };
