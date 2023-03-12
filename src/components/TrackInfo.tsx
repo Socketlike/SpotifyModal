@@ -145,7 +145,7 @@ export function TrackInfo(props: { track: SpotifyTrack }): JSX.Element {
         src={
           typeof props?.track?.album?.images?.[0]?.url === 'string'
             ? props.track.album.images[0].url
-            : ''
+            : undefined
         }
         onClick={(): void => {
           if (typeof props.track?.album?.id === 'string' && config.get('hyperlinkAlbumEnabled'))
@@ -162,7 +162,11 @@ export function TrackInfo(props: { track: SpotifyTrack }): JSX.Element {
             common.toast.toast('Copied album URL to clipboard', 1);
           }
         }}
-        title={props.track.album.name}
+        title={
+          typeof props?.track?.album?.images?.[0]?.url === 'string'
+            ? props.track.album.name
+            : undefined
+        }
       />
       <div className='track-info'>
         <Title track={props.track} />

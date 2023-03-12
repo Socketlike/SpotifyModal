@@ -42,13 +42,12 @@
 }
 
 .spotify-modal > .header > .cover-art {
-  border-radius: 8px;
-  max-height: 80%;
-  max-width: 80%;
+  border-radius: 6px;
+  max-width: 38px;
   object-fit: contain;
 }
 
-.spotify-modal > .header > .cover-art.href:hover {
+.spotify-modal > .header > .cover-art:hover {
   cursor: pointer;
 }
 
