@@ -7,7 +7,7 @@ import { Modal, config, logger } from './components/index';
 import { SpotifySocket, SpotifyStore } from './types';
 import { Root, RootOptions } from 'react-dom/client';
 
-const { ReactDOM } = common;
+const { ReactDOM, api } = common;
 const { createRoot } = ReactDOM as unknown as {
   createRoot: (container: Element | DocumentFragment, options?: RootOptions) => Root;
 };
@@ -23,11 +23,6 @@ root.react = createRoot(root.element);
 const modal = <Modal />;
 root.react.render(modal);
 
-// This is also a webpack module but I don't really want to process another module just for string manipulation
-export function connectionAccessTokenEndpoint(service: string, id: string): string {
-  return `/users/@me/connections/${service}/${id}/access-token`;
-}
-
 const baseURL = 'https://api.spotify.com/v1/me/';
 export let store = (await webpack.waitForModule(
   webpack.filters.byProps('getActiveSocketAndDevice'),
@@ -40,28 +35,10 @@ autoPauseModule.raw = await webpack.waitForModule<Record<string, types.AnyFuncti
   webpack.filters.bySource(/\.PLAYER_PAUSE/),
 );
 autoPauseModule.key = webpack.getFunctionKeyBySource(autoPauseModule.raw, /\.PLAYER_PAUSE/);
-export let fetcher = webpack.getExportsForProps(
-  await webpack.waitForModule(webpack.filters.byProps('V8APIError', 'get', 'post', 'patch')),
-  ['get', 'post', 'patch'],
-) as unknown as {
-  get: (data: { url: string; oldFormErrors: boolean }) => Promise<{
-    body: Record<string, string>;
-    ok: boolean;
-    status: number;
-    text: string;
-  }>;
-};
 
 export const spotifyAPI = {
-  fetchToken: (
-    accountId: string,
-  ): Promise<{
-    body: Record<string, string>;
-    ok: boolean;
-    status: number;
-    text: string;
-  }> =>
-    fetcher.get({ url: connectionAccessTokenEndpoint('spotify', accountId), oldFormErrors: true }),
+  fetchToken: (accountId: string) =>
+    api.get({ url: `/users/@me/connections/spotify/${accountId}/access-token` }),
   sendGenericRequest: (
     accessToken: string,
     endpoint: string,
