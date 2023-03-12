@@ -38,7 +38,9 @@ autoPauseModule.key = webpack.getFunctionKeyBySource(autoPauseModule.raw, /\.PLA
 
 export const spotifyAPI = {
   fetchToken: (accountId: string) =>
-    api.get({ url: `/users/@me/connections/spotify/${accountId}/access-token` }),
+    api.get<{ access_token: string }>({
+      url: `/users/@me/connections/spotify/${accountId}/access-token`,
+    }),
   sendGenericRequest: (
     accessToken: string,
     endpoint: string,
