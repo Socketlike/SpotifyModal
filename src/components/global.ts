@@ -33,7 +33,7 @@ export const listenToElementEvent = <DataType>(
   return () => element.removeEventListener(name, callback as EventListenerOrEventListenerObject);
 };
 
-export const config = await settings.init('lib.evelyn.SpotifyModal', {
+export const defaultConfig = {
   automaticReauthentication: false,
   controlsVisibilityState: 'auto',
   copyingArtistURLEnabled: true,
@@ -56,7 +56,9 @@ export const config = await settings.init('lib.evelyn.SpotifyModal', {
   seekbarVisibilityState: 'always',
   skipPreviousShouldResetProgress: true,
   skipPreviousProgressResetThreshold: 0.15,
-});
+};
+
+export const config = await settings.init('lib.evelyn.SpotifyModal', defaultConfig);
 
 export const paths = {
   pause,
