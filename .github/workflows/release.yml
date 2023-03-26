@@ -31,7 +31,7 @@ jobs:
       - name: Build TypeScript and bundle into asar
         run: pnpm run build:prod:bundle
 
-      - uses: ncipollo/release-action@v1
+      - uses: ncipollo/release-action@main
         with:
           artifacts: 'bundle/*'
           makeLatest: true

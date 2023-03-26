@@ -42,13 +42,13 @@ jobs:
         run: pnpm run build:dev:bundle
 
       - name: Clear latest nightly release
-        uses: dev-drprasad/delete-tag-and-release@v0.2.0
+        uses: dev-drprasad/delete-tag-and-release@master
         with:
           tag_name: nightly
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: ncipollo/release-action@v1
+      - uses: ncipollo/release-action@main
         with:
           artifacts: 'bundle/*'
           makeLatest: true
