@@ -16,10 +16,8 @@ specifiers:
   replugged: ^4.2.1
   typescript: ^4.9.5
 
-dependencies:
-  '@mdi/js': 7.1.96
-
 devDependencies:
+  '@mdi/js': 7.1.96
   '@types/lodash': 4.14.191
   '@types/node': 18.15.3
   '@types/react': 18.0.28
@@ -523,7 +521,7 @@ packages:
 
   /@mdi/js/7.1.96:
     resolution: {integrity: sha512-wlrJs6Ryhaa5CqhK3FjTfMRnb/s7HeLkKMFqwQySkK86cdN1TGdzpSM3O4tsmzCA1dYBeTbXvOwSE/Y42cUrvA==}
-    dev: false
+    dev: true
 
   /@mischnic/json-sourcemap/0.1.0:
     resolution: {integrity: sha512-dQb3QnfNqmQNYA4nFSN/uLaByIic58gOXq4Y4XqLOWmOrw73KmJPt/HLyG0wvn1bnR6mBKs/Uwvkh+Hns1T0XA==}
