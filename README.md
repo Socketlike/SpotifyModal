@@ -53,7 +53,8 @@ You can also customize how the modal looks via CSS:
     - Track info container: `track-info`
       - Song title: `title`
       - Artists list: `artists`
-        - Artist with hyperlink: `artist`
+        - Artist with hyperlink: `artist` or target the `a` element
+        - Artist with no hyperlink: Not yet
   - Dock: `dock`
     - Progress display container: `progress-display`
       - Current time display: `current`
@@ -75,7 +76,6 @@ You can also customize how the modal looks via CSS:
 - The progress bar can be off by 1s - 5s at times when the Discord app lags and the Spotify state
   updates. **(There is no real fix for this as we cannot trust Spotify's timestamp, it is >=
   ~350000ms off, consistently)**
-- Updating Discord's language will cause the modal to be removed until you reload the plugin
 
 ## Miscellaneous
 
@@ -97,4 +97,4 @@ You can also customize how the modal looks via CSS:
     - [x] Track seeking by clicking on bar
     - [ ] Track scrubbing
   - [ ] Volume control
-- [ ] Fix modal injection
+  - [ ] (Unl|L)ike tracks

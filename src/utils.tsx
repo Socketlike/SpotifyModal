@@ -3,7 +3,7 @@
 */
 
 import { Injector, common, util, types, webpack } from 'replugged';
-import { Modal, config, logger } from './components/index';
+import { Modal, config, defaultConfig, logger } from './components/index';
 import { SpotifySocket, SpotifyStore } from './types';
 import { Root, RootOptions } from 'react-dom/client';
 
@@ -191,11 +191,10 @@ export async function getAllSpotifyAccounts(): Promise<Record<string, SpotifySoc
 }
 
 export function logIfConfigTrue(
-  key: string,
+  key: keyof typeof defaultConfig,
   level: 'log' | 'warn' | 'error' = 'log',
   ...rest: unknown[]
 ): void {
-  // @ts-expect-error - Typing this would be a pain
   if (config.get(key)) logger[level](`(${key})`, ...rest);
 }
 

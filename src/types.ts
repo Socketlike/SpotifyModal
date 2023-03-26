@@ -11,7 +11,7 @@ export interface SpotifySocket {
     jitter: boolean;
     max: number;
     min: number;
-    _callback: (...args: unknown[]) => unknown;
+    _callback(...args: unknown[]): unknown;
     _current: number;
     _fails: number;
     current: number;
@@ -19,7 +19,7 @@ export interface SpotifySocket {
     pending: number;
   };
   connectionId: string;
-  handleDeviceStateChange: (...args: unknown[]) => unknown;
+  handleDeviceStateChange(...args: unknown[]): unknown;
   isPremium: boolean;
   pingInterval: {
     _ref: number;
@@ -171,13 +171,13 @@ export interface SpotifyWebSocketRawParsedMessage {
 export type SpotifyWebSocketDevices = SpotifyDevice[];
 
 export interface SpotifyStore {
-  getActiveSocketAndDevice: () =>
+  getActiveSocketAndDevice():
     | undefined
     | {
         socket: SpotifySocket;
         device: SpotifyDevice;
       };
-  __getLocalVars: () => {
+  __getLocalVars(): {
     AUTO_PAUSE_TIMEOUT: 30000;
     DEVICE_STATE_CHANGE_THROTTLE: 3000;
     MAXIMUM_ARTISTS: 5;
@@ -187,7 +187,7 @@ export interface SpotifyStore {
     PLATFORM: {
       color: 'var(--spotify)';
       enabled: boolean;
-      getPlatformUserUrl: (...args: unknown[]) => unknown;
+      getPlatformUserUrl(...args: unknown[]): unknown;
       icon: {
         darkPNG: string;
         darkSVG: string;
@@ -221,14 +221,14 @@ export interface SpotifyStore {
     accounts: Record<string, SpotifySocket>;
     lastPlayedTrackId: string | undefined;
     logger: {
-      error: (...data: unknown[]) => void;
-      info: (...data: unknown[]) => void;
-      log: (...data: unknown[]) => void;
+      error(...data: unknown[]): void;
+      info(...data: unknown[]): void;
+      log(...data: unknown[]): void;
       name: 'Spotify';
-      time: (...data: unknown[]) => void;
-      trace: (...data: unknown[]) => void;
-      verbose: (...data: unknown[]) => void;
-      warn: (...data: unknown[]) => void;
+      time(...data: unknown[]): void;
+      trace(...data: unknown[]): void;
+      verbose(...data: unknown[]): void;
+      warn(...data: unknown[]): void;
     };
     pinnedState: unknown;
     playerDevices: Record<string, SpotifyDevice[]>;
@@ -247,5 +247,5 @@ export interface SpotifyStore {
     };
     wasAutoPaused: boolean;
   };
-  wasAutoPaused: () => boolean;
+  wasAutoPaused(): boolean;
 }
