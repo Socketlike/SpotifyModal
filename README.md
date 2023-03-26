@@ -98,3 +98,7 @@ You can also customize how the modal looks via CSS:
     - [ ] Track scrubbing
   - [ ] Volume control
   - [ ] (Unl|L)ike tracks
+- [ ] Popout modals
+  - [ ] Track popout modal
+  - [ ] Artist popout modal
+  - [ ] Album popout modal
