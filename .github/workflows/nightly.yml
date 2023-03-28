@@ -18,7 +18,7 @@ jobs:
     steps:
       - name: Get current date
         id: date
-        run: echo "::set-output name=date::$(date +'%d/%m/%Y - %T')"
+        run: echo date=\"$(date +"%D at %r")\" >> $GITHUB_OUTPUT
 
       - name: Check out Git repository
         uses: actions/checkout@v3
@@ -54,7 +54,7 @@ jobs:
           makeLatest: true
           allowUpdates: true
           tag: nightly
-          body: 'Generated at `${{ steps.date.outputs.date }}`'
+          body: 'Generated on `${{ steps.date.outputs.date }}`'
           name: nightly
           generateReleaseNotes: true
           replacesArtifacts: true
