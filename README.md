@@ -96,6 +96,6 @@ You can also customize how the modal looks via CSS:
   - [ ] Track seeking
     - [x] Track seeking by clicking on bar
     - [ ] Track scrubbing
-  - [ ] Like / Unlike tracks (**will not implement, see [docs/SCOPES](docs/SCOPES.md)**)
+  - [ ] Like / Unlike tracks (**will not be implemented for now, see [docs/SCOPES](docs/SCOPES.md)**)
   - [ ] Volume control
-- [ ] Add the ability for users to use their custom OAUTH2 code instead of using Discord's access token (**see [docs/AUTHORIZATION](docs/AUTHORIZATION.md)**)
+- [ ] Add the ability for users to use their custom OAuth2 code to generate access tokens instead of using Discord's access token (**see [docs/AUTHORIZATION](docs/AUTHORIZATION.md)**)
