@@ -1,5 +1,4 @@
 import { common } from 'replugged';
-import { SpotifyTrack, SpotifyUser } from '../types';
 import { config } from './global';
 
 declare const DiscordNative: {
@@ -10,7 +9,7 @@ declare const DiscordNative: {
 
 const { React } = common;
 
-function Artists(props: { artists: SpotifyUser[] }): JSX.Element {
+function Artists(props: { artists: Spotify.User[] }): JSX.Element {
   const elementRef = React.useRef<HTMLSpanElement>(null);
   const overflowCheck = (): void => {
     if (elementRef.current.scrollWidth > elementRef.current.offsetWidth + 10) {
@@ -34,7 +33,7 @@ function Artists(props: { artists: SpotifyUser[] }): JSX.Element {
   return (
     <span className='artists' ref={elementRef}>
       {Array.isArray(props.artists)
-        ? props.artists.map((artist: SpotifyUser, index: number): React.ReactElement => {
+        ? props.artists.map((artist: Spotify.User, index: number): React.ReactElement => {
             if (typeof artist.id === 'string')
               return (
                 <>
@@ -76,7 +75,7 @@ function Artists(props: { artists: SpotifyUser[] }): JSX.Element {
   );
 }
 
-function Title(props: { track: SpotifyTrack }): JSX.Element {
+function Title(props: { track: Spotify.Track }): JSX.Element {
   const elementRef = React.useRef<HTMLAnchorElement>(null);
   const overflowCheck = (): void => {
     if (elementRef.current.scrollWidth > elementRef.current.offsetWidth + 10) {
@@ -123,7 +122,7 @@ function Title(props: { track: SpotifyTrack }): JSX.Element {
   );
 }
 
-export function TrackInfo(props: { track: SpotifyTrack }): JSX.Element {
+export function TrackInfo(props: { track: Spotify.Track }): JSX.Element {
   return (
     <div className='header'>
       <img

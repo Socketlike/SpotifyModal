@@ -1,5 +1,4 @@
 import { common } from 'replugged';
-import { SpotifyTrack } from '../types';
 import { dispatchEvent, listenToEvent, paths } from './global';
 
 const { React } = common;
@@ -28,7 +27,7 @@ export function Controls(props: {
   shuffle: boolean;
   repeat: 'off' | 'context' | 'track';
   shouldShow: React.MutableRefObject<boolean>;
-  track: SpotifyTrack;
+  track: Spotify.Track;
 }): JSX.Element {
   const controlsRef = React.useRef<HTMLDivElement>(null);
 

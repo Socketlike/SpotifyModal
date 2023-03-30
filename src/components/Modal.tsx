@@ -3,7 +3,6 @@ import { Controls } from './Controls';
 import { ProgressContainer } from './ProgressDisplay';
 import { TrackInfo } from './TrackInfo';
 import { config, dispatchEvent, listenToElementEvent, listenToEvent, logger } from './global';
-import { SpotifyTrack, SpotifyWebSocketState } from '../types';
 
 const { React } = common;
 
@@ -25,7 +24,7 @@ function setRef<T>(ref: React.MutableRefObject<T>, value: T, after?: (value: T) 
   }
 }
 
-export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
+export function Modal(props: { state?: Spotify.State }): JSX.Element {
   const elementRef = React.useRef<HTMLDivElement>(null);
 
   const shouldShowModal = React.useRef<boolean>(typeof props?.state === 'object');
@@ -70,14 +69,14 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
       );
   };
 
-  const [track, setTrack] = React.useState<SpotifyTrack>(
+  const [track, setTrack] = React.useState<Spotify.Track>(
     props?.state?.item
       ? props?.state?.item
       : ({
           album: { name: 'None', images: [{}] },
           artists: [{ name: 'None' }],
           name: 'None',
-        } as SpotifyTrack),
+        } as Spotify.Track),
   );
   const [duration, setDuration] = React.useState<number>(
     typeof props?.state?.item?.duration_ms === 'number' ? props.state.item.duration_ms : 0,
@@ -98,24 +97,21 @@ export function Modal(props: { state?: SpotifyWebSocketState }): JSX.Element {
   const [repeat, setRepeat] = React.useState<'off' | 'context' | 'track'>('off');
 
   React.useEffect(() => {
-    const removeStateUpdateListener = listenToEvent<SpotifyWebSocketState>(
-      'stateUpdate',
-      (event) => {
-        if (event.detail.item) {
-          setShouldShowModal(true);
-          setTrack(event.detail.item);
-          setDuration(event.detail.item.duration_ms);
-          setProgress(event.detail.progress_ms);
-          setTimestamp(event.detail.timestamp);
-          setPlaying(event.detail.is_playing);
-          setShuffle(event.detail.shuffle_state);
-          setRepeat(event.detail.repeat_state);
+    const removeStateUpdateListener = listenToEvent<Spotify.State>('stateUpdate', (event) => {
+      if (event.detail.item) {
+        setShouldShowModal(true);
+        setTrack(event.detail.item);
+        setDuration(event.detail.item.duration_ms);
+        setProgress(event.detail.progress_ms);
+        setTimestamp(event.detail.timestamp);
+        setPlaying(event.detail.is_playing);
+        setShuffle(event.detail.shuffle_state);
+        setRepeat(event.detail.repeat_state);
 
-          if (config.get('debuggingLogComponentsUpdates'))
-            logger.log('Component update for new state', event.detail);
-        }
-      },
-    );
+        if (config.get('debuggingLogComponentsUpdates'))
+          logger.log('Component update for new state', event.detail);
+      }
+    });
 
     const removeShouldShowUpdateListener = listenToEvent<boolean>('shouldShowUpdate', (event) => {
       setShouldShowModal(event.detail);
