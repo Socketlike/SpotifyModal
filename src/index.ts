@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
 import { common } from 'replugged';
 import { Settings, config, dispatchEvent, listenToEvent, logger } from './components/index';
-import { SpotifySocket, SpotifyWebSocket, SpotifyWebSocketRawParsedMessage } from './types';
 import {
   autoPauseModule,
   discordAnalytics,
@@ -27,7 +26,7 @@ export const env = {
   injectedAccounts: [] as string[],
   persist: false,
 } as {
-  accounts: Record<string, SpotifySocket>;
+  accounts: Record<string, Spotify.Account>;
   currentAccountId: string;
   injectedAccounts: string[];
   persist: boolean;
@@ -181,24 +180,6 @@ const removeControlInteractionListener = listenToEvent<{
 
       break;
     }
-    case 'favorite': {
-      spotifyAPI
-        .saveOrRemoveTracks(
-          getAccessTokenFromAccountId(env.currentAccountId),
-          Boolean(ev.detail.favorite.add),
-          ev.detail.favorite.id,
-        )
-        .then(
-          (res: Response): Promise<Response> =>
-            controlInteractionErrorHandler(
-              res,
-              Boolean(ev.detail.favorite.add),
-              ev.detail.favorite.id,
-            ),
-        );
-
-      break;
-    }
     default: {
       env.persist = false;
       break;
@@ -206,8 +187,8 @@ const removeControlInteractionListener = listenToEvent<{
   }
 });
 
-const handleMessageInjection = (res: MessageEvent[], self: SpotifyWebSocket): Promise<void> => {
-  const parsed = JSON.parse(res[0].data) as SpotifyWebSocketRawParsedMessage;
+const handleMessageInjection = (res: MessageEvent[], self: Spotify.PluginWS): Promise<void> => {
+  const parsed = JSON.parse(res[0].data) as Spotify.WSRawParsed;
 
   if (parsed.type === 'pong' || !parsed?.payloads?.[0]?.events?.[0]) return;
 
@@ -248,7 +229,7 @@ const handleMessageInjection = (res: MessageEvent[], self: SpotifyWebSocket): Pr
   }
 };
 
-function injectIntoSocket(account: SpotifySocket): void {
+function injectIntoSocket(account: Spotify.Account): void {
   if (
     !env.injectedAccounts.includes(account.accountId) &&
     typeof account?.socket?.onmessage === 'function'

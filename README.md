@@ -96,9 +96,6 @@ You can also customize how the modal looks via CSS:
   - [ ] Track seeking
     - [x] Track seeking by clicking on bar
     - [ ] Track scrubbing
+  - [ ] Like / Unlike tracks (**will not implement, see [docs/SCOPES](docs/SCOPES.md)**)
   - [ ] Volume control
-  - [ ] (Unl|L)ike tracks
-- [ ] Popout modals
-  - [ ] Track popout modal
-  - [ ] Artist popout modal
-  - [ ] Album popout modal
+- [ ] Add the ability for users to use their custom OAUTH2 code instead of using Discord's access token (**see [docs/AUTHORIZATION](docs/AUTHORIZATION.md)**)

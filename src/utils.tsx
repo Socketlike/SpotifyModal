@@ -4,7 +4,6 @@
 
 import { Injector, common, util, types, webpack } from 'replugged';
 import { Modal, config, defaultConfig, logger } from './components/index';
-import { SpotifySocket, SpotifyStore } from './types';
 import { Root, RootOptions } from 'react-dom/client';
 
 const { ReactDOM, api } = common;
@@ -26,7 +25,7 @@ root.react.render(modal);
 const baseURL = 'https://api.spotify.com/v1/me/';
 export let store = (await webpack.waitForModule(
   webpack.filters.byProps('getActiveSocketAndDevice'),
-)) as unknown as SpotifyStore;
+)) as unknown as Spotify.Store;
 export let discordAnalytics = await webpack.waitForModule<{
   default: { track: (name: string) => unknown };
 }>(webpack.filters.byProps('track', 'isThrottled'));
@@ -84,28 +83,12 @@ export const spotifyAPI = {
     else if (res.url.match(/me\/player\/volume/g)) return spotifyAPI.setPlaybackVolume;
     else if (res.url.match(/me\/player/g)) return spotifyAPI.getPlayerState;
     else if (res.url.match(/me\/devices/g)) return spotifyAPI.getDevices;
-    else if (res.url.match(/me\/tracks/g)) return spotifyAPI.saveOrRemoveTracks;
     else return spotifyAPI.sendGenericRequest;
   },
   getPlayerState: (accessToken: string): Promise<Response> =>
     spotifyAPI.sendGenericRequest(accessToken, 'player', 'GET') as Promise<Response>,
   getDevices: (accessToken: string): void | Promise<Response> =>
     spotifyAPI.sendGenericRequest(accessToken, 'player/devices', 'GET') as Promise<Response>,
-  saveOrRemoveTracks: (
-    accessToken: string,
-    save = true,
-    ...tracks: string[]
-  ): Promise<Response> => {
-    if (config.get('debuggingLogControls', false))
-      logger.log(save ? 'Adding' : 'Removing', 'tracks:', tracks);
-    return spotifyAPI.sendGenericRequest(
-      accessToken,
-      'tracks',
-      save ? 'PUT' : 'DELETE',
-      undefined,
-      JSON.stringify({ ids: tracks }),
-    ) as Promise<Response>;
-  },
   setPlaybackState: (accessToken: string, state: boolean): Promise<Response> => {
     if (config.get('debuggingLogControls', false)) logger.log('Set playback state:', state);
     return spotifyAPI.sendGenericRequest(
@@ -149,11 +132,11 @@ export const spotifyAPI = {
   },
 };
 
-export async function getStore(): Promise<SpotifyStore> {
+export async function getStore(): Promise<Spotify.Store> {
   if (!store)
     store = (await webpack.waitForModule(
       webpack.filters.byProps('getActiveSocketAndDevice'),
-    )) as unknown as SpotifyStore;
+    )) as unknown as Spotify.Store;
   return store;
 }
 
@@ -182,11 +165,11 @@ export async function getAutoPauseModule(): Promise<{
   return autoPauseModule;
 }
 
-export async function getAllSpotifyAccounts(): Promise<Record<string, SpotifySocket>> {
+export async function getAllSpotifyAccounts(): Promise<Record<string, Spotify.Account>> {
   if (!store)
     store = (await webpack.waitForModule(
       webpack.filters.byProps('getActiveSocketAndDevice'),
-    )) as unknown as SpotifyStore;
+    )) as unknown as Spotify.Store;
   return store.__getLocalVars().accounts;
 }
 
@@ -199,6 +182,16 @@ export function logIfConfigTrue(
 }
 
 // Components related
+export function openModal(
+  Component: (props: {
+    modalProps: RepluggedMissingComponentsType.ModalProps;
+    [key: string]: unknown;
+  }) => JSX.Element,
+  otherProps = {} as Record<string, unknown>,
+): string {
+  return common.modal.openModal((props) => <Component modalProps={props} {...otherProps} />);
+}
+
 export function panelExists(): boolean {
   return Boolean(document.body.querySelectorAll('[class^="panels-"]').length);
 }
