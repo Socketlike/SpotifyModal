@@ -32,6 +32,10 @@ what you're playing on Spotify.
 > This plugin does **not** require Spotify Premium to function. All functionality are built upon
 > Discord's Spotify WebSocket + Spotify WebAPI calls
 
+## Maintenance status
+
+Only bug fixes **for now**. (caught up with high school stuff, finals soon)
+
 ## How to use
 
 - Link your Spotify account to Discord if you haven't already
