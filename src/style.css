@@ -27,14 +27,6 @@
   margin-bottom: unset;
 }
 
-.spotify-modal.custom-dark {
-  background: var(--bg-overlay-2, var(--background-secondary-alt));
-}
-
-.spotify-modal.custom-light {
-  background: var(--bg-overlay-3, var(--background-secondary-alt));
-}
-
 .spotify-modal-root .hidden {
   display: none !important;
 }
