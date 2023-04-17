@@ -6,17 +6,6 @@ import { config, dispatchEvent, listenToElementEvent, listenToEvent, logger } fr
 
 const { React } = common;
 
-function getCustomThemeType(): string {
-  const html = document.getElementsByTagName('html')[0] as HTMLHtmlElement;
-
-  if (html.classList.contains('theme-custom')) {
-    if (html.classList.contains('theme-dark')) return ' custom-dark';
-    else if (html.classList.contains('theme-light')) return ' custom-light';
-  }
-
-  return '';
-}
-
 function setRef<T>(ref: React.MutableRefObject<T>, value: T, after?: (value: T) => void): void {
   if (ref.current !== value) {
     ref.current = value;
@@ -24,10 +13,10 @@ function setRef<T>(ref: React.MutableRefObject<T>, value: T, after?: (value: T) 
   }
 }
 
-export function Modal(props: { state?: Spotify.State }): JSX.Element {
+export function Modal(props: { containerClass: string }): JSX.Element {
   const elementRef = React.useRef<HTMLDivElement>(null);
 
-  const shouldShowModal = React.useRef<boolean>(typeof props?.state === 'object');
+  const shouldShowModal = React.useRef<boolean>(false);
   const setShouldShowModal = (value: boolean) =>
     setRef(shouldShowModal, value, (newValue) => {
       if (newValue && elementRef.current.classList.contains('hidden'))
@@ -69,30 +58,16 @@ export function Modal(props: { state?: Spotify.State }): JSX.Element {
       );
   };
 
-  const [track, setTrack] = React.useState<Spotify.Track>(
-    props?.state?.item
-      ? props?.state?.item
-      : ({
-          album: { name: 'None', images: [{}] },
-          artists: [{ name: 'None' }],
-          name: 'None',
-        } as Spotify.Track),
-  );
-  const [duration, setDuration] = React.useState<number>(
-    typeof props?.state?.item?.duration_ms === 'number' ? props.state.item.duration_ms : 0,
-  );
-  const [playing, setPlaying] = React.useState<boolean>(
-    typeof props?.state?.is_playing === 'boolean' ? props.state.is_playing : false,
-  );
-  const [timestamp, setTimestamp] = React.useState<number>(
-    typeof props?.state?.timestamp === 'number' ? props.state.timestamp : 0,
-  );
-  const [progress, setProgress] = React.useState<number>(
-    typeof props?.state?.progress_ms === 'number' ? props.state.progress_ms : 0,
-  );
-  const progressRef = React.useRef<number>(
-    typeof props?.state?.progress_ms === 'number' ? props.state.progress_ms : 0,
-  );
+  const [track, setTrack] = React.useState<Spotify.Track>({
+    album: { name: 'None', images: [{}] },
+    artists: [{ name: 'None' }],
+    name: 'None',
+  } as Spotify.Track);
+  const [duration, setDuration] = React.useState<number>(0);
+  const [playing, setPlaying] = React.useState<boolean>(false);
+  const [timestamp, setTimestamp] = React.useState<number>(0);
+  const [progress, setProgress] = React.useState<number>(0);
+  const progressRef = React.useRef<number>(0);
   const [shuffle, setShuffle] = React.useState<boolean>(false);
   const [repeat, setRepeat] = React.useState<'off' | 'context' | 'track'>('off');
 
@@ -172,7 +147,9 @@ export function Modal(props: { state?: Spotify.State }): JSX.Element {
 
   return (
     <div
-      className={`spotify-modal${shouldShowModal.current ? '' : ' hidden'}${getCustomThemeType()}`}
+      className={`spotify-modal${shouldShowModal.current ? '' : ' hidden'}${
+        props.containerClass ? ` ${props.containerClass}` : ''
+      }`}
       ref={elementRef}>
       <TrackInfo track={track} />
       <div className='dock'>

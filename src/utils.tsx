@@ -11,6 +11,10 @@ const { createRoot } = ReactDOM as unknown as {
   createRoot: (container: Element | DocumentFragment, options?: RootOptions) => Root;
 };
 
+const styleClasses = await webpack.waitForModule<{
+  container: string;
+}>(webpack.filters.byProps('container', 'godlike'));
+
 export const injector = new Injector();
 export const root = { element: document.createElement('div') } as {
   element: HTMLDivElement;
@@ -19,7 +23,7 @@ export const root = { element: document.createElement('div') } as {
 root.element.classList.add('spotify-modal-root');
 root.react = createRoot(root.element);
 
-const modal = <Modal />;
+const modal = <Modal containerClass={styleClasses.container || ''} />;
 root.react.render(modal);
 
 const baseURL = 'https://api.spotify.com/v1/me/';

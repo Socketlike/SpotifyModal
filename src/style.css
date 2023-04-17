@@ -17,8 +17,14 @@
   --spotify-darker: #0a963c;
   display: flex;
   flex-direction: column;
-  background: var(--background-secondary-alt);
   height: 100%;
+
+  /* Getting rid of container class' defaults */
+  -webkit-box-align: unset;
+  -ms-box-align: unset;
+  align-items: unset;
+  padding: 0;
+  margin-bottom: unset;
 }
 
 .spotify-modal.custom-dark {
