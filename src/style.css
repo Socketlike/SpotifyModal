@@ -104,8 +104,11 @@
 #spotify-modal > .dock {
   display: flex;
   flex-direction: column;
-  padding-bottom: 6px;
   align-items: center;
+}
+
+#spotify-modal:hover > .dock {
+  margin-bottom: 6px;
 }
 
 #spotify-modal > .dock > .progress-display {
