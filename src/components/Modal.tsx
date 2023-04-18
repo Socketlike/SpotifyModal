@@ -147,6 +147,7 @@ export function Modal(props: { containerClass: string }): JSX.Element {
 
   return (
     <div
+      id='spotify-modal'
       className={`spotify-modal${shouldShowModal.current ? '' : ' hidden'}${
         props.containerClass ? ` ${props.containerClass}` : ''
       }`}

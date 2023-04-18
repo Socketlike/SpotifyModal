@@ -20,6 +20,7 @@ export const root = { element: document.createElement('div') } as {
   element: HTMLDivElement;
   react: Root;
 };
+root.element.id = 'spotify-modal-root';
 root.element.classList.add('spotify-modal-root');
 root.react = createRoot(root.element);
 
@@ -197,11 +198,11 @@ export function openModal(
 }
 
 export function panelExists(): boolean {
-  return Boolean(document.body.querySelectorAll('[class^="panels-"]').length);
+  return !!document.body.querySelectorAll('[class^="panels-"]').length;
 }
 
 export function isModalInjected(): boolean {
-  return Boolean(document.body.querySelectorAll('.spotify-modal-root').length);
+  return !!document.getElementById('spotify-modal-root');
 }
 
 export function addRootToPanel(): void {

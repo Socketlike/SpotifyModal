@@ -13,25 +13,24 @@
   }
 }
 
-.spotify-modal {
+#spotify-modal-root > #spotify-modal {
   --spotify-darker: #0a963c;
-  display: flex;
-  flex-direction: column;
   height: 100%;
 
   /* Getting rid of container class' defaults */
   -webkit-box-align: unset;
   -ms-box-align: unset;
   align-items: unset;
-  padding: 0;
+  display: block;
   margin-bottom: unset;
+  padding: 0;
 }
 
-.spotify-modal-root .hidden {
+#spotify-modal-root .hidden {
   display: none !important;
 }
 
-.spotify-modal > .header {
+#spotify-modal > .header {
   display: flex;
   height: 45px;
   padding: 6px;
@@ -39,17 +38,17 @@
   align-items: center;
 }
 
-.spotify-modal > .header > .cover-art {
+#spotify-modal > .header > .cover-art {
   border-radius: 6px;
   max-width: 38px;
   object-fit: contain;
 }
 
-.spotify-modal > .header > .cover-art:hover {
+#spotify-modal > .header > .cover-art:hover {
   cursor: pointer;
 }
 
-.spotify-modal > .header > .track-info {
+#spotify-modal > .header > .track-info {
   display: flex;
   flex-direction: column;
   width: -webkit-fill-available;
@@ -57,7 +56,7 @@
   white-space: nowrap;
 }
 
-.spotify-modal > .header > .track-info > .title {
+#spotify-modal > .header > .track-info > .title {
   color: var(--header-primary);
   max-width: -webkit-fill-available;
   width: fit-content;
@@ -69,47 +68,47 @@
   padding-bottom: 3px;
 }
 
-.spotify-modal > .header > .track-info > .title.href:hover {
+#spotify-modal > .header > .track-info > .title.href:hover {
   text-decoration: underline;
   cursor: pointer;
 }
 
-.spotify-modal > .header > .track-info > .artists {
+#spotify-modal > .header > .track-info > .artists {
   color: var(--header-secondary);
   max-width: -webkit-fill-available;
   width: fit-content;
   font-size: 12px;
 }
 
-.spotify-modal > .header > .track-info > .title.overflow,
-.spotify-modal > .header > .track-info > .artists.overflow {
+#spotify-modal > .header > .track-info > .title.overflow,
+#spotify-modal > .header > .track-info > .artists.overflow {
   animation: scrolling var(--animation-duration) linear infinite;
   animation-direction: alternate-reverse;
 }
 
-.spotify-modal > .header > .track-info > .title.overflow:hover,
-.spotify-modal > .header > .track-info > .artists.overflow:hover {
+#spotify-modal > .header > .track-info > .title.overflow:hover,
+#spotify-modal > .header > .track-info > .artists.overflow:hover {
   animation-play-state: paused;
 }
 
-.spotify-modal > .header > .track-info > .artists > .artist {
+#spotify-modal > .header > .track-info > .artists > .artist {
   color: var(--header-secondary);
   text-decoration: none;
 }
 
-.spotify-modal > .header > .track-info > .artists > .artist:hover {
+#spotify-modal > .header > .track-info > .artists > .artist:hover {
   color: var(--text-normal);
   text-decoration: underline;
 }
 
-.spotify-modal > .dock {
+#spotify-modal > .dock {
   display: flex;
   flex-direction: column;
   padding-bottom: 6px;
   align-items: center;
 }
 
-.spotify-modal > .dock > .progress-display {
+#spotify-modal > .dock > .progress-display {
   display: flex;
   width: -webkit-fill-available;
   justify-content: space-between;
@@ -119,21 +118,21 @@
   font-size: 12px;
 }
 
-.spotify-modal > .dock > .seek-bar {
+#spotify-modal > .dock > .seek-bar {
   border-radius: 2px;
   background-color: var(--background-modifier-accent);
   height: 4px;
   width: calc(100% - 10px);
 }
 
-.spotify-modal > .dock > .seek-bar > .inner {
+#spotify-modal > .dock > .seek-bar > .inner {
   background-color: var(--spotify);
   height: 100%;
   max-width: 100%;
   border-radius: 2px;
 }
 
-.spotify-modal > .dock > .controls {
+#spotify-modal > .dock > .controls {
   justify-content: space-around;
   gap: 10px;
   height: 24px;
@@ -143,7 +142,7 @@
   flex-direction: row;
 }
 
-.spotify-modal > .dock > .controls > svg {
+#spotify-modal > .dock > .controls > svg {
   background-color: var(--background-modifier-hover);
   border-radius: 4px;
   color: var(--text-normal);
@@ -152,18 +151,18 @@
   transition-duration: 400ms;
 }
 
-.spotify-modal > .dock > .controls > svg.active,
-.spotify-modal > .dock > .controls > svg:not(.active):hover {
+#spotify-modal > .dock > .controls > svg.active,
+#spotify-modal > .dock > .controls > svg:not(.active):hover {
   color: var(--spotify);
   background-color: var(--background-modifier-active);
 }
 
-.spotify-modal > .dock > .controls > svg.active:hover {
+#spotify-modal > .dock > .controls > svg.active:hover {
   color: var(--spotify-darker);
   background-color: var(--background-modifier-selected);
 }
 
-.spotify-modal > .divider {
+#spotify-modal > .divider {
   background-color: var(--background-modifier-accent);
   height: 1px;
 }

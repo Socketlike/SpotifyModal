@@ -50,27 +50,27 @@ Only bug fixes **for now**. (caught up with high school stuff, finals soon)
 There exists a settings menu which allows for a certain degree of customization.  
 You can also customize how the modal looks via CSS:
 
-- React Root: `spotify-modal-root`
-- Main modal: `spotify-modal`
-  - Header: `header`
-    - Cover art: `cover-art`
-    - Track info container: `track-info`
-      - Song title: `title`
-      - Artists list: `artists`
-        - Artist with hyperlink: `artist` or target the `a` element
+- React Root: `.spotify-modal-root` **OR** `#spotify-modal-root`
+- Main modal: `.spotify-modal` **OR** `#spotify-modal`
+  - Header: `.header`
+    - Cover art: `.cover-art`
+    - Track info container: `.track-info`
+      - Song title: `.title`
+      - Artists list: `.artists`
+        - Artist with hyperlink: `.artist` or target the `a` element
         - Artist with no hyperlink: Not yet
-  - Dock: `dock`
-    - Progress display container: `progress-display`
-      - Current time display: `current`
-      - Duration time display: `duration`
-    - Progress bar: `seek-bar`
-      - Inner progress bar: `inner`
-    - Controls container: `controls`
-      - Shuffle icon: `shuffle`
-      - Skip previous icon: `skip-prev`
-      - Play/pause icon: `play-pause`
-      - Skip next icon: `skip-next`
-      - Repeat icon: `repeat`
+  - Dock: `.dock`
+    - Progress display container: `.progress-display`
+      - Current time display: `.current`
+      - Duration time display: `.duration`
+    - Progress bar: `.seek-bar`
+      - Inner progress bar: `.inner`
+    - Controls container: `.controls`
+      - Shuffle icon: `.shuffle`
+      - Skip previous icon: `.skip-prev`
+      - Play/pause icon: `.play-pause`
+      - Skip next icon: `.skip-next`
+      - Repeat icon: `.repeat`
 
 ## Known issues
 
