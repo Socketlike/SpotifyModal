@@ -238,7 +238,7 @@ export function openModal(
 }
 
 export function panelExists(): boolean {
-  return !!document.body.querySelectorAll('[class^="panels-"]').length;
+  return !!document.body.querySelectorAll('[class^=panels-]').length;
 }
 
 export function isModalInjected(): boolean {
@@ -260,7 +260,8 @@ export const manageRoot = Object.assign(
         'managing modal root failed: user panel does not exist',
       );
 
-    const panel = document.body.querySelector('[class^="panels-"] > [class^="container-"]');
+    const panel = document.body.querySelector('[class^=panels-] > [class^=container-]');
+    const rootPanel = document.body.querySelector('[class^=panels-]');
 
     switch (mode) {
       case 'add': {
@@ -273,7 +274,7 @@ export const manageRoot = Object.assign(
 
       case 'remove': {
         if (isModalInjected()) {
-          panel.removeChild(root.element);
+          rootPanel.removeChild(root.element);
           logIfConfigTrue('debuggingLogModalInjection', 'log', 'modal root removed from panel');
         } else logIfConfigTrue('debuggingLogModalInjection', 'log', 'modal root already removed');
         break;
