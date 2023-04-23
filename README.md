@@ -43,7 +43,7 @@ Only bug fixes **for now**. (caught up with high school stuff, finals soon)
 
 ## Preview
 
-![Preview](Preview.gif)
+![Preview](https://socketlike.github.com/SpotifyModal-Preview.gif)
 
 ## Customization & debugging
 
