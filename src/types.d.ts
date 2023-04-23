@@ -252,11 +252,11 @@ namespace Spotify {
 
 namespace RepluggedMissingComponentsType {
   enum ModalTransitionState {
-    ENTERING = 0,
-    ENTERED = 1,
-    EXITING = 2,
-    EXITED = 3,
-    HIDDEN = 4,
+    ENTERING,
+    ENTERED,
+    EXITING,
+    EXITED,
+    HIDDEN,
   }
 
   interface ModalProps {

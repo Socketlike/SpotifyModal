@@ -50,12 +50,11 @@ export function Modal(props: { containerClass: string }): JSX.Element {
     });
 
     if (config.get('debuggingLogComponentsUpdates'))
-      logger.log(
-        'Component update for modal component visibility:',
-        `\n- Controls: ${shouldShowControls.current};`,
-        `\n- Progress display: ${shouldShowProgressDisplay.current};`,
-        `\n- Seek bar: ${shouldShowSeekbar.current};`,
-      );
+      logger.log('component update for modal component visibility', {
+        controls: shouldShowControls.current,
+        progressDisplay: shouldShowProgressDisplay.current,
+        seekBar: shouldShowSeekbar.current,
+      });
   };
 
   const [track, setTrack] = React.useState<Spotify.Track>({
@@ -84,7 +83,7 @@ export function Modal(props: { containerClass: string }): JSX.Element {
         setRepeat(event.detail.repeat_state);
 
         if (config.get('debuggingLogComponentsUpdates'))
-          logger.log('Component update for new state', event.detail);
+          logger.log('component update for new state', event.detail);
       }
     });
 
@@ -93,7 +92,7 @@ export function Modal(props: { containerClass: string }): JSX.Element {
       if (!event.detail) setPlaying(false);
 
       if (config.get('debuggingLogComponentsUpdates'))
-        logger.log('Component update for modal visibility', event.detail);
+        logger.log('component update for modal visibility', event.detail);
     });
 
     const removeComponentVisibilityListener = listenToEvent<{
@@ -114,16 +113,9 @@ export function Modal(props: { containerClass: string }): JSX.Element {
       });
 
       if (config.get('debuggingLogComponentsUpdates', false))
-        logger.log(
-          'Component update for modal component visibility (set by settings):',
-          `\n- ${
-            {
-              controlsVisibilityState: 'Controls',
-              progressDisplayVisibilityState: 'Progress display',
-              seekbarVisibilityState: 'Seek bar',
-            }[event.detail.type]
-          }: ${event.detail.state === 'always'}`,
-        );
+        logger.log('component update for modal component visibility (set by settings):', {
+          [event.detail.type.replace(/VisibilityState/, '')]: event.detail.state === 'always',
+        });
     });
 
     const removeHoverListener = listenToElementEvent(elementRef.current, 'mouseenter', () =>

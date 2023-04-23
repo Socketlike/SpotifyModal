@@ -41,10 +41,51 @@ autoPauseModule.raw = await webpack.waitForModule<Record<string, types.AnyFuncti
 autoPauseModule.key = webpack.getFunctionKeyBySource(autoPauseModule.raw, /\.PLAYER_PAUSE/);
 
 export const spotifyAPI = {
+  get actionToResponseMatches() {
+    return [
+      { match: /me\/player\/(play|pause)/g, action: spotifyAPI.setPlaybackState },
+      { match: /me\/player\/shuffle/g, action: spotifyAPI.setShuffleState },
+      { match: /me\/player\/repeat/g, action: spotifyAPI.setRepeatState },
+      { match: /me\/player\/(next|previous)/g, action: spotifyAPI.skipNextOrPrevious },
+      { match: /me\/player\/seek/g, action: spotifyAPI.seekToPosition },
+      { match: /me\/player\/volume/g, action: spotifyAPI.setPlaybackVolume },
+      { match: /me\/player/g, action: spotifyAPI.getPlayerState },
+      { match: /me\/devices/g, action: spotifyAPI.getDevices },
+      { match: /.*/, action: spotifyAPI.sendGenericRequest },
+    ];
+  },
   fetchToken: (accountId: string) =>
     api.get<{ access_token: string }>({
       url: `/users/@me/connections/spotify/${accountId}/access-token`,
     }),
+  refreshSpotifyAccessToken: async (
+    accountId: string,
+    discord: boolean,
+  ): Promise<{ ok: boolean; accessToken?: string }> => {
+    if (discord) {
+      const newToken = await spotifyAPI.fetchToken(accountId);
+
+      if (!newToken.ok) {
+        logIfConfigTrue(
+          'automaticReauthentication',
+          'warn',
+          'failed to fetch new token, status',
+          newToken.status,
+          newToken,
+        );
+      } else {
+        common.fluxDispatcher.dispatch({
+          type: 'SPOTIFY_ACCOUNT_ACCESS_TOKEN',
+          accountId: accountId,
+          accessToken: newToken.body.access_token,
+        });
+
+        return { ok: true, accessToken: newToken.body.access_token };
+      }
+
+      return { ok: false };
+    }
+  },
   sendGenericRequest: (
     accessToken: string,
     endpoint: string,
@@ -80,22 +121,16 @@ export const spotifyAPI = {
     });
   },
   getActionFromResponse: (res: Response): types.AnyFunction => {
-    if (res.url.match(/me\/player\/(play|pause)/g)) return spotifyAPI.setPlaybackState;
-    else if (res.url.match(/me\/player\/shuffle/g)) return spotifyAPI.setShuffleState;
-    else if (res.url.match(/me\/player\/repeat/g)) return spotifyAPI.setRepeatState;
-    else if (res.url.match(/me\/player\/(next|previous)/g)) return spotifyAPI.skipNextOrPrevious;
-    else if (res.url.match(/me\/player\/seek/g)) return spotifyAPI.seekToPosition;
-    else if (res.url.match(/me\/player\/volume/g)) return spotifyAPI.setPlaybackVolume;
-    else if (res.url.match(/me\/player/g)) return spotifyAPI.getPlayerState;
-    else if (res.url.match(/me\/devices/g)) return spotifyAPI.getDevices;
-    else return spotifyAPI.sendGenericRequest;
+    for (const { match, action } of spotifyAPI.actionToResponseMatches) {
+      if (match.test(res.url)) return action;
+    }
   },
   getPlayerState: (accessToken: string): Promise<Response> =>
     spotifyAPI.sendGenericRequest(accessToken, 'player', 'GET') as Promise<Response>,
   getDevices: (accessToken: string): void | Promise<Response> =>
     spotifyAPI.sendGenericRequest(accessToken, 'player/devices', 'GET') as Promise<Response>,
   setPlaybackState: (accessToken: string, state: boolean): Promise<Response> => {
-    if (config.get('debuggingLogControls', false)) logger.log('Set playback state:', state);
+    logIfConfigTrue('debuggingLogControls', 'log', 'set playback state:', state);
     return spotifyAPI.sendGenericRequest(
       accessToken,
       `player/${state ? 'play' : 'pause'}`,
@@ -103,32 +138,37 @@ export const spotifyAPI = {
     ) as Promise<Response>;
   },
   setRepeatState: (accessToken: string, state: 'off' | 'context' | 'track'): Promise<Response> => {
-    if (config.get('debuggingLogControls', false)) logger.log('Set repeat state:', state);
+    logIfConfigTrue('debuggingLogControls', 'log', 'set repeat state:', state);
     return spotifyAPI.sendGenericRequest(accessToken, 'player/repeat', 'PUT', {
       state,
     }) as Promise<Response>;
   },
   setShuffleState: (accessToken: string, state: boolean): Promise<Response> => {
-    if (config.get('debuggingLogControls', false)) logger.log('Set shuffle state:', state);
+    logIfConfigTrue('debuggingLogControls', 'log', 'set shuffle state:', state);
     return spotifyAPI.sendGenericRequest(accessToken, 'player/shuffle', 'PUT', {
       state,
     }) as Promise<Response>;
   },
   seekToPosition: (accessToken: string, position: number): Promise<Response> => {
-    if (config.get('debuggingLogControls', false)) logger.log('Seek to position:', position);
+    logIfConfigTrue('debuggingLogControls', 'log', 'seek to position:', position);
     return spotifyAPI.sendGenericRequest(accessToken, 'player/seek', 'PUT', {
       position_ms: position,
     }) as Promise<Response>;
   },
   setPlaybackVolume: (accessToken: string, volume: number): Promise<Response> => {
-    if (config.get('debuggingLogControls', false)) logger.log('Set playback volume:', volume);
+    logIfConfigTrue('debuggingLogControls', 'log', 'set playback volume:', volume);
     return spotifyAPI.sendGenericRequest(accessToken, 'player/volume', 'PUT', {
       volume_percent: volume,
     }) as Promise<Response>;
   },
   skipNextOrPrevious: (accessToken: string, next = true): Promise<Response> => {
-    if (config.get('debuggingLogControls', false))
-      logger.log('Skipping to:', next ? 'next' : 'previous', 'track');
+    logIfConfigTrue(
+      'debuggingLogControls',
+      'log',
+      'skipping to:',
+      next ? 'next' : 'previous',
+      'track',
+    );
     return spotifyAPI.sendGenericRequest(
       accessToken,
       `player/${next ? 'next' : 'previous'}`,
@@ -205,83 +245,74 @@ export function isModalInjected(): boolean {
   return !!document.getElementById('spotify-modal-root');
 }
 
-export function addRootToPanel(): void {
-  if (!panelExists() || isModalInjected()) return;
-
-  const panel = document.body.querySelector('[class^="panels-"] > [class^="container-"]');
-  if (!panel) {
-    logIfConfigTrue(
-      'debuggingLogModalInjection',
-      'error',
-      'Adding modal root failed: User panel container does not exist',
-    );
-    return;
-  }
-
-  panel.insertAdjacentElement('beforebegin', root.element);
-  if (isModalInjected())
-    logIfConfigTrue('debuggingLogModalInjection', 'log', 'Modal root added to panel');
-  else
-    logIfConfigTrue(
-      'debuggingLogModalInjection',
-      'error',
-      'Modal root not added to panel. Please contact plugin developer.',
-    );
+enum ManageRootModes {
+  add = 'add',
+  patch = 'patch',
+  remove = 'remove',
 }
 
-export function removeRootFromPanel(): void {
-  if (!panelExists() || !isModalInjected()) return;
+export const manageRoot = Object.assign(
+  (mode: keyof typeof ManageRootModes) => {
+    if (!panelExists())
+      logIfConfigTrue(
+        'debuggingLogModalInjection',
+        'error',
+        'managing modal root failed: user panel does not exist',
+      );
 
-  const panels = document.body.querySelector('[class^="panels-"]');
-  if (!panels) {
-    logIfConfigTrue(
-      'debuggingLogModalInjection',
-      'error',
-      'Removing modal root failed: User panel does not exist',
-    );
-    return;
-  }
+    const panel = document.body.querySelector('[class^="panels-"] > [class^="container-"]');
 
-  panels.removeChild(root.element);
-  if (!isModalInjected())
-    logIfConfigTrue('debuggingLogModalInjection', 'log', 'Modal root removed from panel');
-  else
-    logIfConfigTrue(
-      'debuggingLogModalInjection',
-      'error',
-      'Modal root not removed from panel. Please contact plugin developer.',
-    );
-}
+    switch (mode) {
+      case 'add': {
+        if (!isModalInjected()) {
+          panel.insertAdjacentElement('beforebegin', root.element);
+          logIfConfigTrue('debuggingLogModalInjection', 'log', 'modal root added to panel');
+        } else logIfConfigTrue('debuggingLogModalInjection', 'log', 'modal root already exists');
+        break;
+      }
 
-export function patchPanel(): void {
-  if (!panelExists() || isModalInjected()) return;
+      case 'remove': {
+        if (isModalInjected()) {
+          panel.removeChild(root.element);
+          logIfConfigTrue('debuggingLogModalInjection', 'log', 'modal root removed from panel');
+        } else logIfConfigTrue('debuggingLogModalInjection', 'log', 'modal root already removed');
+        break;
+      }
 
-  const panels = document.body.querySelector('[class^="panels-"] > [class^="container-"]');
-  if (!panels) {
-    logIfConfigTrue(
-      'debuggingLogModalInjection',
-      'error',
-      'Patching panel failed: User panel container does not exist',
-    );
-    return;
-  }
+      case 'patch': {
+        if (!isModalInjected()) {
+          const instance = util.getOwnerInstance(panel);
 
-  const instance = util.getOwnerInstance(panels);
+          if (!instance) {
+            logIfConfigTrue(
+              'debuggingLogModalInjection',
+              'error',
+              "managing modal root failed: cannot get user panel container's owner instance",
+            );
+            return;
+          }
 
-  if (!instance) {
-    logIfConfigTrue(
-      'debuggingLogModalInjection',
-      'error',
-      "Patching panel failed: Cannot get user panel container's owner instance",
-    );
-    return;
-  }
+          injector.after(Object.getPrototypeOf(instance), 'render', (_, res) => {
+            if (!isModalInjected()) manageRoot(manageRoot.mode.add);
+            return res;
+          });
 
-  injector.after(Object.getPrototypeOf(instance), 'render', (_, res) => {
-    if (!isModalInjected()) addRootToPanel();
-    return res;
-  });
+          instance.forceUpdate();
+          logIfConfigTrue('debuggingLogModalInjection', 'log', 'panel render function patched');
+        } else
+          logIfConfigTrue(
+            'debuggingLogModalInjection',
+            'log',
+            'panel render function already patched',
+          );
+        break;
+      }
 
-  instance.forceUpdate();
-  logIfConfigTrue('debuggingLogModalInjection', 'log', 'Panel render function patched');
-}
+      default:
+        logIfConfigTrue('debuggingLogModalInjection', 'warn', 'unknown manage modal mode', mode);
+    }
+  },
+  {
+    mode: ManageRootModes,
+  },
+);

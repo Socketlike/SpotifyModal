@@ -11,8 +11,7 @@ import {
   injector,
   isModalInjected,
   logIfConfigTrue,
-  patchPanel,
-  removeRootFromPanel,
+  manageRoot,
   root,
   spotifyAPI,
   store,
@@ -46,43 +45,30 @@ const controlInteractionErrorHandler = async (
   if (config.get('automaticReauthentication')) {
     // Deauthorized
     if (res.status === 401) {
-      logger.warn('Access token deauthorized. Attempting reauthentication');
+      logger.log('access token deauthorized. attempting reauthentication');
 
-      const newAccessToken = await spotifyAPI.fetchToken(env.currentAccountId);
+      const newToken = await spotifyAPI.refreshSpotifyAccessToken(env.currentAccountId, true);
 
-      if (!newAccessToken.ok) {
+      if (!newToken.ok)
         common.toast.toast(
           'An error occurred whilst reauthenticating. Check console for details.',
           common.toast.Kind.FAILURE,
         );
-        logger.error('An error occurred whilst reauthenticating. Response:', newAccessToken);
-      } else {
-        common.fluxDispatcher.dispatch({
-          type: 'SPOTIFY_ACCOUNT_ACCESS_TOKEN_REVOKE',
-          accountId: env.currentAccountId,
-        });
-        env.accounts[env.currentAccountId].accessToken = newAccessToken.body.access_token;
-        common.fluxDispatcher.dispatch({
-          type: 'SPOTIFY_ACCOUNT_ACCESS_TOKEN',
-          accountId: env.currentAccountId,
-          accessToken: newAccessToken.body.access_token,
-        });
+      else {
+        logger.log('retrying action');
 
-        logger.log('Reauthentication successful. Retrying action.');
+        const actionRes = (await spotifyAPI.getActionFromResponse(res)(
+          getAccessTokenFromAccountId(env.currentAccountId),
+          ...data,
+        )) as Response;
 
-        (
-          spotifyAPI.getActionFromResponse(res)(
-            getAccessTokenFromAccountId(env.currentAccountId),
-            ...data,
-          ) as Promise<Response>
-        ).then((res: Response): Promise<Response> => {
-          if (!res.ok) {
-            logger.error('Action retry failed.', res);
-            common.toast.toast('Control action retry failed.', common.toast.Kind.FAILURE);
-          }
-
-          return Promise.resolve(res);
-        });
+        if (!actionRes.ok) {
+          logger.error('action failed, status', actionRes.status, actionRes);
+          common.toast.toast(
+            'Action failed. Check console for details.',
+            common.toast.Kind.FAILURE,
+          );
+        }
       }
     }
   } else if (res.status === 401)
@@ -105,7 +91,7 @@ const removeControlInteractionListener = listenToEvent<{
   newProgress: number;
 }>('controlInteraction', (ev): void => {
   if (!env.currentAccountId) {
-    common.toast.toast('[SpotifyModal] Spotify is inactive', common.toast.Kind.FAILURE);
+    common.toast.toast('Spotify is inactive', common.toast.Kind.FAILURE);
     return;
   }
 
@@ -197,7 +183,7 @@ const handleMessageInjection = (res: MessageEvent[], self: Spotify.PluginWS): Pr
     logIfConfigTrue(
       'debuggingLogActiveAccountId',
       'log',
-      'New active account ID:',
+      'new active account ID:',
       env.currentAccountId,
     );
   }
@@ -205,13 +191,13 @@ const handleMessageInjection = (res: MessageEvent[], self: Spotify.PluginWS): Pr
   if (env.currentAccountId !== self.account.accountId) return;
 
   if (parsed.payloads[0].events[0].type === 'PLAYER_STATE_CHANGED') {
-    if (!isModalInjected()) patchPanel();
+    if (!isModalInjected()) manageRoot(manageRoot.mode.patch);
     dispatchEvent('stateUpdate', parsed.payloads[0].events[0].event.state);
     logIfConfigTrue(
       'debuggingLogState',
       'log',
-      `State update for ${env.currentAccountId}:`,
-      parsed.payloads[0].events[0].event.state,
+      `state update for ${env.currentAccountId}:`,
+      Object.assign({}, parsed.payloads[0].events[0].event.state),
     );
   } else if (parsed.payloads[0].events[0].type === 'DEVICE_STATE_CHANGED') {
     if (!env.persist) {
@@ -219,7 +205,7 @@ const handleMessageInjection = (res: MessageEvent[], self: Spotify.PluginWS): Pr
         logIfConfigTrue(
           'debuggingLogActiveAccountId',
           'log',
-          'Cleared active account ID. Was previously',
+          'cleared active account ID. was previously',
           env.currentAccountId,
         );
         env.currentAccountId = '';
@@ -245,7 +231,7 @@ function injectIntoSocket(account: Spotify.Account): void {
     logIfConfigTrue(
       'debuggingLogAccountInjection',
       'log',
-      'Injected into account',
+      'injected into ws message listener',
       account.accountId,
       account,
     );
@@ -266,7 +252,7 @@ export async function start(): Promise<void> {
 
   if (Object.entries(env.accounts).length) {
     for (const account of Object.values(env.accounts)) injectIntoSocket(account);
-    patchPanel();
+    manageRoot(manageRoot.mode.patch);
   }
 
   injector.instead(
@@ -283,7 +269,7 @@ export async function start(): Promise<void> {
         args[0].match(/auto paused/i) &&
         config.get('noSpotifyPause')
       ) {
-        logIfConfigTrue('debuggingLogNoSpotifyPause', 'log', 'Auto Spotify pause stopped');
+        logIfConfigTrue('debuggingLogNoSpotifyPause', 'log', 'auto Spotify pause stopped');
         return;
       }
 
@@ -321,14 +307,14 @@ export async function start(): Promise<void> {
 
 export function stop(): void {
   removeControlInteractionListener();
-  removeRootFromPanel();
+  manageRoot(manageRoot.mode.remove);
 
   for (const account of Object.values(env.accounts)) {
     delete account.socket.account;
     logIfConfigTrue(
       'debuggingLogAccountInjection',
       'log',
-      'Uninjected from account',
+      'uninjected from ws message listener',
       account.accountId,
       account,
     );
