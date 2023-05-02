@@ -227,6 +227,7 @@ export function logIfConfigTrue(
 }
 
 // Components related
+/* Currently unused
 export function openModal(
   Component: (props: {
     modalProps: RepluggedMissingComponentsType.ModalProps;
@@ -235,7 +236,7 @@ export function openModal(
   otherProps = {} as Record<string, unknown>,
 ): string {
   return common.modal.openModal((props) => <Component modalProps={props} {...otherProps} />);
-}
+} */
 
 export function panelExists(): boolean {
   return !!document.body.querySelectorAll('[class^=panels-]').length;

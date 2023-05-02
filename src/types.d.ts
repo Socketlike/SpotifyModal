@@ -249,18 +249,3 @@ namespace Spotify {
     wasAutoPaused(): boolean;
   }
 }
-
-namespace RepluggedMissingComponentsType {
-  enum ModalTransitionState {
-    ENTERING,
-    ENTERED,
-    EXITING,
-    EXITED,
-    HIDDEN,
-  }
-
-  interface ModalProps {
-    transitionState: ModalTransitionState;
-    onClose(): Promise<void>;
-  }
-}
