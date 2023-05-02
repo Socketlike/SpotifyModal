@@ -52,26 +52,29 @@ There exists a settings menu which allows for a certain degree of customization.
 You can also customize how the modal looks via CSS:
 
 - React Root: `.spotify-modal-root` **OR** `#spotify-modal-root`
-- Main modal: `.spotify-modal` **OR** `#spotify-modal`
-  - Header: `.header`
-    - Cover art: `.cover-art`
-    - Track info container: `.track-info`
-      - Song title: `.title`
-      - Artists list: `.artists`
-        - Artist with hyperlink: `.artist` or target the `a` element
-        - Artist with no hyperlink: Not yet
-  - Dock: `.dock`
-    - Progress display container: `.progress-display`
-      - Current time display: `.current`
-      - Duration time display: `.duration`
-    - Progress bar: `.seek-bar`
-      - Inner progress bar: `.inner`
-    - Controls container: `.controls`
-      - Shuffle icon: `.shuffle`
-      - Skip previous icon: `.skip-prev`
-      - Play/pause icon: `.play-pause`
-      - Skip next icon: `.skip-next`
-      - Repeat icon: `.repeat`
+- Modal: `.spotify-modal` **OR** `#spotify-modal`
+  - Main: `.main` (when dock is hidden entirely: `.main.dock-hidden`)
+    - Header: `.header`
+      - Cover art: `.cover-art`
+      - Track info container: `.track-info`
+        - Song title: `.title`
+        - Artists list: `.artists`
+          - Artist with hyperlink: `.artist` or target the `a` element
+          - Artist with no hyperlink: Not yet
+    - Dock: `.dock`
+      - Progress container: `.progress-container`
+        - Progress display container: `.progress-display`
+          - Current time display: `.current`
+          - Duration time display: `.duration`
+        - Progress bar: `.seek-bar`
+          - Inner progress bar: `.inner`
+      - Controls container: `.controls`
+        - Shuffle icon: `.shuffle`
+        - Skip previous icon: `.skip-prev`
+        - Play/pause icon: `.play-pause`
+        - Skip next icon: `.skip-next`
+        - Repeat icon: `.repeat`
+  - Divider: '.divider'
 
 ## Known issues
 
@@ -101,6 +104,8 @@ You can also customize how the modal looks via CSS:
   - [ ] Track seeking
     - [x] Track seeking by clicking on bar
     - [ ] Track scrubbing
-  - [ ] Like / Unlike tracks (**will not be implemented for now, see [docs/SCOPES](docs/SCOPES.md)**)
+  - [ ] Like / Unlike tracks (**will not be implemented for now, see
+        [docs/SCOPES](docs/SCOPES.md)**)
   - [ ] Volume control
-- [ ] Add the ability for users to use their custom OAuth2 code to generate access tokens instead of using Discord's access token (**see [docs/AUTHORIZATION](docs/AUTHORIZATION.md)**)
+- [ ] Add the ability for users to use their custom OAuth2 code to generate access tokens instead of
+      using Discord's access token (**see [docs/AUTHORIZATION](docs/AUTHORIZATION.md)**)

@@ -1,5 +1,5 @@
 import { common } from 'replugged';
-import { dispatchEvent, listenToEvent, paths } from './global';
+import { dispatchEvent, listenToEvent, paths, toggleClass } from './global';
 
 const { React } = common;
 
@@ -35,14 +35,11 @@ export function Controls(props: {
     (): (() => void) =>
       listenToEvent<{
         controls: boolean;
-        seekBar: boolean;
-        progressDisplay: boolean;
-      }>('componentsVisibilityUpdate', (ev) => {
-        if (ev.detail.controls === !controlsRef.current.classList.contains('hidden')) return;
-
-        if (ev.detail.controls) controlsRef.current.classList.remove('hidden');
-        else controlsRef.current.classList.add('hidden');
-      }),
+      }>('componentsVisibilityUpdate', (ev) =>
+        /* We invert event.detail.<element> here because true is show and false is hidden;
+           The toggleClass function takes true as add and false as remove */
+        toggleClass(controlsRef.current, 'hidden', !ev.detail.controls),
+      ),
     [],
   );
 

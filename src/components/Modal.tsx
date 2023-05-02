@@ -2,7 +2,14 @@ import { common } from 'replugged';
 import { Controls } from './Controls';
 import { ProgressContainer } from './ProgressDisplay';
 import { TrackInfo } from './TrackInfo';
-import { config, dispatchEvent, listenToElementEvent, listenToEvent, logger } from './global';
+import {
+  config,
+  dispatchEvent,
+  listenToElementEvent,
+  listenToEvent,
+  logger,
+  toggleClass,
+} from './global';
 
 const { React } = common;
 
@@ -15,6 +22,7 @@ function setRef<T>(ref: React.MutableRefObject<T>, value: T, after?: (value: T) 
 
 export function Modal(props: { containerClass: string }): JSX.Element {
   const elementRef = React.useRef<HTMLDivElement>(null);
+  const mainRef = React.useRef<HTMLDivElement>(null);
 
   const shouldShowModal = React.useRef<boolean>(false);
   const setShouldShowModal = (value: boolean) =>
@@ -48,6 +56,14 @@ export function Modal(props: { containerClass: string }): JSX.Element {
       seekBar: shouldShowSeekbar.current,
       progressDisplay: shouldShowProgressDisplay.current,
     });
+
+    toggleClass(
+      mainRef.current,
+      'dock-hidden',
+      !shouldShowControls.current &&
+        !shouldShowProgressDisplay.current &&
+        !shouldShowProgressDisplay.current,
+    );
 
     if (config.get('debuggingLogComponentsUpdates'))
       logger.log('component update for modal component visibility', {
@@ -144,26 +160,36 @@ export function Modal(props: { containerClass: string }): JSX.Element {
         props.containerClass ? ` ${props.containerClass}` : ''
       }`}
       ref={elementRef}>
-      <TrackInfo track={track} />
-      <div className='dock'>
-        <ProgressContainer
-          duration={duration}
-          playing={playing}
-          progress={progress}
-          progressRef={progressRef}
-          showProgress={shouldShowProgressDisplay}
-          showSeekbar={shouldShowSeekbar}
-          timestamp={timestamp}
-        />
-        <Controls
-          duration={duration}
-          playing={playing}
-          progress={progressRef}
-          shuffle={shuffle}
-          repeat={repeat}
-          shouldShow={shouldShowControls}
-          track={track}
-        />
+      <div
+        className={`main${
+          !shouldShowControls.current &&
+          !shouldShowProgressDisplay.current &&
+          !shouldShowProgressDisplay.current
+            ? ' dock-hidden'
+            : ''
+        }`}
+        ref={mainRef}>
+        <TrackInfo track={track} />
+        <div className='dock'>
+          <ProgressContainer
+            duration={duration}
+            playing={playing}
+            progress={progress}
+            progressRef={progressRef}
+            showProgress={shouldShowProgressDisplay}
+            showSeekbar={shouldShowSeekbar}
+            timestamp={timestamp}
+          />
+          <Controls
+            duration={duration}
+            playing={playing}
+            progress={progressRef}
+            shuffle={shuffle}
+            repeat={repeat}
+            shouldShow={shouldShowControls}
+            track={track}
+          />
+        </div>
       </div>
       <div className='divider' />
     </div>

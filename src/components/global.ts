@@ -16,6 +16,7 @@ export const componentEventTarget = new EventTarget();
 /* Functions created purely for convenience */
 export const dispatchEvent = <DataType>(name: string, detail?: DataType): void =>
   void componentEventTarget.dispatchEvent(new CustomEvent(name, { detail }));
+
 export const listenToEvent = <DataType>(
   name: string,
   callback: (data: CustomEvent<DataType>) => void,
@@ -24,6 +25,7 @@ export const listenToEvent = <DataType>(
   return () =>
     componentEventTarget.removeEventListener(name, callback as EventListenerOrEventListenerObject);
 };
+
 export const listenToElementEvent = <DataType>(
   element: HTMLElement,
   name: string,
@@ -31,6 +33,11 @@ export const listenToElementEvent = <DataType>(
 ): (() => void) => {
   element.addEventListener(name, callback as EventListenerOrEventListenerObject);
   return () => element.removeEventListener(name, callback as EventListenerOrEventListenerObject);
+};
+
+export const toggleClass = (element: HTMLElement, className: string, toggle: boolean): void => {
+  if (toggle && !element.classList.contains(className)) element.classList.add(className);
+  else if (!toggle && element.classList.contains(className)) element.classList.remove(className);
 };
 
 export const defaultConfig = {

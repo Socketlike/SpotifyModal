@@ -1,5 +1,5 @@
 import { common } from 'replugged';
-import { dispatchEvent, listenToEvent } from './global';
+import { dispatchEvent, listenToEvent, toggleClass } from './global';
 const { React } = common;
 
 function calculatePercentage(current: number, end: number): string {
@@ -103,30 +103,23 @@ export function ProgressContainer(props: {
     };
   }, [props.timestamp]);
 
-  React.useEffect((): (() => void) => {
-    const removeUpdateListener = listenToEvent<{ progressDisplay: boolean; seekBar: boolean }>(
-      'componentsVisibilityUpdate',
-      (event): void => {
-        if (event.detail.seekBar && seekBarRef.current.classList.contains('hidden'))
-          seekBarRef.current.classList.remove('hidden');
-        else if (!event.detail.seekBar && !seekBarRef.current.classList.contains('hidden'))
-          seekBarRef.current.classList.add('hidden');
+  React.useEffect(
+    (): (() => void) =>
+      listenToEvent<{ progressDisplay: boolean; seekBar: boolean }>(
+        'componentsVisibilityUpdate',
+        (event): void => {
+          /* We invert event.detail.<element> here because true is show and false is hidden;
+            The toggleClass function takes true as add and false as remove */
 
-        if (event.detail.progressDisplay && progressDisplayRef.current.classList.contains('hidden'))
-          progressDisplayRef.current.classList.remove('hidden');
-        else if (
-          !event.detail.progressDisplay &&
-          !progressDisplayRef.current.classList.contains('hidden')
-        )
-          progressDisplayRef.current.classList.add('hidden');
-      },
-    );
-
-    return removeUpdateListener;
-  }, []);
+          toggleClass(seekBarRef.current, 'hidden', !event.detail.seekBar);
+          toggleClass(progressDisplayRef.current, 'hidden', !event.detail.progressDisplay);
+        },
+      ),
+    [],
+  );
 
   return (
-    <>
+    <div className='progress-container'>
       <div
         className={`progress-display${!props.showProgress.current ? ' hidden' : ''}`}
         ref={progressDisplayRef}>
@@ -155,6 +148,6 @@ export function ProgressContainer(props: {
           style={{ width: calculatePercentage(props.progress, props.duration) }}
         />
       </div>
-    </>
+    </div>
   );
 }
