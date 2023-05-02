@@ -44,7 +44,7 @@ Only bug fixes **for now**. (caught up with high school stuff, finals soon)
 ## Preview
 
 Theme used for preview: [Matter](https://github.com/Socketlike/Matter)  
-![Preview](https://socketlike.github.com/SpotifyModal-Preview.gif)
+![Preview](https://socketlike.github.io/SpotifyModal-Preview.gif)
 
 ## Customization & debugging
 
