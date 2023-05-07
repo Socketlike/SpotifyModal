@@ -60,7 +60,7 @@ You can also customize how the modal looks via CSS:
         - Song title: `.title`
         - Artists list: `.artists`
           - Artist with hyperlink: `.artist` or target the `a` element
-          - Artist with no hyperlink: Not yet
+          - Artist with no hyperlink: none
     - Dock: `.dock`
       - Progress container: `.progress-container`
         - Progress display container: `.progress-display`
@@ -74,7 +74,7 @@ You can also customize how the modal looks via CSS:
         - Play/pause icon: `.play-pause`
         - Skip next icon: `.skip-next`
         - Repeat icon: `.repeat`
-  - Divider: '.divider'
+  - Divider: `.divider`
 
 ## Known issues
 
