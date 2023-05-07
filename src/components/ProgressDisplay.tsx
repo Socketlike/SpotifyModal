@@ -39,6 +39,7 @@ export function ProgressContainer(props: {
   const progressTimestampRef = React.useRef<number>(0);
   const durationTimestampRef = React.useRef<number>(0);
 
+  const containerRef = React.useRef<HTMLDivElement>(null);
   const seekBarRef = React.useRef<HTMLDivElement>(null);
   const seekBarInnerRef = React.useRef<HTMLDivElement>(null);
   const progressDisplayRef = React.useRef<HTMLDivElement>(null);
@@ -113,13 +114,22 @@ export function ProgressContainer(props: {
 
           toggleClass(seekBarRef.current, 'hidden', !event.detail.seekBar);
           toggleClass(progressDisplayRef.current, 'hidden', !event.detail.progressDisplay);
+          toggleClass(
+            containerRef.current,
+            'hidden',
+            !(props.showProgress.current || props.showSeekbar.current),
+          );
         },
       ),
     [],
   );
 
   return (
-    <div className='progress-container'>
+    <div
+      className={`progress-container${
+        !(props.showProgress.current || props.showSeekbar.current) ? ' hidden' : ''
+      }`}
+      ref={containerRef}>
       <div
         className={`progress-display${!props.showProgress.current ? ' hidden' : ''}`}
         ref={progressDisplayRef}>

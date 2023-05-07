@@ -45,6 +45,9 @@ export function Modal(props: { containerClass: string }): JSX.Element {
     config.get('seekbarVisibilityState') === 'always',
   );
 
+  const isDockEmpty = (): boolean =>
+    !(shouldShowControls.current || shouldShowProgressDisplay.current || shouldShowSeekbar.current);
+
   const setOptionalComponentsVisibility = (value: boolean) => {
     if (config.get('controlsVisibilityState') === 'auto') setRef(shouldShowControls, value);
     if (config.get('progressDisplayVisibilityState') === 'auto')
@@ -57,13 +60,7 @@ export function Modal(props: { containerClass: string }): JSX.Element {
       progressDisplay: shouldShowProgressDisplay.current,
     });
 
-    toggleClass(
-      mainRef.current,
-      'dock-hidden',
-      !shouldShowControls.current &&
-        !shouldShowProgressDisplay.current &&
-        !shouldShowProgressDisplay.current,
-    );
+    toggleClass(mainRef.current, 'dock-hidden', isDockEmpty());
 
     if (config.get('debuggingLogComponentsUpdates'))
       logger.log('component update for modal component visibility', {
@@ -160,15 +157,7 @@ export function Modal(props: { containerClass: string }): JSX.Element {
         props.containerClass ? ` ${props.containerClass}` : ''
       }`}
       ref={elementRef}>
-      <div
-        className={`main${
-          !shouldShowControls.current &&
-          !shouldShowProgressDisplay.current &&
-          !shouldShowProgressDisplay.current
-            ? ' dock-hidden'
-            : ''
-        }`}
-        ref={mainRef}>
+      <div className={`main${isDockEmpty() ? ' dock-hidden' : ''}`} ref={mainRef}>
         <TrackInfo track={track} />
         <div className='dock'>
           <ProgressContainer
