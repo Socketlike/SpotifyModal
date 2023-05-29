@@ -1,29 +1,13 @@
 import { common } from 'replugged';
-import { dispatchEvent, listenToEvent, toggleClass } from './global';
+import {
+  calculatePercentage,
+  dispatchEvent,
+  listenToEvent,
+  parseTime,
+  toggleClass,
+  toClassString,
+} from '@?utils';
 const { React } = common;
-
-function calculatePercentage(current: number, end: number): string {
-  if (!end) return '0%';
-  return `${((current / end) * 100).toFixed(4)}%`;
-}
-
-// This is the best solution so far though not quite performant (I tried moment.js)
-function parseTime(ms: number): string {
-  if (typeof ms !== 'number') return '';
-  const dateObject = new Date(ms);
-  const raw = {
-    month: dateObject.getUTCMonth(),
-    day: dateObject.getUTCDate(),
-    hours: dateObject.getUTCHours(),
-    minutes: dateObject.getUTCMinutes(),
-    seconds: dateObject.getUTCSeconds(),
-  };
-  const parsedHours = raw.hours + (raw.day - 1) * 24 + raw.month * 30 * 24;
-
-  return `${parsedHours > 0 ? `${parsedHours}:` : ''}${
-    raw.minutes < 10 && parsedHours > 0 ? `0${raw.minutes}` : raw.minutes
-  }:${raw.seconds < 10 ? `0${raw.seconds}` : raw.seconds}`;
-}
 
 export function ProgressContainer(props: {
   duration: number;
@@ -106,14 +90,18 @@ export function ProgressContainer(props: {
 
   React.useEffect(
     (): (() => void) =>
-      listenToEvent<{ progressDisplay: boolean; seekBar: boolean }>(
+      listenToEvent<{ shouldShowProgressDisplay: boolean; shouldShowSeekbar: boolean }>(
         'componentsVisibilityUpdate',
         (event): void => {
           /* We invert event.detail.<element> here because true is show and false is hidden;
             The toggleClass function takes true as add and false as remove */
 
-          toggleClass(seekBarRef.current, 'hidden', !event.detail.seekBar);
-          toggleClass(progressDisplayRef.current, 'hidden', !event.detail.progressDisplay);
+          toggleClass(seekBarRef.current, 'hidden', !event.detail.shouldShowSeekbar);
+          toggleClass(
+            progressDisplayRef.current,
+            'hidden',
+            !event.detail.shouldShowProgressDisplay,
+          );
           toggleClass(
             containerRef.current,
             'hidden',
@@ -126,12 +114,13 @@ export function ProgressContainer(props: {
 
   return (
     <div
-      className={`progress-container${
-        !(props.showProgress.current || props.showSeekbar.current) ? ' hidden' : ''
-      }`}
+      className={toClassString(
+        'progress-container',
+        !(props.showProgress.current || props.showSeekbar.current) ? 'hidden' : '',
+      )}
       ref={containerRef}>
       <div
-        className={`progress-display${!props.showProgress.current ? ' hidden' : ''}`}
+        className={toClassString('progress-display', !props.showProgress.current ? 'hidden' : '')}
         ref={progressDisplayRef}>
         <span ref={currentRef} className='current'>
           {parseTime(props.progress)}
@@ -141,7 +130,7 @@ export function ProgressContainer(props: {
         </span>
       </div>
       <div
-        className={`seek-bar${!props.showSeekbar.current ? ' hidden' : ''}`}
+        className={toClassString('seek-bar', !props.showSeekbar.current ? 'hidden' : '')}
         ref={seekBarRef}
         onClick={(event: React.MouseEvent) =>
           dispatchEvent('controlInteraction', {

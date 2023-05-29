@@ -1,10 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars */
 
 namespace Spotify {
-  interface PluginWS extends WebSocket {
-    account: SpotifySocket;
-  }
-
   interface Account {
     accountId: string;
     accessToken: string;
@@ -249,3 +245,15 @@ namespace Spotify {
     wasAutoPaused(): boolean;
   }
 }
+
+namespace SpotifyModal {
+  interface PluginWS extends WebSocket {
+    account: Account;
+  }
+}
+
+declare const DiscordNative: {
+  clipboard: {
+    copy: (content: string) => void;
+  };
+};

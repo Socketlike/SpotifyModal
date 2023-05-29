@@ -1,5 +1,14 @@
 import { common } from 'replugged';
-import { dispatchEvent, listenToEvent, paths, toggleClass } from './global';
+import { dispatchEvent, listenToEvent, toggleClass } from '@?utils';
+import {
+  mdiPause,
+  mdiPlay,
+  mdiRepeat,
+  mdiRepeatOnce,
+  mdiShuffle,
+  mdiSkipNext,
+  mdiSkipPrevious,
+} from '@mdi/js';
 
 const { React } = common;
 
@@ -34,11 +43,11 @@ export function Controls(props: {
   React.useEffect(
     (): (() => void) =>
       listenToEvent<{
-        controls: boolean;
+        shouldShowControls: boolean;
       }>('componentsVisibilityUpdate', (ev) =>
         /* We invert event.detail.<element> here because true is show and false is hidden;
            The toggleClass function takes true as add and false as remove */
-        toggleClass(controlsRef.current, 'hidden', !ev.detail.controls),
+        toggleClass(controlsRef.current, 'hidden', !ev.detail.shouldShowControls),
       ),
     [],
   );
@@ -54,7 +63,7 @@ export function Controls(props: {
             currentState: props.shuffle,
           })
         }
-        path={paths.shuffle}
+        path={mdiShuffle}
         title={`Shuffle ${props.shuffle ? 'on' : 'off'}`}
       />
       <ControlButton
@@ -67,7 +76,7 @@ export function Controls(props: {
             currentDuration: props.duration,
           })
         }
-        path={paths.skipPrevious}
+        path={mdiSkipPrevious}
         title='Skip to previous track'
       />
       <ControlButton
@@ -79,7 +88,7 @@ export function Controls(props: {
             currentState: props.playing,
           })
         }
-        path={props.playing ? paths.pause : paths.play}
+        path={props.playing ? mdiPause : mdiPlay}
         title={`${props.playing ? 'Pause' : 'Resume'} track`}
       />
       <ControlButton
@@ -90,7 +99,7 @@ export function Controls(props: {
             type: 'skipNext',
           })
         }
-        path={paths.skipNext}
+        path={mdiSkipNext}
         title='Skip to next track'
       />
       <ControlButton
@@ -102,7 +111,7 @@ export function Controls(props: {
             currentState: props.repeat,
           })
         }
-        path={props.repeat !== 'track' ? paths.repeatAll : paths.repeatOne}
+        path={props.repeat !== 'track' ? mdiRepeat : mdiRepeatOnce}
         title={`Repeat ${props.repeat !== 'context' ? props.repeat : 'all'}`}
       />
     </div>

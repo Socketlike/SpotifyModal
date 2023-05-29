@@ -1,15 +1,18 @@
-import { components, util } from 'replugged';
-import { config, dispatchEvent } from './global';
+import { common, components, util } from 'replugged';
+import { config, dispatchEvent } from '@?utils';
 
 const { Category, FormItem, SelectItem, Slider, SwitchItem } = components;
+const { React } = common;
 
 export function Settings(): JSX.Element {
   const { value: controlsVisiblityState, onChange: onControlsVisibilityChange } = util.useSetting(
     config,
     'controlsVisibilityState',
   );
+
   const { value: progressDisplayVisibilityState, onChange: onProgressDisplayVisibilityChange } =
     util.useSetting(config, 'progressDisplayVisibilityState');
+
   const { value: seekbarVisibilityState, onChange: onSeekbarVisibiltyChange } = util.useSetting(
     config,
     'seekbarVisibilityState',
@@ -153,7 +156,7 @@ export function Settings(): JSX.Element {
         title='Miscellaneous'
         note='Includes random things that is not suitable to be in any other category'>
         <SwitchItem
-          note='Reauthenticate Spotify access token & retry automatically on control failure (Highly experimental)'
+          note='Reauthenticate Spotify access token & retry automatically on control failure'
           {...util.useSetting(config, 'automaticReauthentication')}>
           Reauthenticate & retry automatically on failure
         </SwitchItem>
@@ -176,12 +179,13 @@ export function Settings(): JSX.Element {
           title='Skip previous reset progress threshold'
           note='The percentage of the track duration to ignore playback progress reset on clicking skip previous.'>
           <Slider
+            className={'skip-prev-reset-slider'}
             disabled={!config.get('skipPreviousShouldResetProgress')}
             minValue={0}
             maxValue={1}
             markers={[
-              0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.8,
-              0.85, 0.9, 0.95, 1,
+              0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75,
+              0.8, 0.85, 0.9, 0.95, 1,
             ]}
             {...util.useSetting(config, 'skipPreviousProgressResetThreshold')}
           />

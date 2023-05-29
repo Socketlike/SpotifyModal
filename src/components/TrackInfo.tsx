@@ -1,34 +1,12 @@
 import { common } from 'replugged';
-import { config } from './global';
-
-declare const DiscordNative: {
-  clipboard: {
-    copy: (content: string) => void;
-  };
-};
+import { config, overflowMitigation } from '@?utils';
 
 const { React } = common;
 
 function Artists(props: { artists: Spotify.User[] }): JSX.Element {
   const elementRef = React.useRef<HTMLSpanElement>(null);
-  const overflowCheck = (): void => {
-    if (elementRef.current.scrollWidth > elementRef.current.offsetWidth + 10) {
-      elementRef.current.style.setProperty(
-        '--scroll-space',
-        `-${(elementRef.current.scrollWidth - elementRef.current.offsetWidth).toString()}px`,
-      );
-      elementRef.current.style.setProperty(
-        '--animation-duration',
-        `${((elementRef.current.scrollWidth - elementRef.current.offsetWidth) * 50).toString()}ms`,
-      );
-      if (!elementRef.current.classList.contains('overflow'))
-        elementRef.current.classList.add('overflow');
-    } else if (elementRef.current.scrollWidth <= elementRef.current.offsetWidth + 10)
-      if (elementRef.current.classList.contains('overflow'))
-        elementRef.current.classList.remove('overflow');
-  };
 
-  React.useEffect(overflowCheck);
+  React.useEffect((): void => overflowMitigation(elementRef.current));
 
   return (
     <span className='artists' ref={elementRef}>
@@ -77,24 +55,8 @@ function Artists(props: { artists: Spotify.User[] }): JSX.Element {
 
 function Title(props: { track: Spotify.Track }): JSX.Element {
   const elementRef = React.useRef<HTMLAnchorElement>(null);
-  const overflowCheck = (): void => {
-    if (elementRef.current.scrollWidth > elementRef.current.offsetWidth + 10) {
-      elementRef.current.style.setProperty(
-        '--scroll-space',
-        `-${(elementRef.current.scrollWidth - elementRef.current.offsetWidth).toString()}px`,
-      );
-      elementRef.current.style.setProperty(
-        '--animation-duration',
-        `${((elementRef.current.scrollWidth - elementRef.current.offsetWidth) * 50).toString()}ms`,
-      );
-      if (!elementRef.current.classList.contains('overflow'))
-        elementRef.current.classList.add('overflow');
-    } else if (elementRef.current.scrollWidth <= elementRef.current.offsetWidth + 10)
-      if (elementRef.current.classList.contains('overflow'))
-        elementRef.current.classList.remove('overflow');
-  };
 
-  React.useEffect(overflowCheck);
+  React.useEffect((): void => overflowMitigation(elementRef.current));
 
   return (
     <a

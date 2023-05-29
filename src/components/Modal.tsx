@@ -1,73 +1,73 @@
-import { common } from 'replugged';
-import { Controls } from './Controls';
-import { ProgressContainer } from './ProgressDisplay';
-import { TrackInfo } from './TrackInfo';
+import { common, webpack } from 'replugged';
+import { Controls } from '@components/Controls';
+import { ProgressContainer } from '@components/ProgressDisplay';
+import { TrackInfo } from '@components/TrackInfo';
 import {
   config,
   dispatchEvent,
   listenToElementEvent,
   listenToEvent,
   logger,
+  mapRefValues,
   toggleClass,
-} from './global';
+  toClassString,
+  useLinkedRefs,
+  useRefWithTrigger,
+} from '@?utils';
 
 const { React } = common;
 
-function setRef<T>(ref: React.MutableRefObject<T>, value: T, after?: (value: T) => void): void {
-  if (ref.current !== value) {
-    ref.current = value;
-    if (typeof after === 'function') after(value);
-  }
-}
+const containerClasses = await webpack.waitForModule<{
+  container: string;
+}>(webpack.filters.byProps('container', 'godlike'));
 
-export function Modal(props: { containerClass: string }): JSX.Element {
+export function Modal(): JSX.Element {
   const elementRef = React.useRef<HTMLDivElement>(null);
   const mainRef = React.useRef<HTMLDivElement>(null);
 
-  const shouldShowModal = React.useRef<boolean>(false);
-  const setShouldShowModal = (value: boolean) =>
-    setRef(shouldShowModal, value, (newValue) => {
-      if (newValue && elementRef.current.classList.contains('hidden'))
-        elementRef.current.classList.remove('hidden');
-      else if (!newValue && !elementRef.current.classList.contains('hidden'))
-        elementRef.current.classList.add('hidden');
-    });
-
-  const shouldShowControls = React.useRef<boolean>(
-    config.get('controlsVisibilityState') === 'always',
+  const [shouldShowModal, setShouldShowModal] = useRefWithTrigger(false, (newValue) =>
+    toggleClass(elementRef.current, 'hidden', !newValue),
   );
 
-  const shouldShowProgressDisplay = React.useRef<boolean>(
-    config.get('progressDisplayVisibilityState') === 'always',
-  );
-
-  const shouldShowSeekbar = React.useRef<boolean>(
-    config.get('seekbarVisibilityState') === 'always',
-  );
+  const [
+    [shouldShowControls, setShouldShowControls],
+    [shouldShowProgressDisplay, setShouldShowProgressDisplay],
+    [shouldShowSeekbar, setShouldShowSeekbar],
+  ] = useLinkedRefs([
+    [
+      React.useRef(config.get('controlsVisibilityState') === 'always'),
+      () => config.get('controlsVisibilityState') === 'auto',
+    ],
+    [
+      React.useRef(config.get('progressDisplayVisibilityState') === 'always'),
+      () => config.get('progressDisplayVisibilityState') === 'auto',
+    ],
+    [
+      React.useRef(config.get('seekbarVisibilityState') === 'always'),
+      () => config.get('seekbarVisibilityState') === 'auto',
+    ],
+  ]);
 
   const isDockEmpty = (): boolean =>
     !(shouldShowControls.current || shouldShowProgressDisplay.current || shouldShowSeekbar.current);
 
   const setOptionalComponentsVisibility = (value: boolean) => {
-    if (config.get('controlsVisibilityState') === 'auto') setRef(shouldShowControls, value);
-    if (config.get('progressDisplayVisibilityState') === 'auto')
-      setRef(shouldShowProgressDisplay, value);
-    if (config.get('seekbarVisibilityState') === 'auto') setRef(shouldShowSeekbar, value);
+    setShouldShowControls(value);
+    setShouldShowProgressDisplay(value);
+    setShouldShowSeekbar(value);
 
-    dispatchEvent('componentsVisibilityUpdate', {
-      controls: shouldShowControls.current,
-      seekBar: shouldShowSeekbar.current,
-      progressDisplay: shouldShowProgressDisplay.current,
+    const mappedRefValues = mapRefValues({
+      shouldShowControls,
+      shouldShowProgressDisplay,
+      shouldShowSeekbar,
     });
+
+    dispatchEvent('componentsVisibilityUpdate', mappedRefValues);
 
     toggleClass(mainRef.current, 'dock-hidden', isDockEmpty());
 
     if (config.get('debuggingLogComponentsUpdates'))
-      logger.log('component update for modal component visibility', {
-        controls: shouldShowControls.current,
-        progressDisplay: shouldShowProgressDisplay.current,
-        seekBar: shouldShowSeekbar.current,
-      });
+      logger.log('modal component visibility update (hover):', mappedRefValues);
   };
 
   const [track, setTrack] = React.useState<Spotify.Track>({
@@ -75,11 +75,14 @@ export function Modal(props: { containerClass: string }): JSX.Element {
     artists: [{ name: 'None' }],
     name: 'None',
   } as Spotify.Track);
+
   const [duration, setDuration] = React.useState<number>(0);
   const [playing, setPlaying] = React.useState<boolean>(false);
   const [timestamp, setTimestamp] = React.useState<number>(0);
+
   const [progress, setProgress] = React.useState<number>(0);
   const progressRef = React.useRef<number>(0);
+
   const [shuffle, setShuffle] = React.useState<boolean>(false);
   const [repeat, setRepeat] = React.useState<'off' | 'context' | 'track'>('off');
 
@@ -96,7 +99,7 @@ export function Modal(props: { containerClass: string }): JSX.Element {
         setRepeat(event.detail.repeat_state);
 
         if (config.get('debuggingLogComponentsUpdates'))
-          logger.log('component update for new state', event.detail);
+          logger.log('(debuggingLogComponentsUpdates)', 'modal update (new state):', event.detail);
       }
     });
 
@@ -105,30 +108,37 @@ export function Modal(props: { containerClass: string }): JSX.Element {
       if (!event.detail) setPlaying(false);
 
       if (config.get('debuggingLogComponentsUpdates'))
-        logger.log('component update for modal visibility', event.detail);
+        logger.log('modal visibility update:', event.detail);
     });
 
     const removeComponentVisibilityListener = listenToEvent<{
       type: 'controlsVisibilityState' | 'progressDisplayVisibilityState' | 'seekbarVisibilityState';
       state: 'auto' | 'hidden' | 'always';
     }>('componentVisibilityUpdateSettings', (event) => {
-      if (event.detail.type === 'controlsVisibilityState')
-        setRef(shouldShowControls, event.detail.state === 'always');
-      else if (event.detail.type === 'progressDisplayVisibilityState')
-        setRef(shouldShowProgressDisplay, event.detail.state === 'always');
-      else if (event.detail.type === 'seekbarVisibilityState')
-        setRef(shouldShowSeekbar, event.detail.state === 'always');
+      const componentVisibility = {
+        controlsVisibilityState: shouldShowControls,
+        progressDisplayVisibilityState: shouldShowProgressDisplay,
+        seekbarVisibilityState: shouldShowSeekbar,
+      };
 
-      dispatchEvent('componentsVisibilityUpdate', {
-        controls: shouldShowControls.current,
-        seekBar: shouldShowSeekbar.current,
-        progressDisplay: shouldShowProgressDisplay.current,
-      });
+      componentVisibility[event.detail.type].current = event.detail.state === 'always';
+
+      dispatchEvent(
+        'componentsVisibilityUpdate',
+        mapRefValues({
+          shouldShowControls,
+          shouldShowProgressDisplay,
+          shouldShowSeekbar,
+        }),
+      );
 
       if (config.get('debuggingLogComponentsUpdates', false))
-        logger.log('component update for modal component visibility (set by settings):', {
-          [event.detail.type.replace(/VisibilityState/, '')]: event.detail.state === 'always',
-        });
+        logger.log(
+          'component visibility update (set by settings):',
+          event.type,
+          event.detail.state,
+          event.detail.state === 'always',
+        );
     });
 
     const removeHoverListener = listenToElementEvent(elementRef.current, 'mouseenter', () =>
@@ -153,11 +163,13 @@ export function Modal(props: { containerClass: string }): JSX.Element {
   return (
     <div
       id='spotify-modal'
-      className={`spotify-modal${shouldShowModal.current ? '' : ' hidden'}${
-        props.containerClass ? ` ${props.containerClass}` : ''
-      }`}
+      className={toClassString(
+        'spotify-modal',
+        shouldShowModal.current ? '' : 'hidden',
+        containerClasses.container,
+      )}
       ref={elementRef}>
-      <div className={`main${isDockEmpty() ? ' dock-hidden' : ''}`} ref={mainRef}>
+      <div className={toClassString('main', isDockEmpty() ? 'dock-hidden' : '')} ref={mainRef}>
         <TrackInfo track={track} />
         <div className='dock'>
           <ProgressContainer
