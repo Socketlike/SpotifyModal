@@ -83,7 +83,7 @@ export const rootInjection = {
   patchPanel,
 };
 
-export const wsMessageForwarder = (message: MessageEvent, socket: SpotifyModal.PluginWS) =>
+export const wsMessageForwarder = (message: MessageEvent, socket: SpotifyModal.PluginWS): void =>
   dispatchEvent('wsMessage', { message: JSON.parse(message.data) as Spotify.WSRawParsed, socket });
 
 export function listenAccountSocket(account: Spotify.Account): void {
