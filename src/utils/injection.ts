@@ -1,7 +1,8 @@
+/* eslint-disable no-implicit-coercion, @typescript-eslint/no-dynamic-delete */
 import { Injector, util } from 'replugged';
 import { config } from '@utils/config';
 import { dispatchEvent } from '@utils/events';
-import { logger, logWithTag } from '@utils/misc';
+import { logWithTag, logger } from '@utils/misc';
 import {
   autoPauseModule,
   discordAnalytics,
@@ -21,9 +22,9 @@ export const getPanelContainer = (): HTMLDivElement =>
 export const getPanel = (): HTMLTableSectionElement =>
   document.body.querySelector('[class^=panels-]');
 
-export const panelExists = () => !!getPanelContainer();
+export const panelExists = (): boolean => !!getPanelContainer();
 
-export const isModalInjected = () => !!document.getElementById('spotify-modal-root');
+export const isModalInjected = (): boolean => !!document.getElementById('spotify-modal-root');
 
 const logModalInjection = logWithTag('(debuggingLogModalInjection)');
 

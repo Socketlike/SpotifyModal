@@ -1,3 +1,4 @@
+/* eslint-disable no-implicit-coercion, @typescript-eslint/no-floating-promises */
 import { common } from 'replugged';
 import { config } from '@utils/config';
 import { isModalInjected, rootInjection } from '@utils/injection';

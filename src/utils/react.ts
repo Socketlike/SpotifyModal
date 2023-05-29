@@ -1,5 +1,4 @@
 import { common } from 'replugged';
-import { dispatchEvent } from '@utils/events';
 import type { Root, RootOptions } from 'react-dom/client';
 
 const { React, ReactDOM } = common;

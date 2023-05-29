@@ -1,3 +1,4 @@
+/* eslint-disable no-implicit-coercion */
 import { Logger } from 'replugged';
 
 export const logger = Logger.plugin('SpotifyModal');

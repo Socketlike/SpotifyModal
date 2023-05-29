@@ -4,7 +4,7 @@
 
 import { common, types } from 'replugged';
 import { config } from '@utils/config';
-import { logger, logWithTag } from '@utils/misc';
+import { logWithTag, logger } from '@utils/misc';
 import { getAllSpotifyAccounts } from '@utils/modules';
 
 const { fluxDispatcher, api } = common;
@@ -54,7 +54,7 @@ export const spotifyAPI = {
       } else {
         fluxDispatcher.dispatch({
           type: 'SPOTIFY_ACCOUNT_ACCESS_TOKEN',
-          accountId: accountId,
+          accountId,
           accessToken: newToken.body.access_token,
         });
       }
@@ -85,7 +85,6 @@ export const spotifyAPI = {
         url.searchParams.append(key, val);
       });
 
-    // eslint-disable-next-line consistent-return
     return fetch(url, {
       method,
       headers: {
