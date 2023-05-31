@@ -11,7 +11,7 @@ import {
   mapRefValues,
   toggleClass,
   toClassString,
-  useLinkedRefs,
+  useGuardedRefs,
   useRefWithTrigger,
 } from '@?utils';
 
@@ -33,7 +33,7 @@ export function Modal(): JSX.Element {
     [shouldShowControls, setShouldShowControls],
     [shouldShowProgressDisplay, setShouldShowProgressDisplay],
     [shouldShowSeekbar, setShouldShowSeekbar],
-  ] = useLinkedRefs([
+  ] = useGuardedRefs([
     [
       React.useRef(config.get('controlsVisibilityState') === 'always'),
       () => config.get('controlsVisibilityState') === 'auto',

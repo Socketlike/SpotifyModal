@@ -44,7 +44,7 @@ export function useRefWithTrigger<Value>(
   ];
 }
 
-export function useLinkedRefs<Value>(
+export function useGuardedRef<Value>(
   refs: Array<[React.MutableRefObject<Value>, (newValue: Value | null) => boolean]>,
 ): Array<[React.MutableRefObject<Value>, (newValue: Value | null) => void]> {
   return refs.map(([ref, shouldUpdate]) => [
