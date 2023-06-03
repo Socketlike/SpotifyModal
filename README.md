@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <a href="https://replugged.dev/install?identifier=Socketlike/SpotifyModal&source=github">
+  <a href="https://replugged.dev/install?identifier=lib.evelyn.SpotifyModal">
     <img alt="install" src="https://img.shields.io/github/v/release/Socketlike/SpotifyModal?label=Install&sort=semver&style=for-the-badge">
   </a>
 </p>
