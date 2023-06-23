@@ -9,24 +9,24 @@ import {
 } from '@?utils';
 const { React } = common;
 
-export function ProgressContainer(props: {
+export default (props: {
   duration: number;
   playing: boolean;
   progress: number;
   progressRef: React.MutableRefObject<number>;
-  showProgress: React.MutableRefObject<boolean>;
   showSeekbar: React.MutableRefObject<boolean>;
   timestamp: number;
-}): JSX.Element {
+}): JSX.Element => {
   const interval = React.useRef<number>(null);
 
   const progressTimestampRef = React.useRef<number>(0);
   const durationTimestampRef = React.useRef<number>(0);
 
   const containerRef = React.useRef<HTMLDivElement>(null);
+
   const seekBarRef = React.useRef<HTMLDivElement>(null);
   const seekBarInnerRef = React.useRef<HTMLDivElement>(null);
-  const progressDisplayRef = React.useRef<HTMLDivElement>(null);
+
   const currentRef = React.useRef<HTMLSpanElement>(null);
   const durationRef = React.useRef<HTMLSpanElement>(null);
 
@@ -90,23 +90,12 @@ export function ProgressContainer(props: {
 
   React.useEffect(
     (): (() => void) =>
-      listenToEvent<{ shouldShowProgressDisplay: boolean; shouldShowSeekbar: boolean }>(
+      listenToEvent<Events.ComponentsVisibilityUpdate>(
         'componentsVisibilityUpdate',
         (event): void => {
-          /* We invert event.detail.<element> here because true is show and false is hidden;
-            The toggleClass function takes true as add and false as remove */
+          toggleClass(seekBarRef.current, 'hidden', !event.detail.seekBar);
 
-          toggleClass(seekBarRef.current, 'hidden', !event.detail.shouldShowSeekbar);
-          toggleClass(
-            progressDisplayRef.current,
-            'hidden',
-            !event.detail.shouldShowProgressDisplay,
-          );
-          toggleClass(
-            containerRef.current,
-            'hidden',
-            !(props.showProgress.current || props.showSeekbar.current),
-          );
+          toggleClass(containerRef.current, 'hidden', !props.showSeekbar.current);
         },
       ),
     [],
@@ -114,14 +103,9 @@ export function ProgressContainer(props: {
 
   return (
     <div
-      className={toClassString(
-        'progress-container',
-        !(props.showProgress.current || props.showSeekbar.current) ? 'hidden' : '',
-      )}
+      className={toClassString('seekbar-container', !props.showSeekbar.current ? 'hidden' : '')}
       ref={containerRef}>
-      <div
-        className={toClassString('progress-display', !props.showProgress.current ? 'hidden' : '')}
-        ref={progressDisplayRef}>
+      <div className='seekbar-timestamps'>
         <span ref={currentRef} className='current'>
           {parseTime(props.progress)}
         </span>
@@ -130,7 +114,7 @@ export function ProgressContainer(props: {
         </span>
       </div>
       <div
-        className={toClassString('seek-bar', !props.showSeekbar.current ? 'hidden' : '')}
+        className='seekbar'
         ref={seekBarRef}
         onClick={(event: React.MouseEvent) =>
           dispatchEvent('controlInteraction', {
@@ -149,4 +133,4 @@ export function ProgressContainer(props: {
       </div>
     </div>
   );
-}
+};

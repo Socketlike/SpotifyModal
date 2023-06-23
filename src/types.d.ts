@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars */
 
-namespace Spotify {
+declare namespace Spotify {
   interface Account {
     accountId: string;
     accessToken: string;
@@ -246,11 +246,103 @@ namespace Spotify {
   }
 }
 
-namespace SpotifyModal {
-  interface PluginWS extends WebSocket {
-    account: Account;
+declare interface PluginWS extends WebSocket {
+  account: Account;
+}
+
+declare namespace Components {
+  interface ControlProps {
+    duration: number;
+    playing: boolean;
+    progress: React.MutableRefObject<number>;
+    shuffle: boolean;
+    repeat: 'off' | 'context' | 'track';
+    shouldShow: React.MutableRefObject<boolean>;
+    track: Spotify.Track;
+  }
+
+  interface ControlButtonProps {
+    className?: string;
+    onClick?: (mouseEvent: React.MouseEvent) => unknown;
+    title?: string;
+    path: string;
   }
 }
+
+declare namespace Events {
+  type ControlInteraction<
+    T extends 'shuffle' | 'skipPrev' | 'playPause' | 'skipNext' | 'repeat',
+    D extends Record<string, unknown>,
+  > = {
+    event: React.MouseEvent;
+    type: T;
+  } & D;
+
+  type AllControlInteractions =
+    | ControlInteraction<'shuffle', { currentState: boolean }>
+    | ControlInteraction<
+        'skipPrev',
+        {
+          currentProgress: number;
+          currentDuration: number;
+        }
+      >
+    | ControlInteraction<
+        'playPause',
+        {
+          currentState: boolean;
+        }
+      >
+    | ControlInteraction<'skipNext', {}>
+    | ControlInteraction<
+        'repeat',
+        {
+          currentState: 'off' | 'context' | 'track';
+        }
+      >
+    | ControlInteraction<'seek', { newProgress: number }>;
+
+  interface ComponentsVisibilityUpdate {
+    controls: boolean;
+    seekBar: boolean;
+  }
+
+  interface SettingsUpdate<T extends ConfigKeys, D> {
+    key: T;
+    value: D;
+  }
+
+  type AllSettingsUpdate =
+    | SettingsUpdate<
+        'controlsVisibilityState' | 'seekbarVisibilityState',
+        'always' | 'hidden' | 'auto'
+      >
+    | SettingsUpdate<
+        | 'copyingAlbumURLEnabled'
+        | 'copyingTrackURLEnabled'
+        | 'hyperlinkArtistEnabled'
+        | 'hyperlinkAlbumEnabled'
+        | 'hyperlinkTrackEnabled'
+        | 'hyperlinkURI'
+        | 'debuggingLogActiveAccountId'
+        | 'debuggingLogAccountInjection'
+        | 'debuggingLogComponentsUpdates'
+        | 'debuggingLogControls'
+        | 'debuggingLogModalInjection'
+        | 'debuggingLogState'
+        | 'debuggingLogNoSpotifyPause'
+        | 'automaticReauthentication'
+        | 'noSpotifyPause'
+        | 'seekbarEnabled'
+        | 'skipPreviousShouldResetProgress',
+        boolean
+      >
+    | SettingsUpdate<'skipPreviousProgressResetThreshold', number>;
+}
+
+declare type DefaultConfig = import('@?utils').defaultConfigType;
+declare type ConfigKeys = keyof import('@?utils').defaultConfigType;
+declare type VoidFunction = () => void;
 
 declare const DiscordNative: {
   clipboard: {

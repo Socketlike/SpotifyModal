@@ -1,119 +1,67 @@
-import { common } from 'replugged';
-import { dispatchEvent, listenToEvent, toggleClass } from '@?utils';
-import {
-  mdiPause,
-  mdiPlay,
-  mdiRepeat,
-  mdiRepeatOnce,
-  mdiShuffle,
-  mdiSkipNext,
-  mdiSkipPrevious,
-} from '@mdi/js';
+import { common, components, webpack } from 'replugged';
+import { logger } from '@?utils';
+import type { ContextMenuProps } from 'replugged/dist/renderer/modules/components/ContextMenu';
 
-const { React } = common;
+const { React, contextMenu, toast } = common;
+const { ContextMenu } = components;
 
-function ControlButton(props: {
-  className?: string;
-  onClick?: (mouseEvent: React.MouseEvent) => unknown;
-  title?: string;
-  path: string;
-}): JSX.Element {
-  return (
-    <svg
-      className={`icon${typeof props.className === 'string' ? ` ${props.className}` : ''}`}
-      onClick={typeof props.onClick === 'function' ? props.onClick : null}
-      viewBox='0 0 24 24'>
-      <title>{typeof props.title === 'string' ? props.title : ''}</title>
-      <path fill='currentColor' d={props.path} />
-    </svg>
-  );
-}
+const { MenuSliderControl } = await webpack.waitForModule<{
+  MenuSliderControl: (props: {
+    'aria-label': string;
+    disabled: boolean;
+    isFocused: boolean;
+    maxValue: number;
+    onChange?: (newValue: number) => void;
+    onClose: () => void;
+    value: number;
+    ref: React.Ref<{
+      activate: () => boolean;
+      blur: () => void;
+      focus: () => void;
+    }>;
+  }) => JSX.Element;
+}>(webpack.filters.byProps('Slider', 'Spinner'));
 
-export function Controls(props: {
-  duration: number;
-  playing: boolean;
-  progress: React.MutableRefObject<number>;
-  shuffle: boolean;
-  repeat: 'off' | 'context' | 'track';
-  shouldShow: React.MutableRefObject<boolean>;
-  track: Spotify.Track;
-}): JSX.Element {
-  const controlsRef = React.useRef<HTMLDivElement>(null);
+export const openControlsContextMenu = (ev: React.MouseEvent): void =>
+  contextMenu.open(ev, () => {
+    const [cjheckbox, setCjheckbox] = React.useState<boolean>(false);
+    const sloiderRef = React.useRef(null);
 
-  React.useEffect(
-    (): (() => void) =>
-      listenToEvent<{
-        shouldShowControls: boolean;
-      }>('componentsVisibilityUpdate', (ev) =>
-        /* We invert event.detail.<element> here because true is show and false is hidden;
-           The toggleClass function takes true as add and false as remove */
-        toggleClass(controlsRef.current, 'hidden', !ev.detail.shouldShowControls),
-      ),
-    [],
-  );
-
-  return (
-    <div className={`controls${props.shouldShow.current ? '' : ' hidden'}`} ref={controlsRef}>
-      <ControlButton
-        className={`shuffle${props.shuffle ? ' active' : ''}`}
-        onClick={(event: React.MouseEvent): void =>
-          dispatchEvent('controlInteraction', {
-            event,
-            type: 'shuffle',
-            currentState: props.shuffle,
-          })
-        }
-        path={mdiShuffle}
-        title={`Shuffle ${props.shuffle ? 'on' : 'off'}`}
-      />
-      <ControlButton
-        className='skip-prev'
-        onClick={(event: React.MouseEvent): void =>
-          dispatchEvent('controlInteraction', {
-            event,
-            type: 'skipPrev',
-            currentProgress: props.progress.current,
-            currentDuration: props.duration,
-          })
-        }
-        path={mdiSkipPrevious}
-        title='Skip to previous track'
-      />
-      <ControlButton
-        className='play-pause'
-        onClick={(event: React.MouseEvent): void =>
-          dispatchEvent('controlInteraction', {
-            event,
-            type: 'playPause',
-            currentState: props.playing,
-          })
-        }
-        path={props.playing ? mdiPause : mdiPlay}
-        title={`${props.playing ? 'Pause' : 'Resume'} track`}
-      />
-      <ControlButton
-        className='skip-next'
-        onClick={(event: React.MouseEvent): void =>
-          dispatchEvent('controlInteraction', {
-            event,
-            type: 'skipNext',
-          })
-        }
-        path={mdiSkipNext}
-        title='Skip to next track'
-      />
-      <ControlButton
-        className={`repeat${props.repeat !== 'off' ? ' active' : ''}`}
-        onClick={(event: React.MouseEvent): void =>
-          dispatchEvent('controlInteraction', {
-            event,
-            type: 'repeat',
-            currentState: props.repeat,
-          })
-        }
-        path={props.repeat !== 'track' ? mdiRepeat : mdiRepeatOnce}
-        title={`Repeat ${props.repeat !== 'context' ? props.repeat : 'all'}`}
-      />
-    </div>
-  );
-}
+    return (
+      <ContextMenu.ContextMenu onClose={contextMenu.close} navId='spotify-modal-controls'>
+        <ContextMenu.MenuItem
+          label='a whole lotta nothing'
+          id='nothing'
+          action={() => {
+            logger.log('(controls)', 'big troll');
+            toast.toast('check console for big funny', toast.Kind.MESSAGE);
+          }}
+        />
+        <ContextMenu.MenuCheckboxItem
+          label='this is a cjheckbox'
+          id='cjheckbox'
+          checked={cjheckbox}
+          action={() => {
+            logger.log('(controls)', 'cjheckbox was clicked', !cjheckbox);
+            setCjheckbox(!cjheckbox);
+          }}
+        />
+        <ContextMenu.MenuControlItem
+          id='sloider'
+          label='this is a sloider'
+          control={(data, ref): JSX.Element => (
+            <MenuSliderControl
+              aria-label='sloider'
+              value={0}
+              maxValue={100}
+              onChange={(newValue: number): void =>
+                logger.log('(controls)', 'new value from sloider', newValue)
+              }
+              {...data}
+              ref={ref}
+            />
+          )}
+        />
+      </ContextMenu.ContextMenu>
+    );
+  });

@@ -9,10 +9,22 @@ const { lodash, toast } = common;
 
 export const eventTarget = new EventTarget();
 
-/* Functions created purely for convenience */
+/**
+ * dispatches an event through the plugin's "global" `EventTarget`
+ * @function dispatchEvent
+ * @arg name - event name
+ * @arg [detail] - value to supply for `event.detail`
+ */
 export const dispatchEvent = <DataType>(name: string, detail?: DataType): void =>
   void eventTarget.dispatchEvent(new CustomEvent(name, { detail }));
 
+/**
+ * listens for an event through the plugin's "global" `EventTarget`
+ * @function listenToEvent
+ * @arg name - event name
+ * @arg callback - function to execute on event emit
+ * @returns {() => void} a function that removes the listener
+ */
 export const listenToEvent = <DataType>(
   name: string,
   callback: (data: CustomEvent<DataType>) => void,
@@ -22,6 +34,14 @@ export const listenToEvent = <DataType>(
     eventTarget.removeEventListener(name, callback as EventListenerOrEventListenerObject);
 };
 
+/**
+ * listens for an event through an element's event
+ * @function listenToElementEvent
+ * @arg element
+ * @arg name - event name
+ * @arg callback - function to execute on event emit
+ * @returns {() => void} a function that removes the listener
+ */
 export const listenToElementEvent = <DataType>(
   element: HTMLElement,
   name: string,
@@ -35,7 +55,7 @@ export const shouldPersist = { value: false };
 
 export const removeWSMessageWatcher = listenToEvent<{
   message: Spotify.WSRawParsed;
-  socket: SpotifyModal.PluginWS;
+  socket: PluginWS;
 }>('wsMessage', (event): void => {
   const { message, socket } = event.detail;
 
@@ -116,94 +136,92 @@ export const controlInteractionErrorHandler = async (
   return res;
 };
 
-export const removeControlInteractionListener = listenToEvent<{
-  event: React.MouseEvent;
-  type: 'shuffle' | 'skipPrev' | 'playPause' | 'skipNext' | 'repeat' | 'seek' | 'favorite';
-  favorite: {
-    id: string;
-    add: boolean;
-  };
-  currentState: boolean | 'off' | 'context' | 'track';
-  currentProgress: number;
-  currentDuration: number;
-  newProgress: number;
-}>('controlInteraction', (ev): void => {
-  if (!currentAccount.id) {
-    toast.toast('Spotify is inactive', toast.Kind.FAILURE);
-    return;
-  }
-
-  shouldPersist.value = true;
-
-  switch (ev.detail.type) {
-    case 'shuffle': {
-      spotifyAPI
-        .setShuffleState(getAccessTokenFromAccountId(currentAccount.id), !ev.detail.currentState)
-        .then(
-          (res: Response): Promise<Response> =>
-            controlInteractionErrorHandler(res, !ev.detail.currentState),
-        );
-      break;
+export const removeControlInteractionListener = listenToEvent<Events.AllControlInteractions>(
+  'controlInteraction',
+  (ev): void => {
+    if (!currentAccount.id) {
+      toast.toast('Spotify is inactive', toast.Kind.FAILURE);
+      return;
     }
-    case 'skipPrev': {
-      if (
-        ev.detail.currentProgress >=
-        ev.detail.currentDuration * config.get('skipPreviousProgressResetThreshold')
-      )
+
+    shouldPersist.value = true;
+
+    switch (ev.detail.type) {
+      case 'shuffle': {
+        const { currentState } = ev.detail;
+
         spotifyAPI
-          .seekToPosition(getAccessTokenFromAccountId(currentAccount.id), 0)
-          .then((res: Response): Promise<Response> => controlInteractionErrorHandler(res, 0));
-      else
-        spotifyAPI
-          .skipNextOrPrevious(getAccessTokenFromAccountId(currentAccount.id), false)
-          .then((res: Response): Promise<Response> => controlInteractionErrorHandler(res, false));
-      break;
-    }
-    case 'playPause': {
-      spotifyAPI
-        .setPlaybackState(getAccessTokenFromAccountId(currentAccount.id), !ev.detail.currentState)
-        .then(
-          (res: Response): Promise<Response> =>
-            controlInteractionErrorHandler(res, !ev.detail.currentState),
-        );
-      break;
-    }
-    case 'skipNext': {
-      spotifyAPI
-        .skipNextOrPrevious(getAccessTokenFromAccountId(currentAccount.id))
-        .then((res: Response): Promise<Response> => controlInteractionErrorHandler(res));
-      break;
-    }
-    case 'repeat': {
-      const nextState = ((): 'off' | 'context' | 'track' => {
-        if (ev.detail.currentState === 'off') return 'context';
-        else if (ev.detail.currentState === 'context') return 'track';
-
-        return 'off';
-      })();
-
-      if (typeof ev.detail.currentState === 'string')
-        spotifyAPI
-          .setRepeatState(getAccessTokenFromAccountId(currentAccount.id), nextState)
+          .setShuffleState(getAccessTokenFromAccountId(currentAccount.id), !currentState)
           .then(
-            (res: Response): Promise<Response> => controlInteractionErrorHandler(res, nextState),
+            (res: Response): Promise<Response> =>
+              controlInteractionErrorHandler(res, !currentState),
           );
 
-      break;
-    }
-    case 'seek': {
-      spotifyAPI
-        .seekToPosition(getAccessTokenFromAccountId(currentAccount.id), ev.detail.newProgress)
-        .then(
-          (res: Response): Promise<Response> =>
-            controlInteractionErrorHandler(res, ev.detail.newProgress),
-        );
+        break;
+      }
+      case 'skipPrev': {
+        if (
+          ev.detail.currentProgress >=
+          ev.detail.currentDuration * config.get('skipPreviousProgressResetThreshold')
+        )
+          spotifyAPI
+            .seekToPosition(getAccessTokenFromAccountId(currentAccount.id), 0)
+            .then((res: Response): Promise<Response> => controlInteractionErrorHandler(res, 0));
+        else
+          spotifyAPI
+            .skipNextOrPrevious(getAccessTokenFromAccountId(currentAccount.id), false)
+            .then((res: Response): Promise<Response> => controlInteractionErrorHandler(res, false));
+        break;
+      }
+      case 'playPause': {
+        const { currentState } = ev.detail;
 
-      break;
+        spotifyAPI
+          .setPlaybackState(getAccessTokenFromAccountId(currentAccount.id), !currentState)
+          .then(
+            (res: Response): Promise<Response> =>
+              controlInteractionErrorHandler(res, !currentState),
+          );
+        break;
+      }
+      case 'skipNext': {
+        spotifyAPI
+          .skipNextOrPrevious(getAccessTokenFromAccountId(currentAccount.id))
+          .then((res: Response): Promise<Response> => controlInteractionErrorHandler(res));
+        break;
+      }
+      case 'repeat': {
+        const nextState = ((): 'off' | 'context' | 'track' => {
+          if (ev.detail.currentState === 'off') return 'context';
+          else if (ev.detail.currentState === 'context') return 'track';
+
+          return 'off';
+        })();
+
+        if (typeof ev.detail.currentState === 'string')
+          spotifyAPI
+            .setRepeatState(getAccessTokenFromAccountId(currentAccount.id), nextState)
+            .then(
+              (res: Response): Promise<Response> => controlInteractionErrorHandler(res, nextState),
+            );
+
+        break;
+      }
+      case 'seek': {
+        const { newProgress } = ev.detail;
+
+        spotifyAPI
+          .seekToPosition(getAccessTokenFromAccountId(currentAccount.id), newProgress)
+          .then(
+            (res: Response): Promise<Response> => controlInteractionErrorHandler(res, newProgress),
+          );
+
+        break;
+      }
+      default: {
+        shouldPersist.value = false;
+        break;
+      }
     }
-    default: {
-      shouldPersist.value = false;
-      break;
-    }
-  }
-});
+  },
+);

@@ -18,11 +18,12 @@ export const defaultConfig = {
   hyperlinkTrackEnabled: true,
   hyperlinkURI: true,
   noSpotifyPause: true,
-  progressDisplayVisibilityState: 'auto',
   seekbarEnabled: true,
   seekbarVisibilityState: 'always',
   skipPreviousShouldResetProgress: true,
   skipPreviousProgressResetThreshold: 0.15,
 };
+
+export type defaultConfigType = typeof defaultConfig;
 
 export const config = await settings.init('lib.evelyn.SpotifyModal', defaultConfig);

@@ -58,18 +58,13 @@ You can also customize how the modal looks via CSS:
           - Artist with hyperlink: `.artist` or target the `a` element
           - Artist with no hyperlink: none
     - Dock: `.dock`
-      - Progress container: `.progress-container`
-        - Progress display container: `.progress-display`
+      - Progress container: `.progress-container` (**nightly: `.seekbar-container`**)
+        - Progress display container: `.progress-display` (**nightly: `.seekbar-timestamps`**)
           - Current time display: `.current`
           - Duration time display: `.duration`
-        - Progress bar: `.seek-bar`
+        - Progress bar: `.seek-bar` (**nightly: `.seekbar`**)
           - Inner progress bar: `.inner`
-      - Controls container: `.controls`
-        - Shuffle icon: `.shuffle`
-        - Skip previous icon: `.skip-prev`
-        - Play/pause icon: `.play-pause`
-        - Skip next icon: `.skip-next`
-        - Repeat icon: `.repeat`
+      - Controls: `.controls` (**nightly: REMOVED - porting to ContextMenu**)
   - Divider: `.divider`
 
 ## Known issues
@@ -87,6 +82,8 @@ You can also customize how the modal looks via CSS:
 - Right clicking on the song title copies the currently playing song's URL
 - Right clicking on an artist's name copies the artist's user URL
 - Clicking on the progress bar allows you to set current playback position
+- **nightly (planned)**: Right clicking on any empty spot in the modal allows you to view the
+  controls context menu
 
 ## Roadmap
 
