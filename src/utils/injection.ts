@@ -114,7 +114,10 @@ export function ceaseListeningAccountSocket(account: Spotify.Account): void {
     delete accounts[account.accountId];
     delete account.socket.account;
 
-    account.socket.removeEventListener('message', wsMessageForwarder);
+    account.socket.removeEventListener(
+      'message',
+      wsMessageForwarder as EventListenerOrEventListenerObject,
+    );
 
     if (config.get('debuggingLogAccountInjection'))
       logger.log(
