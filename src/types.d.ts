@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/naming-convention */
 
 declare namespace Spotify {
   interface Account {
@@ -293,7 +293,7 @@ declare namespace Events {
           currentState: boolean;
         }
       >
-    | ControlInteraction<'skipNext', {}>
+    | ControlInteraction<'skipNext', Record<string, never>>
     | ControlInteraction<
         'repeat',
         {
