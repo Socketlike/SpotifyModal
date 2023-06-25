@@ -90,7 +90,7 @@ export default (props: {
 
   React.useEffect(
     (): (() => void) =>
-      listenToEvent<Events.ComponentsVisibilityUpdate>(
+      listenToEvent<SpotifyModal.Events.ComponentsVisibilityUpdate>(
         'componentsVisibilityUpdate',
         (event): void => {
           toggleClass(seekBarRef.current, 'hidden', !event.detail.seekBar);

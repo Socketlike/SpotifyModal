@@ -2,7 +2,7 @@ import { types, webpack } from 'replugged';
 
 export let store = (await webpack.waitForModule(
   webpack.filters.byProps('getActiveSocketAndDevice'),
-)) as unknown as Spotify.Store;
+)) as unknown as SpotifyStore.Store;
 
 export let discordAnalytics = await webpack.waitForModule<{
   default: { track: (name: string) => unknown };
@@ -15,11 +15,11 @@ autoPauseModule.raw = await webpack.waitForModule<Record<string, types.AnyFuncti
 );
 autoPauseModule.key = webpack.getFunctionKeyBySource(autoPauseModule.raw, /\.PLAYER_PAUSE/);
 
-export const getStore = async (): Promise<Spotify.Store> => {
+export const getStore = async (): Promise<SpotifyStore.Store> => {
   if (!store)
     store = (await webpack.waitForModule(
       webpack.filters.byProps('getActiveSocketAndDevice'),
-    )) as unknown as Spotify.Store;
+    )) as unknown as SpotifyStore.Store;
   return store;
 };
 
@@ -47,10 +47,10 @@ export const getAutoPauseModule = async (): Promise<{
   return autoPauseModule;
 };
 
-export const getAllSpotifyAccounts = async (): Promise<Record<string, Spotify.Account>> => {
+export const getAllSpotifyAccounts = async (): Promise<Record<string, SpotifyStore.Socket>> => {
   if (!store)
     store = (await webpack.waitForModule(
       webpack.filters.byProps('getActiveSocketAndDevice'),
-    )) as unknown as Spotify.Store;
+    )) as unknown as SpotifyStore.Store;
   return store.__getLocalVars().accounts;
 };

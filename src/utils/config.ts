@@ -1,8 +1,7 @@
 import { settings } from 'replugged';
 
 export const defaultConfig = {
-  automaticReauthentication: false,
-  controlsVisibilityState: 'auto',
+  automaticReauthentication: true,
   copyingArtistURLEnabled: true,
   copyingAlbumURLEnabled: true,
   copyingTrackURLEnabled: true,

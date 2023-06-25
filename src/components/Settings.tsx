@@ -4,7 +4,7 @@ import { config, dispatchEvent, useTrappedSettingsState } from '@?utils';
 const { Category, FormItem, SelectItem, Slider, SwitchItem } = components;
 const { React } = common;
 
-const updateSetting = <T extends ConfigKeys, D extends DefaultConfig[T]>(
+const updateSetting = <T extends SpotifyModal.ConfigKeys, D extends SpotifyModal.DefaultConfig[T]>(
   key: T,
   value: D,
 ): void => {
@@ -18,36 +18,6 @@ const updateSetting = <T extends ConfigKeys, D extends DefaultConfig[T]>(
 export const Settings = (): JSX.Element => {
   return (
     <div>
-      <Category title='Visibility' note="Control certain components' visibility">
-        <SelectItem
-          note="Changes the controls section's visibility"
-          options={[
-            { label: 'Shown', value: 'always' },
-            { label: 'Hidden', value: 'hidden' },
-            { label: 'Shown on hover', value: 'auto' },
-          ]}
-          {...useTrappedSettingsState(
-            util.useSetting(config, 'controlsVisibilityState'),
-            'controlsVisibilityState',
-            updateSetting,
-          )}>
-          Controls section
-        </SelectItem>
-        <SelectItem
-          note="Changes the seek bar's visibility"
-          options={[
-            { label: 'Shown', value: 'always' },
-            { label: 'Hidden', value: 'hidden' },
-            { label: 'Shown on hover', value: 'auto' },
-          ]}
-          {...useTrappedSettingsState(
-            util.useSetting(config, 'seekbarVisibilityState'),
-            'seekbarVisibilityState',
-            updateSetting,
-          )}>
-          Seekbar
-        </SelectItem>
-      </Category>
       <Category title='Copying' note='Controls right click copying of album / artist / track URL'>
         <SwitchItem
           note='Enable copying of artist URL'
@@ -183,6 +153,20 @@ export const Settings = (): JSX.Element => {
       <Category
         title='Miscellaneous'
         note='Includes random things that is not suitable to be in any other category'>
+        <SelectItem
+          note="Changes the seek bar's visibility"
+          options={[
+            { label: 'Shown', value: 'always' },
+            { label: 'Hidden', value: 'hidden' },
+            { label: 'Shown on hover', value: 'auto' },
+          ]}
+          {...useTrappedSettingsState(
+            util.useSetting(config, 'seekbarVisibilityState'),
+            'seekbarVisibilityState',
+            updateSetting,
+          )}>
+          Seekbar
+        </SelectItem>
         <SwitchItem
           note='Reauthenticate Spotify access token & retry automatically on control failure'
           {...useTrappedSettingsState(

@@ -54,8 +54,8 @@ export const listenToElementEvent = <DataType>(
 export const shouldPersist = { value: false };
 
 export const removeWSMessageWatcher = listenToEvent<{
-  message: Spotify.WSRawParsed;
-  socket: PluginWS;
+  message: SpotifyStore.WSRawData;
+  socket: SpotifyModal.WS;
 }>('wsMessage', (event): void => {
   const { message, socket } = event.detail;
 
@@ -103,42 +103,50 @@ export const controlInteractionErrorHandler = async (
   res: Response,
   ...data: unknown[]
 ): Promise<Response> => {
-  if (config.get('automaticReauthentication')) {
-    // Deauthorized
-    if (res.status === 401) {
-      logger.log('access token deauthorized. attempting reauthentication');
+  if (config.get('automaticReauthentication') && res.status === 401) {
+    logger.log('access token deauthorized. attempting reauthentication');
 
-      const newToken = await spotifyAPI.refreshSpotifyAccessToken(currentAccount.id, true);
+    const newToken = await spotifyAPI.refreshSpotifyAccessToken(currentAccount.id, true);
 
-      if (!newToken.ok)
-        toast.toast(
-          'An error occurred whilst reauthenticating. Check console for details.',
-          toast.Kind.FAILURE,
-        );
-      else {
-        logger.log('retrying action');
+    if (!newToken.ok)
+      toast.toast(
+        'An error occurred whilst reauthenticating. Check console for details.',
+        toast.Kind.FAILURE,
+      );
+    else {
+      logger.log('retrying action');
 
-        const actionRes = (await spotifyAPI.getActionFromResponse(res)(
-          getAccessTokenFromAccountId(currentAccount.id),
-          ...data,
-        )) as Response;
+      const actionRes = (await spotifyAPI.getActionFromResponse(res)(
+        getAccessTokenFromAccountId(currentAccount.id),
+        ...data,
+      )) as Response;
 
-        if (!actionRes.ok) {
-          logger.error('action failed, status', actionRes.status, actionRes);
-          toast.toast('Action failed. Check console for details.', toast.Kind.FAILURE);
-        }
+      if (!actionRes.ok) {
+        logger.error('action failed, status', actionRes.status, actionRes);
+        toast.toast('Action failed. Check console for details.', toast.Kind.FAILURE);
       }
     }
   } else if (res.status === 401)
     toast.toast('Access token deauthenticated. Please manually update your state.');
+  else if (res.status === 403) {
+    const { error } = (await res.clone().json()) as { error: { message: string; reason: string } };
+
+    toast.toast(
+      error?.message
+        ? `${error.message} (${error.reason})`
+        : 'Player command failed: unknown reason. check console for more details.',
+      toast.Kind.FAILURE,
+    );
+
+    logger.log('player command action response:', res.clone(), error);
+  }
 
   shouldPersist.value = false;
   return res;
 };
 
-export const removeControlInteractionListener = listenToEvent<Events.AllControlInteractions>(
-  'controlInteraction',
-  (ev): void => {
+export const removeControlInteractionListener =
+  listenToEvent<SpotifyModal.Events.AllControlInteractions>('controlInteraction', (ev): void => {
     if (!currentAccount.id) {
       toast.toast('Spotify is inactive', toast.Kind.FAILURE);
       return;
@@ -218,10 +226,20 @@ export const removeControlInteractionListener = listenToEvent<Events.AllControlI
 
         break;
       }
+      case 'volume': {
+        const { newVolume } = ev.detail;
+
+        spotifyAPI
+          .setPlaybackVolume(getAccessTokenFromAccountId(currentAccount.id), Math.round(newVolume))
+          .then(
+            (res: Response): Promise<Response> => controlInteractionErrorHandler(res, newVolume),
+          );
+
+        break;
+      }
       default: {
         shouldPersist.value = false;
         break;
       }
     }
-  },
-);
+  });

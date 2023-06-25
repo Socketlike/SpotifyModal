@@ -11,7 +11,7 @@ const { fluxDispatcher, api } = common;
 
 const baseURL = 'https://api.spotify.com/v1/me/';
 
-export const accounts = {} as Record<string, Spotify.Account>;
+export const accounts = {} as Record<string, SpotifyStore.Socket>;
 export const allAccounts = await getAllSpotifyAccounts();
 export const currentAccount = { id: '' };
 
@@ -154,7 +154,7 @@ export const getAccessTokenFromAccountId = (accountId?: string): string => {
   return accounts?.[accountId]?.accessToken || '';
 };
 
-export const getAccountFromAccountId = (accountId?: string): Spotify.Account => {
+export const getAccountFromAccountId = (accountId?: string): SpotifyStore.Socket => {
   if (!accountId) return accounts?.[currentAccount.id];
 
   return accounts?.[accountId];

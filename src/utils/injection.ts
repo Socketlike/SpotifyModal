@@ -83,10 +83,13 @@ export const rootInjection = {
   patchPanel,
 };
 
-export const wsMessageForwarder = (message: MessageEvent, socket: PluginWS): void =>
-  dispatchEvent('wsMessage', { message: JSON.parse(message.data) as Spotify.WSRawParsed, socket });
+export const wsMessageForwarder = (message: MessageEvent, socket: SpotifyModal.WS): void =>
+  dispatchEvent('wsMessage', {
+    message: JSON.parse(message.data) as SpotifyStore.WSRawData,
+    socket,
+  });
 
-export function listenAccountSocket(account: Spotify.Account): void {
+export function listenAccountSocket(account: SpotifyStore.Socket): void {
   if (!accounts?.[account.accountId]) {
     accounts[account.accountId] = account;
 
@@ -109,7 +112,7 @@ export function listenAccountSocket(account: Spotify.Account): void {
   }
 }
 
-export function ceaseListeningAccountSocket(account: Spotify.Account): void {
+export function ceaseListeningAccountSocket(account: SpotifyStore.Socket): void {
   if (accounts?.[account.accountId]) {
     delete accounts[account.accountId];
     delete account.socket.account;

@@ -1,43 +1,106 @@
 import { common, components, webpack } from 'replugged';
-import { logger } from '@?utils';
-import type { ContextMenuProps } from 'replugged/dist/renderer/modules/components/ContextMenu';
+import {
+  mdiPlay,
+  mdiPause,
+  mdiRepeat,
+  mdiRepeatOnce,
+  mdiRepeatOff,
+  mdiShuffle,
+  mdiShuffleDisabled,
+  mdiSkipNext,
+  mdiSkipPrevious,
+} from '@mdi/js';
 
-const { React, contextMenu, toast } = common;
+const { React, contextMenu } = common;
 const { ContextMenu } = components;
 
-const { MenuSliderControl } = await webpack.waitForModule<{
-  MenuSliderControl: (props: {
-    'aria-label': string;
-    disabled: boolean;
-    isFocused: boolean;
-    maxValue: number;
-    onChange?: (newValue: number) => void;
-    onClose: () => void;
-    value: number;
-    ref: React.Ref<{
-      activate: () => boolean;
-      blur: () => void;
-      focus: () => void;
-    }>;
-  }) => JSX.Element;
+export const { MenuSliderControl } = await webpack.waitForModule<{
+  MenuSliderControl: SpotifyModal.Components.MenuSliderControl;
 }>(webpack.filters.byProps('Slider', 'Spinner'));
 
-export const openControlsContextMenu = (ev: React.MouseEvent): void =>
-  contextMenu.open(ev, () => {
-    const [cjheckbox, setCjheckbox] = React.useState<boolean>(false);
-    const sloiderRef = React.useRef(null);
+export function Icon(props: { className?: string; title?: string; path: string }): JSX.Element {
+  return (
+    <svg
+      className={`icon${typeof props.className === 'string' ? ` ${props.className}` : ''}`}
+      viewBox='0 0 24 24'>
+      <path fill='currentColor' d={props.path} />
+    </svg>
+  );
+}
+
+const repeatLabels = {
+  off: 'all',
+  context: 'one',
+  track: 'off',
+};
+
+const repeatIcons = {
+  off: mdiRepeat,
+  context: mdiRepeatOnce,
+  track: mdiRepeatOff,
+};
+
+export const openControlsContextMenu = (
+  ev: React.MouseEvent,
+  props: SpotifyModal.Components.ControlContextMenuProps,
+): void =>
+  contextMenu.open(ev, (): JSX.Element => {
+    const [, forceUpdate] = React.useReducer((x) => x + 1, 0);
+    const destroyed = React.useRef<boolean>(false);
+
+    React.useEffect((): VoidFunction => {
+      props.forceUpdate.current = () => (destroyed.current ? void 0 : forceUpdate());
+
+      return () => (destroyed.current = true);
+    }, []);
 
     return (
       <ContextMenu.ContextMenu onClose={contextMenu.close} navId='spotify-modal-controls'>
         <ContextMenu.MenuItem
-          label='a whole lotta nothing'
-          id='nothing'
-          action={() => {
-            logger.log('(controls)', 'big troll');
-            toast.toast('check console for big funny', toast.Kind.MESSAGE);
-          }}
+          label={`Toggle shuffle ${props.shuffle.current ? 'off' : 'on'}`}
+          id='shuffle'
+          icon={() => <Icon path={props.shuffle.current ? mdiShuffleDisabled : mdiShuffle} />}
+          action={props.onShuffleClick}
         />
-        <ContextMenu.MenuCheckboxItem
+        <ContextMenu.MenuItem
+          label='Skip to previous track'
+          id='skip-previous'
+          icon={() => <Icon path={mdiSkipPrevious} />}
+          action={props.onSkipPrevClick}
+        />
+        <ContextMenu.MenuItem
+          label={`${props.playing.current ? 'Pause' : 'Resume'} playback`}
+          id='play-pause'
+          icon={() => <Icon path={props.playing.current ? mdiPause : mdiPlay} />}
+          action={props.onPlayPauseClick}
+        />
+        <ContextMenu.MenuItem
+          label='Skip to next track'
+          id='skip-next'
+          icon={() => <Icon path={mdiSkipNext} />}
+          action={props.onSkipNextClick}
+        />
+        <ContextMenu.MenuItem
+          label={`Toggle repeat ${repeatLabels[props.repeat.current]}`}
+          id='repeat'
+          icon={() => <Icon path={repeatIcons[props.repeat.current]} />}
+          action={props.onRepeatClick}
+        />
+        <ContextMenu.MenuControlItem
+          id='volume'
+          label='Player volume'
+          control={(data, ref): JSX.Element => (
+            <MenuSliderControl
+              aria-label='Player volume'
+              value={props.volume.current}
+              maxValue={100}
+              onChange={props.onVolumeChange}
+              {...data}
+              ref={ref}
+            />
+          )}
+        />
+        {/*        <ContextMenu.MenuCheckboxItem
           label='this is a cjheckbox'
           id='cjheckbox'
           checked={cjheckbox}
@@ -61,7 +124,7 @@ export const openControlsContextMenu = (ev: React.MouseEvent): void =>
               ref={ref}
             />
           )}
-        />
+        />*/}
       </ContextMenu.ContextMenu>
     );
   });
