@@ -75,6 +75,8 @@ You can also customize how the modal looks via CSS:
 - The progress bar can be off by 1s - 5s at times when the Discord app lags and the Spotify state
   updates. **(There is no real fix for this as we cannot trust Spotify's timestamp, it is >=
   ~350000ms off, consistently)**
+- Events are triggering thrice -> Modal updates triggering thrice.
+  Most likely a regression in the newest releases - this did not happen before.
 
 ## Miscellaneous
 
