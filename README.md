@@ -24,7 +24,7 @@
 </p>
 
 <p align="center">
-  A Post-SWC Replugged plugin that shows a little modal on your user dock that lets you see & control
+  a post-swc Replugged plugin that shows a little modal on your user dock that lets you see & control
 what you're playing on Spotify.
 </p>
 
@@ -36,12 +36,12 @@ what you're playing on Spotify.
 
 we will be right back
 
-## Customization & debugging
+## Customization
 
-There exists a settings menu which allows for a certain degree of customization.  
-You can also customize how the modal looks via CSS:
+there exists a settings menu which allows for a certain degree of customization.  
+modal css map:
 
-- root: `.spotify-modal-root` | `#spotify-modal-root`
+- root: `#spotify-modal-root`
   - modal: `.spotify-modal` | `#spotify-modal`
     - main view: `.main` (`.dock-hidden`?)
     - header: `.header`
@@ -69,9 +69,11 @@ You can also customize how the modal looks via CSS:
 - leaving Spotify inactive for an hour or so will make the controls stop working until you manually
   update the player state in the Spotify app
   - fix: enable `Automatic Reauthentication` in `Settings` (**nightly**: enabled by default)
-- The progress bar can be off by 1s - 5s at times when the Discord app lags and the Spotify state
+- the progress bar can be off by 1s - 5s at times when the Discord app lags and the Spotify state
   updates.
   - fix: none - we cannot trust Spotify's timestamps. they are wildly inaccurate for some reason
+- what happened to the `no Spotify pause` feature?
+  - removed. you should check out [`NoSpotifyPause`](https://github.com/Socketlike/NoSpotifyPause) instead.
 
 ## Miscellaneous
 
