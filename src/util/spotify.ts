@@ -2,21 +2,20 @@
   @typescript-eslint/naming-convention
 */
 
-import { common, types } from 'replugged';
-import { config } from '@utils/config';
-import { logWithTag, logger } from '@utils/misc';
-import { getAllSpotifyAccounts } from '@utils/modules';
+import { SpotifyAccount, SpotifyStore } from '@typings';
+import { common, types, webpack } from 'replugged';
 
 const { fluxDispatcher, api } = common;
 
 const baseURL = 'https://api.spotify.com/v1/me/';
 
-export const accounts = {} as Record<string, SpotifyStore.Socket>;
-export const allAccounts = await getAllSpotifyAccounts();
-export const currentAccount = { id: '' };
+export const store = await webpack.waitForModule<SpotifyStore>(
+  webpack.filters.byProps('getActiveSocketAndDevice'),
+);
 
-const logControls = logWithTag('(debuggingLogControls)');
-const logAutomaticAuthentication = logWithTag('(automaticAuthentication)');
+export const spotifyAccounts = store.__getLocalVars().accounts;
+
+export const currentSpotifyAccount = { id: '' };
 
 export const spotifyAPI = {
   get actionToResponseMatches() {
@@ -43,21 +42,12 @@ export const spotifyAPI = {
     if (discord) {
       const newToken = await spotifyAPI.fetchToken(accountId);
 
-      if (!newToken.ok) {
-        if (config.get('automaticReauthentication'))
-          logAutomaticAuthentication(
-            logger.warn,
-            'failed to fetch new token, status',
-            newToken.status,
-            newToken,
-          );
-      } else {
+      if (newToken.ok)
         fluxDispatcher.dispatch({
           type: 'SPOTIFY_ACCOUNT_ACCESS_TOKEN',
           accountId,
           accessToken: newToken.body.access_token,
         });
-      }
 
       return { ok: newToken.ok, accessToken: newToken?.body?.access_token };
     }
@@ -104,58 +94,44 @@ export const spotifyAPI = {
     spotifyAPI.sendGenericRequest(accessToken, 'player', 'GET') as Promise<Response>,
   getDevices: (accessToken: string): void | Promise<Response> =>
     spotifyAPI.sendGenericRequest(accessToken, 'player/devices', 'GET') as Promise<Response>,
-  setPlaybackState: (accessToken: string, state: boolean): Promise<Response> => {
-    if (config.get('debuggingLogControls'))
-      logger.log('(debuggingLogControls)', 'set playback state:', state);
-    return spotifyAPI.sendGenericRequest(
+  setPlaybackState: (accessToken: string, state: boolean): Promise<Response> =>
+    spotifyAPI.sendGenericRequest(
       accessToken,
       `player/${state ? 'play' : 'pause'}`,
       'PUT',
-    ) as Promise<Response>;
-  },
-  setRepeatState: (accessToken: string, state: 'off' | 'context' | 'track'): Promise<Response> => {
-    if (config.get('debuggingLogControls')) logControls(logger.log, 'set repeat state:', state);
-    return spotifyAPI.sendGenericRequest(accessToken, 'player/repeat', 'PUT', {
+    ) as Promise<Response>,
+  setRepeatState: (accessToken: string, state: 'off' | 'context' | 'track'): Promise<Response> =>
+    spotifyAPI.sendGenericRequest(accessToken, 'player/repeat', 'PUT', {
       state,
-    }) as Promise<Response>;
-  },
-  setShuffleState: (accessToken: string, state: boolean): Promise<Response> => {
-    if (config.get('debuggingLogControls')) logControls(logger.log, 'set shuffle state:', state);
-    return spotifyAPI.sendGenericRequest(accessToken, 'player/shuffle', 'PUT', {
+    }) as Promise<Response>,
+  setShuffleState: (accessToken: string, state: boolean): Promise<Response> =>
+    spotifyAPI.sendGenericRequest(accessToken, 'player/shuffle', 'PUT', {
       state,
-    }) as Promise<Response>;
-  },
-  seekToPosition: (accessToken: string, position: number): Promise<Response> => {
-    if (config.get('debuggingLogControls')) logControls(logger.log, 'seek to position:', position);
-    return spotifyAPI.sendGenericRequest(accessToken, 'player/seek', 'PUT', {
+    }) as Promise<Response>,
+  seekToPosition: (accessToken: string, position: number): Promise<Response> =>
+    spotifyAPI.sendGenericRequest(accessToken, 'player/seek', 'PUT', {
       position_ms: position,
-    }) as Promise<Response>;
-  },
-  setPlaybackVolume: (accessToken: string, volume: number): Promise<Response> => {
-    if (config.get('debuggingLogControls')) logControls(logger.log, 'set playback volume:', volume);
-    return spotifyAPI.sendGenericRequest(accessToken, 'player/volume', 'PUT', {
+    }) as Promise<Response>,
+  setPlaybackVolume: (accessToken: string, volume: number): Promise<Response> =>
+    spotifyAPI.sendGenericRequest(accessToken, 'player/volume', 'PUT', {
       volume_percent: volume,
-    }) as Promise<Response>;
-  },
-  skipNextOrPrevious: (accessToken: string, next = true): Promise<Response> => {
-    if (config.get('debuggingLogControls'))
-      logControls(logger.log, 'skipping to:', next ? 'next' : 'previous', 'track');
-    return spotifyAPI.sendGenericRequest(
+    }) as Promise<Response>,
+  skipNextOrPrevious: (accessToken: string, next = true): Promise<Response> =>
+    spotifyAPI.sendGenericRequest(
       accessToken,
       `player/${next ? 'next' : 'previous'}`,
       'POST',
-    ) as Promise<Response>;
-  },
+    ) as Promise<Response>,
 };
 
 export const getAccessTokenFromAccountId = (accountId?: string): string => {
-  if (!accountId) return accounts?.[currentAccount.id]?.accessToken || '';
+  if (!accountId) return spotifyAccounts[currentSpotifyAccount.id]?.accessToken || '';
 
-  return accounts?.[accountId]?.accessToken || '';
+  return spotifyAccounts[accountId]?.accessToken || '';
 };
 
-export const getAccountFromAccountId = (accountId?: string): SpotifyStore.Socket => {
-  if (!accountId) return accounts?.[currentAccount.id];
+export const getAccountFromAccountId = (accountId?: string): SpotifyAccount => {
+  if (!accountId) return spotifyAccounts[currentSpotifyAccount.id];
 
-  return accounts?.[accountId];
+  return spotifyAccounts[accountId];
 };

@@ -32,75 +32,68 @@ what you're playing on Spotify.
 > This plugin does **not** require Spotify Premium to function. All functionality are built upon
 > Discord's Spotify WebSocket + Spotify WebAPI calls.
 
-## How to use
-
-- Link your Spotify account to Discord if you haven't already
-- Play any Spotify song (that's literally it)
-
 ## Preview
 
-Theme used for preview: [Matter](https://github.com/Socketlike/Matter)  
-![Preview](https://socketlike.github.io/SpotifyModal-Preview.gif)
+we will be right back
 
 ## Customization & debugging
 
 There exists a settings menu which allows for a certain degree of customization.  
 You can also customize how the modal looks via CSS:
 
-- React Root: `.spotify-modal-root` **OR** `#spotify-modal-root`
-- Modal: `.spotify-modal` **OR** `#spotify-modal`
-  - Main: `.main` (when dock is hidden entirely: `.main.dock-hidden`)
-    - Header: `.header`
-      - Cover art: `.cover-art`
-      - Track info container: `.track-info`
-        - Song title: `.title`
-        - Artists list: `.artists`
-          - Artist with hyperlink: `.artist` or target the `a` element
-          - Artist with no hyperlink: none
-    - Dock: `.dock`
-      - Progress container: `.progress-container` (**nightly: `.seekbar-container`**)
-        - Progress display container: `.progress-display` (**nightly: `.seekbar-timestamps`**)
-          - Current time display: `.current`
-          - Duration time display: `.duration`
-        - Progress bar: `.seek-bar` (**nightly: `.seekbar`**)
-          - Inner progress bar: `.inner`
-      - Controls: `.controls` (**nightly: REMOVED - porting to ContextMenu**)
-  - Divider: `.divider`
+- root: `.spotify-modal-root` | `#spotify-modal-root`
+  - modal: `.spotify-modal` | `#spotify-modal`
+    - main view: `.main` (`.dock-hidden`?)
+    - header: `.header`
+      - cover art: `.cover-art`
+      - track info: `.track-info`
+        - song name: `.title`
+        - artists: `.artists`
+    - dock: `.dock`
+      - progress container: `.progress-container` -> (**nightly**) `.seekbar-container`
+        - song timestamps: `.progress-display` -> (**nightly**) `.seekbar-timestamps`
+          - current: `.current`
+          - song duration: `.duration`
+        - seekbar: `.seek-bar` -> (**nightly**) `.seekbar`
+          - inner: `.inner`
+      - controls container: `.controls` -> (**nightly**) `removed`
+        - shuffle: `.shuffle` -> (**nightly**) `removed`
+        - skip prev: `.skip-prev` -> (**nightly**) `removed`
+        - play pause: `.play-pause` -> (**nightly**) `removed`
+        - skip next: `.skip-next` -> (**nightly**) `removed`
+        - repeat: `.repeat` -> (**nightly**) `removed`
+  - divider: `.divider`
 
 ## Known issues
 
-- Leaving Spotify inactive for an hour or so will make the controls stop working until you manually
-  update the player state in the Spotify app **(semi-confirmed to be fixed by enabling the
-  "Automatic Reauthentication" option under the "Miscellaneous" category in plugin settings)**
+- leaving Spotify inactive for an hour or so will make the controls stop working until you manually
+  update the player state in the Spotify app
+  - fix: enable `Automatic Reauthentication` in `Settings` (**nightly**: enabled by default)
 - The progress bar can be off by 1s - 5s at times when the Discord app lags and the Spotify state
-  updates. **(There is no real fix for this as we cannot trust Spotify's timestamp, it is >=
-  ~350000ms off, consistently)**
-- Events are triggering thrice -> Modal updates triggering thrice.
-  Most likely a regression in the newest releases - this did not happen before.
+  updates.
+  - fix: none - we cannot trust Spotify's timestamps. they are wildly inaccurate for some reason
 
 ## Miscellaneous
 
-- Right clicking on the cover art copies the currently playing album URL, if there's any
-- Right clicking on the song title copies the currently playing song's URL
-- Right clicking on an artist's name copies the artist's user URL
-- Clicking on the progress bar allows you to set current playback position
-- **nightly (planned)**: Right clicking on any empty spot in the modal allows you to view the
-  controls context menu
+- right clicking...
+  - on the cover art copies the currently playing album URL, if there's any
+  - on the song title copies the currently playing song's URL
+  - on an artist's name copies the artist's user URL
+  - (**nightly**) on any empty spot in the modal allows you to view the controls context menu
+- clicking on the progress bar allows you to set current playback position
 
 ## Roadmap
 
-- [x] Add basic functionality
-- [x] Song progress bar
-- [ ] Controls
-  - [x] Play/pause
-  - [x] Skip forwards/backwards
-  - [x] Toggle shuffle
-  - [x] Change repeat mode
-  - [ ] Track seeking
-    - [x] Track seeking by clicking on bar
-    - [ ] Track scrubbing
-  - [ ] Like / Unlike tracks (**will not be implemented for now, see
-        [docs/SCOPES](docs/SCOPES.md)**)
-  - [ ] Volume control
-- [ ] Add the ability for users to use their custom OAuth2 code to generate access tokens instead of
-      using Discord's access token (**see [docs/AUTHORIZATION](docs/AUTHORIZATION.md)**)
+- [x] basic functionality
+- [x] progress bar
+- [ ] controls
+  - [x] play / pause
+  - [x] skip forward / backward
+  - [x] shuffle
+  - [x] repeat
+  - [ ] seeking
+    - [x] clicking on bar
+    - [ ] scrubbing
+  - [ ] like / unlike ([docs/SCOPES](docs/SCOPES.md))
+  - [x] Volume control (**nightly**)
+- [ ] custom oauth2 access tokens ([docs/AUTHORIZATION](docs/AUTHORIZATION.md))

@@ -1,22 +1,7 @@
 import { common } from 'replugged';
-import type { Root, RootOptions } from 'react-dom/client';
-import { defaultConfig } from '@utils/config';
+import { DefaultConfigTypeKeys } from '@config';
 
-const { React, ReactDOM } = common;
-
-const { createRoot } = ReactDOM as unknown as {
-  createRoot: (container: Element | DocumentFragment, options?: RootOptions) => Root;
-};
-
-const rootElement = document.createElement('div');
-
-rootElement.id = 'spotify-modal-root';
-rootElement.classList.add('spotify-modal-root');
-
-export const root = {
-  element: rootElement,
-  fiber: createRoot(rootElement),
-};
+const { React } = common;
 
 export const useGuardedRef = <T>(
   initialValue: T,
@@ -43,7 +28,7 @@ export const useTrappedRef = <T>(
     },
   });
 
-export const useTrappedSettingsState = <T, D extends keyof typeof defaultConfig>(
+export const useTrappedSettingsState = <T, D extends DefaultConfigTypeKeys>(
   useSettingRes: { value: T; onChange: (newValue: T) => void },
   key: D,
   trap: (key: D, newValue: T) => void,

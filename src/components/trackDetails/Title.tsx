@@ -1,39 +1,46 @@
 import { common } from 'replugged';
-import { config, overflowMitigation, toClassString } from '@?utils';
+import { config } from '@config';
+import { overflowMitigation, toClassNameString } from '@?util';
 
 const { React } = common;
 
-export default (props: { track: Spotify.Track }): JSX.Element => {
+declare const DiscordNative: {
+  clipboard: {
+    copy: (content: string) => void;
+  };
+};
+
+export default (props: SpotifyApi.TrackObjectFull | SpotifyApi.EpisodeObjectFull): JSX.Element => {
   const elementRef = React.useRef<HTMLAnchorElement>(null);
 
   React.useEffect((): void => overflowMitigation(elementRef.current));
 
   return (
     <a
-      className={toClassString('title', typeof props.track.id === 'string' ? 'href' : '')}
+      className={toClassNameString('title', typeof props.id === 'string' ? 'href' : '')}
       ref={elementRef}
       onClick={(e: React.MouseEvent): void => {
         e.preventDefault();
         e.stopPropagation();
 
-        if (typeof props.track.id === 'string' && config.get('hyperlinkTrackEnabled'))
+        if (typeof props.id === 'string')
           window.open(
             config.get('hyperlinkURI')
-              ? `spotify:track:${props.track.id}`
-              : `https://open.spotify.com/track/${props.track.id}`,
+              ? `spotify:${props.type}:${props.id}`
+              : `https://open.spotify.com/${props.type}/${props.id}`,
             '_blank',
           );
       }}
       onContextMenu={(e: React.MouseEvent) => {
         e.stopPropagation();
 
-        if (config.get('copyingTrackURLEnabled') && typeof props.track.id === 'string') {
-          DiscordNative.clipboard.copy(`https://open.spotify.com/track/${props.track.id}`);
+        if (typeof props.id === 'string') {
+          DiscordNative.clipboard.copy(`https://open.spotify.com/${props.type}/${props.id}`);
           common.toast.toast('Copied track URL to clipboard', 1);
         }
       }}
-      title={props.track.name}>
-      {props.track.name}
+      title={props.name}>
+      {props.name}
     </a>
   );
 };

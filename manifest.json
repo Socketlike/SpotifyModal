@@ -15,6 +15,7 @@
   "license": "MIT",
   "type": "replugged-plugin",
   "renderer": "src/index.tsx",
-  "reloadRequired": false,
-  "source": "https://github.com/Socketlike/SpotifyModal"
+  "reloadRequired": true,
+  "source": "https://github.com/Socketlike/SpotifyModal",
+  "plaintextPatches": "src/patches.ts"
 }

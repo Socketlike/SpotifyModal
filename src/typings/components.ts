@@ -27,7 +27,7 @@ export interface MenuSliderControlProps {
   }>;
 }
 
-export type MenuSliderControl = React.ForwardRefRenderFunction<
+export type MenuSliderControlType = React.ForwardRefRenderFunction<
   React.Ref<null | {
     activate: () => boolean;
     blur: () => void;

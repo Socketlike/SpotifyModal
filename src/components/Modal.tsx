@@ -2,18 +2,19 @@ import { common, webpack } from 'replugged';
 import Seekbar from '@components/Seekbar';
 import TrackDetails from '@?components/trackDetails';
 import { openControlsContextMenu } from '@components/Controls';
+import { config } from '@config';
 import {
-  config,
-  dispatchEvent,
-  listenToEvent,
-  logger,
-  toggleClass,
-  toClassString,
-  useGuardedRef,
-  useTrappedRef,
-} from '@?utils';
+  AllSettingsUpdate,
+  PlayPauseInteraction,
+  RepeatInteraction,
+  ShuffleInteraction,
+  SkipNextInteraction,
+  SkipPrevInteraction,
+  VolumeInteraction,
+} from '@?typings';
+import { events, toClassNameString, toggleClass, useGuardedRef, useTrappedRef } from '@?util';
 
-const { React, lodash: _ } = common;
+const { React } = common;
 
 const containerClasses = await webpack.waitForModule<{
   container: string;
@@ -26,6 +27,7 @@ export const Modal = (): JSX.Element => {
     album: { name: 'None', images: [{}] },
     artists: [{ name: 'None' }],
     name: 'None',
+    type: 'track',
   } as SpotifyApi.TrackObjectFull);
 
   const [duration, setDuration] = React.useState<number>(0);
@@ -47,11 +49,17 @@ export const Modal = (): JSX.Element => {
     toggleClass(elementRef.current, 'hidden', !newValue),
   );
 
-  const settingsForceUpdate = React.useRef<boolean>(false);
+  const _forceGuard = React.useRef<boolean>(false);
+
+  const settingsForceUpdate = (callback: () => void): void => {
+    _forceGuard.current = true;
+    callback();
+    _forceGuard.current = false;
+  };
 
   const showSeekbar = useGuardedRef(
     config.get('seekbarVisibilityState') === 'always',
-    () => config.get('seekbarVisibilityState') === 'auto' || settingsForceUpdate.current,
+    () => config.get('seekbarVisibilityState') === 'auto' || _forceGuard.current,
   );
 
   const isDockEmpty = React.useCallback((): boolean => !showSeekbar.current, []);
@@ -59,20 +67,13 @@ export const Modal = (): JSX.Element => {
   const setOptionalComponentsVisibility = React.useCallback((value: boolean) => {
     showSeekbar.current = value;
 
-    dispatchEvent<SpotifyModal.Events.ComponentsVisibilityUpdate>('componentsVisibilityUpdate', {
-      seekBar: showSeekbar.current,
-    });
+    events.emit('seekbarVisibility', showSeekbar.current);
 
     toggleClass(mainRef.current, 'dock-hidden', isDockEmpty());
-
-    if (config.get('debuggingLogComponentsUpdates'))
-      logger.log('component visibility update (hover):', {
-        seekBar: showSeekbar.current,
-      });
   }, []);
 
   React.useEffect(() => {
-    const removeStateUpdateListener = listenToEvent<SpotifyApi.CurrentPlaybackResponse>(
+    const removeStateUpdateListener = events.on<SpotifyApi.CurrentPlaybackResponse>(
       'stateUpdate',
       (event) => {
         if (event.detail.item) {
@@ -91,57 +92,25 @@ export const Modal = (): JSX.Element => {
           volumeRef.current = event.detail.device?.volume_percent || 0;
 
           forceUpdateControls.current?.();
-
-          if (config.get('debuggingLogComponentsUpdates'))
-            logger.log(
-              '(debuggingLogComponentsUpdates)',
-              'modal update (new state):',
-              _.clone(event.detail),
-            );
         }
       },
     );
 
-    const removeShowUpdateListener = listenToEvent<boolean>('showUpdate', (event) => {
+    const removeShowUpdateListener = events.on<boolean>('showUpdate', (event) => {
       showModal.current = event.detail;
 
       if (!event.detail) setPlaying(false);
-
-      if (config.get('debuggingLogComponentsUpdates'))
-        logger.log('modal visibility update:', _.clone(event.detail));
     });
 
-    const removeComponentVisibilityListener = listenToEvent<SpotifyModal.Events.AllSettingsUpdate>(
+    const removeComponentVisibilityListener = events.on<AllSettingsUpdate>(
       'settingsUpdate',
       (event) => {
-        if (
-          [
-            'controlsVisibilityState',
-            'progressDisplayVisibilityState',
-            'seekbarVisibilityState',
-          ].includes(event.detail.key)
-        ) {
-          settingsForceUpdate.current = true;
+        if (event.detail.key === 'seekbarVisibilityState') {
+          settingsForceUpdate((): void => {
+            showSeekbar.current = event.detail.value === 'always';
+          });
 
-          switch (event.detail.key) {
-            case 'seekbarVisibilityState':
-              showSeekbar.current = event.detail.value === 'always';
-              break;
-          }
-
-          settingsForceUpdate.current = false;
-
-          dispatchEvent<SpotifyModal.Events.ComponentsVisibilityUpdate>(
-            'componentsVisibilityUpdate',
-            {
-              seekBar: showSeekbar.current,
-            },
-          );
-
-          if (config.get('debuggingLogComponentsUpdates'))
-            logger.log('component visibility update (settings)', {
-              seekBar: showSeekbar.current,
-            });
+          events.emit('seekbarVisibility', showSeekbar.current);
         }
       },
     );
@@ -156,7 +125,7 @@ export const Modal = (): JSX.Element => {
   return (
     <div
       id='spotify-modal'
-      className={toClassString(
+      className={toClassNameString(
         'spotify-modal',
         showModal.current ? '' : 'hidden',
         containerClasses.container,
@@ -166,37 +135,37 @@ export const Modal = (): JSX.Element => {
         openControlsContextMenu(ev, {
           forceUpdate: forceUpdateControls,
           onPlayPauseClick: (event: React.MouseEvent): void =>
-            dispatchEvent<SpotifyModal.Events.PlayPauseInteraction>('controlInteraction', {
+            events.emit<PlayPauseInteraction>('controlInteraction', {
               event,
               type: 'playPause',
               currentState: playingRef.current,
             }),
           onRepeatClick: (event: React.MouseEvent): void =>
-            dispatchEvent<SpotifyModal.Events.RepeatInteraction>('controlInteraction', {
+            events.emit<RepeatInteraction>('controlInteraction', {
               event,
               type: 'repeat',
               currentState: repeatRef.current,
             }),
           onShuffleClick: (event: React.MouseEvent): void =>
-            dispatchEvent<SpotifyModal.Events.ShuffleInteraction>('controlInteraction', {
+            events.emit<ShuffleInteraction>('controlInteraction', {
               event,
               type: 'shuffle',
               currentState: shuffleRef.current,
             }),
           onSkipNextClick: (event: React.MouseEvent): void =>
-            dispatchEvent<SpotifyModal.Events.SkipNextInteraction>('controlInteraction', {
+            events.emit<SkipNextInteraction>('controlInteraction', {
               event,
               type: 'skipNext',
             }),
           onSkipPrevClick: (event: React.MouseEvent): void =>
-            dispatchEvent<SpotifyModal.Events.SkipPrevInteraction>('controlInteraction', {
+            events.emit<SkipPrevInteraction>('controlInteraction', {
               event,
               type: 'skipPrev',
               currentDuration: durationRef.current,
               currentProgress: progressRef.current,
             }),
           onVolumeChange: (newVolume: number): void =>
-            dispatchEvent<SpotifyModal.Events.VolumeInteraction>('controlInteraction', {
+            events.emit<VolumeInteraction>('controlInteraction', {
               type: 'volume',
               newVolume,
             }),
@@ -209,8 +178,8 @@ export const Modal = (): JSX.Element => {
       onMouseEnter={() => setOptionalComponentsVisibility(true)}
       onMouseLeave={() => setOptionalComponentsVisibility(false)}
       ref={elementRef}>
-      <div className={toClassString('main', isDockEmpty() ? 'dock-hidden' : '')} ref={mainRef}>
-        <TrackDetails track={track} />
+      <div className={toClassNameString('main', isDockEmpty() ? 'dock-hidden' : '')} ref={mainRef}>
+        <TrackDetails {...track} />
         <div className='dock'>
           <Seekbar
             duration={duration}

@@ -1,21 +1,23 @@
 import { common, components, webpack } from 'replugged';
 import {
-  mdiPlay,
   mdiPause,
+  mdiPlay,
   mdiRepeat,
-  mdiRepeatOnce,
   mdiRepeatOff,
+  mdiRepeatOnce,
   mdiShuffle,
   mdiShuffleDisabled,
   mdiSkipNext,
   mdiSkipPrevious,
 } from '@mdi/js';
 
+import { ControlContextMenuProps, MenuSliderControlType } from '@?typings';
+
 const { React, contextMenu } = common;
 const { ContextMenu } = components;
 
 export const { MenuSliderControl } = await webpack.waitForModule<{
-  MenuSliderControl: SpotifyModal.Components.MenuSliderControl;
+  MenuSliderControl: MenuSliderControlType;
 }>(webpack.filters.byProps('Slider', 'Spinner'));
 
 export function Icon(props: { className?: string; title?: string; path: string }): JSX.Element {
@@ -42,16 +44,18 @@ const repeatIcons = {
 
 export const openControlsContextMenu = (
   ev: React.MouseEvent,
-  props: SpotifyModal.Components.ControlContextMenuProps,
+  props: ControlContextMenuProps,
 ): void =>
   contextMenu.open(ev, (): JSX.Element => {
     const [, forceUpdate] = React.useReducer((x) => x + 1, 0);
     const destroyed = React.useRef<boolean>(false);
 
     React.useEffect((): VoidFunction => {
-      props.forceUpdate.current = () => (destroyed.current ? void 0 : forceUpdate());
+      props.forceUpdate.current = () => (destroyed.current ? undefined : forceUpdate());
 
-      return () => (destroyed.current = true);
+      return (): void => {
+        destroyed.current = true;
+      };
     }, []);
 
     return (

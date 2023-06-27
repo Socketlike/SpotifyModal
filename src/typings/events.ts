@@ -1,4 +1,4 @@
-import { defaultConfigType } from '@?utils';
+import { DefaultConfigTypeKeys } from '@config';
 
 export type ControlInteraction<T extends string, D extends Record<string, unknown>> = {
   event?: React.MouseEvent;
@@ -44,11 +44,7 @@ export type AllControlInteractions =
   | SeekInteraction
   | VolumeInteraction;
 
-export interface ComponentsVisibilityUpdate {
-  seekBar: boolean;
-}
-
-export interface SettingsUpdate<T extends keyof defaultConfigType, D> {
+export interface SettingsUpdate<T extends DefaultConfigTypeKeys, D> {
   key: T;
   value: D;
 }
@@ -56,21 +52,10 @@ export interface SettingsUpdate<T extends keyof defaultConfigType, D> {
 export type AllSettingsUpdate =
   | SettingsUpdate<'seekbarVisibilityState', 'always' | 'hidden' | 'auto'>
   | SettingsUpdate<
-      | 'copyingAlbumURLEnabled'
-      | 'copyingTrackURLEnabled'
-      | 'hyperlinkArtistEnabled'
-      | 'hyperlinkAlbumEnabled'
-      | 'hyperlinkTrackEnabled'
-      | 'hyperlinkURI'
-      | 'debuggingLogActiveAccountId'
-      | 'debuggingLogAccountInjection'
-      | 'debuggingLogComponentsUpdates'
-      | 'debuggingLogControls'
-      | 'debuggingLogModalInjection'
-      | 'debuggingLogState'
-      | 'debuggingLogNoSpotifyPause'
       | 'automaticReauthentication'
+      | 'debugging'
       | 'noSpotifyPause'
+      | 'hyperlinkURI'
       | 'seekbarEnabled'
       | 'skipPreviousShouldResetProgress',
       boolean

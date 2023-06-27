@@ -34,7 +34,7 @@
   display: flex;
   flex-direction: column;
   padding: 10px 8px;
-  gap: 10px;
+  gap: 6px;
 }
 
 #spotify-modal .main.dock-hidden {
@@ -58,7 +58,7 @@
   cursor: pointer;
 }
 
-#spotify-modal .track-info {
+#spotify-modal .track-details {
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -66,7 +66,7 @@
   white-space: nowrap;
 }
 
-#spotify-modal .track-info .title {
+#spotify-modal .track-details .title {
   color: var(--header-primary);
   max-width: 100%;
   width: fit-content;
@@ -78,26 +78,26 @@
   padding-bottom: 3px;
 }
 
-#spotify-modal .track-info .title.href:hover {
+#spotify-modal .track-details .title.href:hover {
   text-decoration: underline;
   cursor: pointer;
 }
 
-#spotify-modal .track-info .artists {
+#spotify-modal .track-details .artists {
   color: var(--header-secondary);
   max-width: 100%;
   width: fit-content;
   font-size: 12px;
 }
 
-#spotify-modal .track-info .title.overflow,
-#spotify-modal .track-info .artists.overflow {
+#spotify-modal .track-details .title.overflow,
+#spotify-modal .track-details .artists.overflow {
   animation: scrolling var(--animation-duration) linear infinite;
   animation-direction: alternate-reverse;
 }
 
-#spotify-modal .track-info .title.overflow:hover,
-#spotify-modal .track-info .artists.overflow:hover {
+#spotify-modal .track-details .title.overflow:hover,
+#spotify-modal .track-details .artists.overflow:hover {
   animation-play-state: paused;
 }
 

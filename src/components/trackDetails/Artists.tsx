@@ -1,9 +1,18 @@
 import { common } from 'replugged';
-import { config, overflowMitigation } from '@?utils';
+import { config } from '@config';
+import { overflowMitigation } from '@?util';
 
 const { React } = common;
 
-export const Artist = (props: Spotify.User & { last: boolean }): JSX.Element => (
+declare const DiscordNative: {
+  clipboard: {
+    copy: (content: string) => void;
+  };
+};
+
+export const Artist = (
+  props: SpotifyApi.ArtistObjectSimplified & { last: boolean },
+): JSX.Element => (
   <>
     {typeof props.id === 'string' ? (
       <a
@@ -11,22 +20,19 @@ export const Artist = (props: Spotify.User & { last: boolean }): JSX.Element => 
         onContextMenu={(e: React.MouseEvent): void => {
           e.stopPropagation();
 
-          if (config.get('copyingArtistURLEnabled')) {
-            DiscordNative.clipboard.copy(`https://open.spotify.com/artist/${props.id}`);
+          DiscordNative.clipboard.copy(`https://open.spotify.com/artist/${props.id}`);
 
-            common.toast.toast('Copied artist URL to clipboard', 1);
-          }
+          common.toast.toast('Copied artist URL to clipboard', 1);
         }}
         onClick={(e: React.MouseEvent): void => {
           e.preventDefault();
 
-          if (config.get('hyperlinkArtistEnabled'))
-            window.open(
-              config.get('hyperlinkURI')
-                ? `spotify:artist:${props.id}`
-                : `https://open.spotify.com/artist/${props.id}`,
-              'blank_',
-            );
+          window.open(
+            config.get('hyperlinkURI')
+              ? `spotify:artist:${props.id}`
+              : `https://open.spotify.com/artist/${props.id}`,
+            'blank_',
+          );
         }}
         title={props.name}>
         {props.name}
@@ -38,20 +44,24 @@ export const Artist = (props: Spotify.User & { last: boolean }): JSX.Element => 
   </>
 );
 
-export default (props: { artists: Spotify.User[] }): JSX.Element => {
+export default (props: SpotifyApi.TrackObjectFull | SpotifyApi.EpisodeObjectFull): JSX.Element => {
   const elementRef = React.useRef<HTMLSpanElement>(null);
+  const node =
+    props.type === 'track'
+      ? Array.isArray(props.artists)
+        ? props.artists.map(
+            (artist: SpotifyApi.ArtistObjectSimplified, index: number): JSX.Element => (
+              <Artist {...artist} last={index === props.artists.length - 1} />
+            ),
+          )
+        : 'None'
+      : props.show.publisher;
 
   React.useEffect((): void => overflowMitigation(elementRef.current));
 
   return (
     <span className='artists' ref={elementRef}>
-      {Array.isArray(props.artists)
-        ? props.artists.map(
-            (artist: Spotify.User, index: number): React.ReactElement => (
-              <Artist {...artist} last={index === props.artists.length - 1} />
-            ),
-          )
-        : 'None'}
+      {node}
     </span>
   );
 };

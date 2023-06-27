@@ -1,38 +1,28 @@
-/* eslint-disable no-implicit-coercion */
-import { Logger } from 'replugged';
+import { Injector, Logger } from 'replugged';
 
+export * from './events';
+export * from './react';
+export * from './spotify';
+
+export const injector = new Injector();
 export const logger = Logger.plugin('SpotifyModal');
 
-/* We need to check if class exists or not to ignore toggle request - just <element>.classList.toggle is not enough */
+export const toClassNameString = (...args: string[]): string =>
+  args
+    .filter((className) => typeof className === 'string' && Boolean(className))
+    .toString()
+    .replace(/,/g, ' ');
+
 export const toggleClass = (element: HTMLElement, className: string, toggle: boolean): void => {
   if (toggle && !element.classList.contains(className)) element.classList.add(className);
   else if (!toggle && element.classList.contains(className)) element.classList.remove(className);
 };
-
-export const toClassString = (...classNames: string[]): string =>
-  classNames
-    .map((className) => className.trim())
-    .filter((className) => !!className)
-    .toString()
-    .replaceAll(',', ' ');
-
-export const logWithTag =
-  (tag: string) =>
-  (
-    level: Omit<typeof logger, 'type' | 'name' | 'color'>[keyof Omit<
-      typeof logger,
-      'type' | 'name' | 'color'
-    >],
-    ...args: unknown[]
-  ): void =>
-    level.call(logger, tag, ...args);
 
 export function calculatePercentage(current: number, end: number): string {
   if (!end) return '0%';
   return `${((current / end) * 100).toFixed(4)}%`;
 }
 
-// This is the best solution so far though not quite performant (I tried moment.js)
 export function parseTime(ms: number): string {
   if (typeof ms !== 'number') return '';
   const dateObject = new Date(ms);

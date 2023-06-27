@@ -1,12 +1,5 @@
 import { common } from 'replugged';
-import {
-  calculatePercentage,
-  dispatchEvent,
-  listenToEvent,
-  parseTime,
-  toggleClass,
-  toClassString,
-} from '@?utils';
+import { calculatePercentage, events, parseTime, toClassNameString, toggleClass } from '@?util';
 const { React } = common;
 
 export default (props: {
@@ -90,20 +83,17 @@ export default (props: {
 
   React.useEffect(
     (): (() => void) =>
-      listenToEvent<SpotifyModal.Events.ComponentsVisibilityUpdate>(
-        'componentsVisibilityUpdate',
-        (event): void => {
-          toggleClass(seekBarRef.current, 'hidden', !event.detail.seekBar);
+      events.on<boolean>('seekbarVisibility', (event): void => {
+        toggleClass(seekBarRef.current, 'hidden', !event.detail);
 
-          toggleClass(containerRef.current, 'hidden', !props.showSeekbar.current);
-        },
-      ),
+        toggleClass(containerRef.current, 'hidden', !props.showSeekbar.current);
+      }),
     [],
   );
 
   return (
     <div
-      className={toClassString('seekbar-container', !props.showSeekbar.current ? 'hidden' : '')}
+      className={toClassNameString('seekbar-container', !props.showSeekbar.current ? 'hidden' : '')}
       ref={containerRef}>
       <div className='seekbar-timestamps'>
         <span ref={currentRef} className='current'>
@@ -117,7 +107,7 @@ export default (props: {
         className='seekbar'
         ref={seekBarRef}
         onClick={(event: React.MouseEvent) =>
-          dispatchEvent('controlInteraction', {
+          events.emit('controlInteraction', {
             type: 'seek',
             newProgress: Math.round(
               props.duration *
