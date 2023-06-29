@@ -38,8 +38,7 @@ export default (props: SpotifyApi.TrackObjectFull | SpotifyApi.EpisodeObjectFull
           DiscordNative.clipboard.copy(`https://open.spotify.com/${props.type}/${props.id}`);
           common.toast.toast('Copied track URL to clipboard', 1);
         }
-      }}
-      title={props.name}>
+      }}>
       {props.name}
     </a>
   );

@@ -33,8 +33,7 @@ export const Artist = (
               : `https://open.spotify.com/artist/${props.id}`,
             'blank_',
           );
-        }}
-        title={props.name}>
+        }}>
         {props.name}
       </a>
     ) : (
