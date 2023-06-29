@@ -69,7 +69,7 @@ modal css map:
 - the modal does not update while playing episodes (shows)
   - fix: none - we don't get the item data for the episode at all (`null`). don't believe me?
     execute
-    `<plugin exports>.events.on('message', (ev) => console.log(`${ev.detail.currently_playing_type}`, ev.detail.item))`
+    `<plugin exports>.events.on('message', (ev) => console.log(ev.detail.currently_playing_type, ev.detail.item))`
     and check console when you play an episode.
 - what happened to the `no Spotify pause` feature?
   - removed. you should check out [`NoSpotifyPause`](https://github.com/Socketlike/NoSpotifyPause)
