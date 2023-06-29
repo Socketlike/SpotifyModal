@@ -1,5 +1,5 @@
 import { common } from 'replugged';
-import { calculatePercentage, events, parseTime, toClassNameString, toggleClass } from '@?util';
+import { calculatePercentage, events, parseTime, toClassNameString, toggleClass } from '@util';
 const { React } = common;
 
 export default (props: {

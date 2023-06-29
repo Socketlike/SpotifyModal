@@ -6,5 +6,5 @@ export {
   Artist,
   CoverArt,
   Title,
-} from '@?components/trackDetails';
+} from '@components/trackDetails';
 export * from '@components/Settings';

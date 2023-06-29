@@ -1,7 +1,7 @@
 export interface ControlContextMenuProps {
   forceUpdate: React.MutableRefObject<() => void>;
   onPlayPauseClick?: (ev: React.MouseEvent) => void;
-  onRepeatClick?: (ev: React.MouseEvent) => void;
+  onRepeatClick?: (ev: React.MouseEvent, newMode: 'off' | 'context' | 'track') => void;
   onShuffleClick?: (ev: React.MouseEvent) => void;
   onSkipPrevClick?: (ev: React.MouseEvent) => void;
   onSkipNextClick?: (ev: React.MouseEvent) => void;

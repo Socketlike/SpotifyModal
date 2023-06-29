@@ -1,5 +1,5 @@
 import { common, components, util } from 'replugged';
-import { events, useTrappedSettingsState } from '@?util';
+import { events, useTrappedSettingsState } from '@util';
 import { DefaultConfigType, DefaultConfigTypeKeys, config } from '@config';
 
 const { FormItem, SelectItem, Slider, SwitchItem } = components;

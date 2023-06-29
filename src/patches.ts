@@ -12,6 +12,16 @@ const patches: types.PlaintextPatch[] = [
       },
     ],
   },
+  {
+    find: /dealer\.spotify\.com/,
+    replacements: [
+      {
+        match: /(\.handleMessage=function\((.{1,3})\)){/,
+        replace:
+          '$1{window.replugged.plugins.getExports("lib.evelyn.SpotifyModal").emitMessage($2, this);',
+      },
+    ],
+  },
 ];
 
 export default patches;

@@ -1,13 +1,20 @@
-/* eslint-disable
-  @typescript-eslint/naming-convention
-*/
-
-import { SpotifyAccount, SpotifyStore } from '@typings';
+/* eslint-disable @typescript-eslint/no-floating-promises, @typescript-eslint/naming-convention */
+import {
+  AllControlInteractions,
+  SpotifyAccount,
+  SpotifySocketPayloadDeviceStateEvent,
+  SpotifySocketPayloadPlayerStateEvent,
+  SpotifyStore,
+} from '@typings';
 import { common, types, webpack } from 'replugged';
+import { events, logger } from '@util';
+import { config } from '@config';
 
-const { fluxDispatcher, api } = common;
+const { api, fluxDispatcher, toast } = common;
 
 const baseURL = 'https://api.spotify.com/v1/me/';
+
+const persist = { value: false };
 
 export const store = await webpack.waitForModule<SpotifyStore>(
   webpack.filters.byProps('getActiveSocketAndDevice'),
@@ -18,7 +25,7 @@ export const spotifyAccounts = store.__getLocalVars().accounts;
 export const currentSpotifyAccount = { id: '' };
 
 export const spotifyAPI = {
-  get actionToResponseMatches() {
+  get actionFromResponseMatches() {
     return [
       { match: /me\/player\/(play|pause)/g, action: spotifyAPI.setPlaybackState },
       { match: /me\/player\/shuffle/g, action: spotifyAPI.setShuffleState },
@@ -86,9 +93,8 @@ export const spotifyAPI = {
     });
   },
   getActionFromResponse: (res: Response): types.AnyFunction => {
-    for (const { match, action } of spotifyAPI.actionToResponseMatches) {
+    for (const { match, action } of spotifyAPI.actionFromResponseMatches)
       if (match.test(res.url)) return action;
-    }
   },
   getPlayerState: (accessToken: string): Promise<Response> =>
     spotifyAPI.sendGenericRequest(accessToken, 'player', 'GET') as Promise<Response>,
@@ -135,3 +141,183 @@ export const getAccountFromAccountId = (accountId?: string): SpotifyAccount => {
 
   return spotifyAccounts[accountId];
 };
+
+const controlInteractionErrorHandler = async (
+  res: Response,
+  ...data: unknown[]
+): Promise<Response> => {
+  if (config.get('automaticReauthentication') && res.status === 401) {
+    logger.log('access token deauthorized. attempting reauthentication');
+
+    const newToken = await spotifyAPI.refreshSpotifyAccessToken(currentSpotifyAccount.id, true);
+
+    if (!newToken.ok)
+      toast.toast(
+        'An error occurred whilst reauthenticating. Check console for details.',
+        toast.Kind.FAILURE,
+      );
+    else {
+      logger.log('retrying action');
+
+      const actionRes = (await spotifyAPI.getActionFromResponse(res)(
+        getAccessTokenFromAccountId(),
+        ...data,
+      )) as Response;
+
+      if (!actionRes.ok) {
+        logger.error('action failed, status', actionRes.status, actionRes);
+        toast.toast('Action failed. Check console for details.', toast.Kind.FAILURE);
+      }
+    }
+  } else if (res.status === 401)
+    toast.toast('Access token deauthenticated. Please manually update your state.');
+  else if (res.status === 403) {
+    const { error } = (await res.clone().json()) as { error: { message: string; reason: string } };
+
+    toast.toast(
+      error?.message
+        ? `${error.message} (${error.reason})`
+        : 'Player command failed: unknown reason. check console for more details.',
+      toast.Kind.FAILURE,
+    );
+
+    logger.log('player command action response:', res.clone(), error);
+  }
+
+  persist.value = false;
+  return res;
+};
+
+events.on<AllControlInteractions>('controlInteraction', (event): void => {
+  if (!currentSpotifyAccount.id) return;
+
+  persist.value = true;
+
+  const accessToken = getAccessTokenFromAccountId();
+
+  switch (event.detail.type) {
+    case 'shuffle': {
+      const { currentState } = event.detail;
+
+      spotifyAPI
+        .setShuffleState(accessToken, !currentState)
+        .then(
+          (res: Response): Promise<Response> => controlInteractionErrorHandler(res, !currentState),
+        );
+
+      break;
+    }
+    case 'skipPrev': {
+      if (
+        event.detail.currentProgress >=
+        event.detail.currentDuration * config.get('skipPreviousProgressResetThreshold')
+      )
+        spotifyAPI
+          .seekToPosition(accessToken, 0)
+          .then((res: Response): Promise<Response> => controlInteractionErrorHandler(res, 0));
+      else
+        spotifyAPI
+          .skipNextOrPrevious(accessToken, false)
+          .then((res: Response): Promise<Response> => controlInteractionErrorHandler(res, false));
+      break;
+    }
+    case 'playPause': {
+      const { currentState } = event.detail;
+
+      spotifyAPI
+        .setPlaybackState(accessToken, !currentState)
+        .then(
+          (res: Response): Promise<Response> => controlInteractionErrorHandler(res, !currentState),
+        );
+      break;
+    }
+    case 'skipNext': {
+      spotifyAPI
+        .skipNextOrPrevious(accessToken)
+        .then((res: Response): Promise<Response> => controlInteractionErrorHandler(res));
+      break;
+    }
+    case 'repeat': {
+      const { newState, currentState } = event.detail;
+
+      if (
+        typeof newState === 'string' &&
+        typeof currentState === 'string' &&
+        newState !== currentState
+      )
+        spotifyAPI
+          .setRepeatState(accessToken, newState)
+          .then(
+            (res: Response): Promise<Response> => controlInteractionErrorHandler(res, newState),
+          );
+
+      break;
+    }
+    case 'seek': {
+      const { newProgress } = event.detail;
+
+      spotifyAPI
+        .seekToPosition(accessToken, newProgress)
+        .then(
+          (res: Response): Promise<Response> => controlInteractionErrorHandler(res, newProgress),
+        );
+
+      break;
+    }
+    case 'volume': {
+      const { newVolume } = event.detail;
+
+      spotifyAPI
+        .setPlaybackVolume(accessToken, Math.round(newVolume))
+        .then((res: Response): Promise<Response> => controlInteractionErrorHandler(res, newVolume));
+
+      break;
+    }
+    default: {
+      persist.value = false;
+      break;
+    }
+  }
+});
+
+events.on<SpotifyApi.CurrentPlaybackResponse>('ready', async (): Promise<void> => {
+  if (store.shouldShowActivity()) {
+    const accountIds = Object.keys(spotifyAccounts);
+    let res: Response;
+    let raw: string;
+
+    for (const accountId of accountIds) {
+      res = await spotifyAPI.getPlayerState(getAccessTokenFromAccountId(accountId));
+      raw = await res.clone().text();
+
+      if (raw && res.ok) {
+        const state = JSON.parse(raw) as SpotifyApi.CurrentPlaybackResponse;
+        currentSpotifyAccount.id = accountId;
+
+        events.emit('stateUpdate', state);
+
+        break;
+      }
+    }
+  }
+});
+
+events.on<{
+  accountId: string;
+  data: SpotifySocketPayloadPlayerStateEvent | SpotifySocketPayloadDeviceStateEvent;
+}>('message', (event): void => {
+  const { accountId, data } = event.detail;
+
+  if (!currentSpotifyAccount.id) currentSpotifyAccount.id = accountId;
+
+  if (currentSpotifyAccount.id !== accountId) return;
+
+  if (data.type === 'PLAYER_STATE_CHANGED') events.emit('stateUpdate', data.event.state);
+  else if (data.type === 'DEVICE_STATE_CHANGED') {
+    if (!persist.value) {
+      if (!data.event.devices.length) currentSpotifyAccount.id = '';
+
+      events.emit('showUpdate', Boolean(data.event.devices.length));
+    } else persist.value = false;
+  }
+});

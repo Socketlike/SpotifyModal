@@ -28,6 +28,7 @@ export type RepeatInteraction = ControlInteraction<
   'repeat',
   {
     currentState: 'off' | 'context' | 'track';
+    newState: 'off' | 'context' | 'track';
   }
 >;
 

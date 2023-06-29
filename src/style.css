@@ -34,14 +34,10 @@
   display: flex;
   flex-direction: column;
   padding: 10px 8px;
-  gap: 6px;
+  gap: 8px;
 }
 
-#spotify-modal .main.dock-hidden {
-  gap: 0;
-}
-
-#spotify-modal .header {
+#spotify-modal .track-details {
   display: flex;
   height: fit-content;
   gap: 6px;
@@ -58,7 +54,7 @@
   cursor: pointer;
 }
 
-#spotify-modal .track-details {
+#spotify-modal .title-artists {
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -66,7 +62,7 @@
   white-space: nowrap;
 }
 
-#spotify-modal .track-details .title {
+#spotify-modal .title {
   color: var(--header-primary);
   max-width: 100%;
   width: fit-content;
@@ -78,44 +74,37 @@
   padding-bottom: 3px;
 }
 
-#spotify-modal .track-details .title.href:hover {
+#spotify-modal .title.href:hover {
   text-decoration: underline;
   cursor: pointer;
 }
 
-#spotify-modal .track-details .artists {
+#spotify-modal .artists {
   color: var(--header-secondary);
   max-width: 100%;
   width: fit-content;
   font-size: 12px;
 }
 
-#spotify-modal .track-details .title.overflow,
-#spotify-modal .track-details .artists.overflow {
+#spotify-modal .title.overflow,
+#spotify-modal .artists.overflow {
   animation: scrolling var(--animation-duration) linear infinite;
   animation-direction: alternate-reverse;
 }
 
-#spotify-modal .track-details .title.overflow:hover,
-#spotify-modal .track-details .artists.overflow:hover {
+#spotify-modal .title.overflow:hover,
+#spotify-modal .artists.overflow:hover {
   animation-play-state: paused;
 }
 
-#spotify-modal .artists .artist {
+#spotify-modal .artist {
   color: var(--header-secondary);
   text-decoration: none;
 }
 
-#spotify-modal .artists .artist:hover {
+#spotify-modal.artist:hover {
   color: var(--text-normal);
   text-decoration: underline;
-}
-
-#spotify-modal .dock {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
 }
 
 #spotify-modal .seekbar-container {
@@ -143,34 +132,6 @@
   height: 100%;
   max-width: 100%;
   border-radius: 2px;
-}
-
-#spotify-modal .controls {
-  display: flex;
-  justify-content: space-between;
-  height: 24px;
-  width: 100%;
-  flex-direction: row;
-}
-
-#spotify-modal .controls svg {
-  background-color: var(--background-modifier-hover);
-  border-radius: 4px;
-  color: var(--text-normal);
-  min-width: 26px;
-  height: 26px;
-  transition-duration: 400ms;
-}
-
-#spotify-modal .controls svg.active,
-#spotify-modal .controls svg:not(.active):hover {
-  color: var(--spotify);
-  background-color: var(--background-modifier-active);
-}
-
-#spotify-modal .controls svg.active:hover {
-  color: var(--spotify-darker);
-  background-color: var(--background-modifier-selected);
 }
 
 #spotify-modal .divider {

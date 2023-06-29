@@ -1,6 +1,6 @@
 import { common, webpack } from 'replugged';
 import Seekbar from '@components/Seekbar';
-import TrackDetails from '@?components/trackDetails';
+import TrackDetails from '@components/trackDetails';
 import { openControlsContextMenu } from '@components/Controls';
 import { config } from '@config';
 import {
@@ -11,8 +11,8 @@ import {
   SkipNextInteraction,
   SkipPrevInteraction,
   VolumeInteraction,
-} from '@?typings';
-import { events, toClassNameString, toggleClass, useGuardedRef, useTrappedRef } from '@?util';
+} from '@typings';
+import { events, toClassNameString, toggleClass, useGuardedRef, useTrappedRef } from '@util';
 
 const { React } = common;
 
@@ -38,7 +38,6 @@ export const Modal = (): JSX.Element => {
   const durationRef = React.useRef<number>(0);
   const forceUpdateControls = React.useRef<() => void>(null);
   const elementRef = React.useRef<HTMLDivElement>(null);
-  const mainRef = React.useRef<HTMLDivElement>(null);
   const playingRef = React.useRef<boolean>(false);
   const progressRef = React.useRef<number>(0);
   const repeatRef = React.useRef<'off' | 'context' | 'track'>('off');
@@ -62,20 +61,10 @@ export const Modal = (): JSX.Element => {
     () => config.get('seekbarVisibilityState') === 'auto' || _forceGuard.current,
   );
 
-  const isDockEmpty = React.useCallback((): boolean => !showSeekbar.current, []);
-
-  const setOptionalComponentsVisibility = React.useCallback((value: boolean) => {
-    showSeekbar.current = value;
-
-    events.emit('seekbarVisibility', showSeekbar.current);
-
-    toggleClass(mainRef.current, 'dock-hidden', isDockEmpty());
-  }, []);
-
   React.useEffect(() => {
     const removeStateUpdateListener = events.on<SpotifyApi.CurrentPlaybackResponse>(
       'stateUpdate',
-      (event) => {
+      (event): void => {
         if (event.detail.item) {
           showModal.current = true;
 
@@ -96,29 +85,27 @@ export const Modal = (): JSX.Element => {
       },
     );
 
-    const removeShowUpdateListener = events.on<boolean>('showUpdate', (event) => {
+    const removeShowUpdateListener = events.on<boolean>('showUpdate', (event): void => {
       showModal.current = event.detail;
 
       if (!event.detail) setPlaying(false);
     });
 
-    const removeComponentVisibilityListener = events.on<AllSettingsUpdate>(
+    const removeSeekbarVisibilityUpdateListener = events.on<AllSettingsUpdate>(
       'settingsUpdate',
-      (event) => {
-        if (event.detail.key === 'seekbarVisibilityState') {
+      (event): void => {
+        if (event.detail.key === 'seekbarVisibilityState')
           settingsForceUpdate((): void => {
             showSeekbar.current = event.detail.value === 'always';
+            events.emit('seekbarVisibility', showSeekbar.current);
           });
-
-          events.emit('seekbarVisibility', showSeekbar.current);
-        }
       },
     );
 
     return (): void => {
       removeStateUpdateListener();
       removeShowUpdateListener();
-      removeComponentVisibilityListener();
+      removeSeekbarVisibilityUpdateListener();
     };
   }, []);
 
@@ -130,7 +117,6 @@ export const Modal = (): JSX.Element => {
         showModal.current ? '' : 'hidden',
         containerClasses.container,
       )}
-      /* this is where we do the context menu shenanigans */
       onContextMenu={(ev: React.MouseEvent): void =>
         openControlsContextMenu(ev, {
           forceUpdate: forceUpdateControls,
@@ -140,11 +126,12 @@ export const Modal = (): JSX.Element => {
               type: 'playPause',
               currentState: playingRef.current,
             }),
-          onRepeatClick: (event: React.MouseEvent): void =>
+          onRepeatClick: (event: React.MouseEvent, newMode: 'off' | 'context' | 'track'): void =>
             events.emit<RepeatInteraction>('controlInteraction', {
               event,
               type: 'repeat',
               currentState: repeatRef.current,
+              newState: newMode,
             }),
           onShuffleClick: (event: React.MouseEvent): void =>
             events.emit<ShuffleInteraction>('controlInteraction', {
@@ -175,21 +162,23 @@ export const Modal = (): JSX.Element => {
           volume: volumeRef,
         })
       }
-      onMouseEnter={() => setOptionalComponentsVisibility(true)}
-      onMouseLeave={() => setOptionalComponentsVisibility(false)}
+      onMouseEnter={(): void => {
+        showSeekbar.current = true;
+      }}
+      onMouseLeave={(): void => {
+        showSeekbar.current = false;
+      }}
       ref={elementRef}>
-      <div className={toClassNameString('main', isDockEmpty() ? 'dock-hidden' : '')} ref={mainRef}>
+      <div className='main'>
         <TrackDetails {...track} />
-        <div className='dock'>
-          <Seekbar
-            duration={duration}
-            playing={playing}
-            progress={progress}
-            progressRef={progressRef}
-            showSeekbar={showSeekbar}
-            timestamp={timestamp}
-          />
-        </div>
+        <Seekbar
+          duration={duration}
+          playing={playing}
+          progress={progress}
+          progressRef={progressRef}
+          showSeekbar={showSeekbar}
+          timestamp={timestamp}
+        />
       </div>
       <div className='divider' />
     </div>

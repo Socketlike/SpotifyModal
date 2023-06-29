@@ -1,6 +1,6 @@
 import { common } from 'replugged';
 import { config } from '@config';
-import { overflowMitigation, toClassNameString } from '@?util';
+import { overflowMitigation, toClassNameString } from '@util';
 
 const { React } = common;
 

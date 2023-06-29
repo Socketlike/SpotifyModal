@@ -30,7 +30,8 @@ what you're playing on Spotify.
 
 ## Credits
 
-- the plaintext patch for the modal is taken from [Vencord's spotifyControls](https://github.com/Vendicated/Vencord/blob/main/src/plugins/spotifyControls/index.tsx#L49-L57)
+- the plaintext patch for the modal is taken from
+  [Vencord's spotifyControls](https://github.com/Vendicated/Vencord/blob/main/src/plugins/spotifyControls/index.tsx#L49-L57)
 
 ## Preview
 
@@ -43,37 +44,36 @@ modal css map:
 
 - root: `#spotify-modal-root`
   - modal: `.spotify-modal` | `#spotify-modal`
-    - main view: `.main` (`.dock-hidden`?)
+    - main view: `.main`
     - header: `.header`
       - cover art: `.cover-art`
       - track info: `.track-info`
         - song name: `.title`
         - artists: `.artists`
     - dock: `.dock`
-      - progress container: `.progress-container` -> (**nightly**) `.seekbar-container`
-        - song timestamps: `.progress-display` -> (**nightly**) `.seekbar-timestamps`
-          - current: `.current`
-          - song duration: `.duration`
-        - seekbar: `.seek-bar` -> (**nightly**) `.seekbar`
-          - inner: `.inner`
-      - controls container: `.controls` -> (**nightly**) `removed`
-        - shuffle: `.shuffle` -> (**nightly**) `removed`
-        - skip prev: `.skip-prev` -> (**nightly**) `removed`
-        - play pause: `.play-pause` -> (**nightly**) `removed`
-        - skip next: `.skip-next` -> (**nightly**) `removed`
-        - repeat: `.repeat` -> (**nightly**) `removed`
+      - song timestamps: `.seekbar-timestamps`
+        - current: `.current`
+        - song duration: `.duration`
+      - seekbar: `.seekbar`
+        - inner: `.inner`
   - divider: `.divider`
 
 ## Known issues
 
 - leaving Spotify inactive for an hour or so will make the controls stop working until you manually
   update the player state in the Spotify app
-  - fix: enable `Automatic Reauthentication` in `Settings` (**nightly**: enabled by default)
+  - fix: enable `Automatic Reauthentication` in `Settings`
 - the progress bar can be off by 1s - 5s at times when the Discord app lags and the Spotify state
   updates.
   - fix: none - we cannot trust Spotify's timestamps. they are wildly inaccurate for some reason
+- the modal does not update while playing episodes (shows)
+  - fix: none - we don't get the item data for the episode at all (`null`). don't believe me?
+    execute
+    `<plugin exports>.events.on('message', (ev) => console.log(`${ev.detail.currently_playing_type}`, ev.detail.item))`
+    and check console when you play an episode.
 - what happened to the `no Spotify pause` feature?
-  - removed. you should check out [`NoSpotifyPause`](https://github.com/Socketlike/NoSpotifyPause) instead.
+  - removed. you should check out [`NoSpotifyPause`](https://github.com/Socketlike/NoSpotifyPause)
+    instead.
 
 ## Miscellaneous
 
@@ -81,7 +81,7 @@ modal css map:
   - on the cover art copies the currently playing album URL, if there's any
   - on the song title copies the currently playing song's URL
   - on an artist's name copies the artist's user URL
-  - (**nightly**) on any empty spot in the modal allows you to view the controls context menu
+  - on any empty spot in the modal allows you to view the controls context menu
 - clicking on the progress bar allows you to set current playback position
 
 ## Roadmap
@@ -97,5 +97,5 @@ modal css map:
     - [x] clicking on bar
     - [ ] scrubbing
   - [ ] like / unlike ([docs/SCOPES](docs/SCOPES.md))
-  - [x] Volume control (**nightly**)
+  - [x] volume control
 - [ ] custom oauth2 access tokens ([docs/AUTHORIZATION](docs/AUTHORIZATION.md))

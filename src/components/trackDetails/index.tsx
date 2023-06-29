@@ -8,9 +8,9 @@ const { React } = common;
 
 export default (props: SpotifyApi.TrackObjectFull | SpotifyApi.EpisodeObjectFull): JSX.Element => {
   return (
-    <div className='header'>
+    <div className='track-details'>
       <CoverArt {...props} />
-      <div className='track-details'>
+      <div className='title-artists'>
         <Title {...props} />
         <Artists {...props} />
       </div>
