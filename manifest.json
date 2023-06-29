@@ -16,6 +16,6 @@
   "type": "replugged-plugin",
   "renderer": "src/index.tsx",
   "reloadRequired": true,
-  "source": "https://github.com/Socketlike/SpotifyModal",
-  "plaintextPatches": "src/patches.ts"
+  "plaintextPatches": "src/patches.ts",
+  "source": "https://github.com/Socketlike/SpotifyModal"
 }
