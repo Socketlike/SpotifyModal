@@ -28,9 +28,9 @@
 what you're playing on Spotify.
 </p>
 
-> **Note**  
-> This plugin does **not** require Spotify Premium to function. All functionality are built upon
-> Discord's Spotify WebSocket + Spotify WebAPI calls.
+## Credits
+
+- the plaintext patch for the modal is taken from [Vencord's spotifyControls](https://github.com/Vendicated/Vencord/blob/main/src/plugins/spotifyControls/index.tsx#L49-L57)
 
 ## Preview
 
