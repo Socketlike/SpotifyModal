@@ -134,6 +134,34 @@
   border-radius: 2px;
 }
 
+#spotify-modal .controls-container {
+  display: flex;
+  width: 100%;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+#spotify-modal .controls-container .icon {
+  min-width: 26px;
+  height: 26px;
+  border-radius: 4px;
+  color: var(--text-normal);
+  background-color: var(--background-modifier-hover);
+  transition-duration: 400ms;
+}
+
+#spotify-modal .controls-container .icon.active,
+#spotify-modal .controls-container .icon:not(.active):hover {
+  color: var(--spotify);
+  background-color: var(--background-modifier-active);
+}
+
+#spotify-modal .controls-container .icon.active:hover {
+  color: var(--spotify-darker);
+  background-color: var(--background-modifier-selected);
+}
+
 #spotify-modal .divider {
   background-color: var(--background-modifier-accent);
   height: 1px;

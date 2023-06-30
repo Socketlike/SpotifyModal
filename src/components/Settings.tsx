@@ -2,7 +2,7 @@ import { common, components, util } from 'replugged';
 import { events, useTrappedSettingsState } from '@util';
 import { DefaultConfigType, DefaultConfigTypeKeys, config } from '@config';
 
-const { FormItem, SelectItem, Slider, SwitchItem } = components;
+const { Category, FormItem, SelectItem, Slider, SwitchItem } = components;
 const { React, lodash: _ } = common;
 
 const updateSetting = <T extends DefaultConfigTypeKeys, D extends DefaultConfigType[T]>(
@@ -19,7 +19,37 @@ const updateSetting = <T extends DefaultConfigTypeKeys, D extends DefaultConfigT
 export const Settings = (): JSX.Element => {
   return (
     <div>
-      <SwitchItem
+      <Category title='Visibility' note="Change specific element's visibility">
+        <SelectItem
+          note="Changes the seek bar's visibility"
+          options={[
+            { label: 'Shown', value: 'always' },
+            { label: 'Hidden', value: 'hidden' },
+            { label: 'Shown on hover', value: 'auto' },
+          ]}
+          {...useTrappedSettingsState(
+            util.useSetting(config, 'seekbarVisibilityState'),
+            'seekbarVisibilityState',
+            updateSetting,
+          )}>
+          Seekbar Visibility
+        </SelectItem>
+        <SelectItem
+          note="Changes the controls' visibility"
+          options={[
+            { label: 'Shown', value: 'always' },
+            { label: 'Hidden', value: 'hidden' },
+            { label: 'Shown on hover', value: 'auto' },
+          ]}
+          {...useTrappedSettingsState(
+            util.useSetting(config, 'controlsVisibilityState'),
+            'controlsVisibilityState',
+            updateSetting,
+          )}>
+          Controls Visibility
+        </SelectItem>
+      </Category>
+      {/*      <SwitchItem
         note='Prints more verbose logs to console'
         {...useTrappedSettingsState(
           util.useSetting(config, 'debugging'),
@@ -27,7 +57,7 @@ export const Settings = (): JSX.Element => {
           updateSetting,
         )}>
         Debugging
-      </SwitchItem>
+      </SwitchItem>*/}
       <SwitchItem
         note='Use Spotify URIs (open directly in Spotify) instead of normal links for hyperlinks'
         {...useTrappedSettingsState(
@@ -45,15 +75,6 @@ export const Settings = (): JSX.Element => {
           updateSetting,
         )}>
         Reauthenticate & retry automatically on failure
-      </SwitchItem>
-      <SwitchItem
-        note='Stops Discord from automatically pausing Spotify while talking in a VC'
-        {...useTrappedSettingsState(
-          util.useSetting(config, 'noSpotifyPause'),
-          'noSpotifyPause',
-          updateSetting,
-        )}>
-        No Spotify pause
       </SwitchItem>
       <SwitchItem
         note='Enable seeking by tapping on the seekbar'
@@ -89,20 +110,6 @@ export const Settings = (): JSX.Element => {
           )}
         />
       </FormItem>
-      <SelectItem
-        note="Changes the seek bar's visibility"
-        options={[
-          { label: 'Shown', value: 'always' },
-          { label: 'Hidden', value: 'hidden' },
-          { label: 'Shown on hover', value: 'auto' },
-        ]}
-        {...useTrappedSettingsState(
-          util.useSetting(config, 'seekbarVisibilityState'),
-          'seekbarVisibilityState',
-          updateSetting,
-        )}>
-        Seekbar Visibility
-      </SelectItem>
     </div>
   );
 };

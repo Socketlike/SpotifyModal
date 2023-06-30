@@ -2,6 +2,7 @@ import { settings } from 'replugged';
 
 export const defaultConfig = {
   automaticReauthentication: true,
+  controlsVisibilityState: 'auto',
   debugging: false,
   hyperlinkURI: true,
   noSpotifyPause: true,

@@ -1,7 +1,7 @@
 import { common, webpack } from 'replugged';
 import Seekbar from '@components/Seekbar';
 import TrackDetails from '@components/trackDetails';
-import { openControlsContextMenu } from '@components/Controls';
+import { Controls, openControlsContextMenu } from '@components/Controls';
 import { config } from '@config';
 import {
   AllSettingsUpdate,
@@ -32,8 +32,10 @@ export const Modal = (): JSX.Element => {
 
   const [duration, setDuration] = React.useState<number>(0);
   const [playing, setPlaying] = React.useState<boolean>(false);
-  const [timestamp, setTimestamp] = React.useState<number>(0);
   const [progress, setProgress] = React.useState<number>(0);
+  const [timestamp, setTimestamp] = React.useState<number>(0);
+  const [repeat, setRepeat] = React.useState<'off' | 'context' | 'track'>('off');
+  const [shuffle, setShuffle] = React.useState<boolean>(false);
 
   const durationRef = React.useRef<number>(0);
   const forceUpdateControls = React.useRef<() => void>(null);
@@ -50,16 +52,28 @@ export const Modal = (): JSX.Element => {
 
   const _forceGuard = React.useRef<boolean>(false);
 
-  const settingsForceUpdate = (callback: () => void): void => {
+  const settingsForceUpdate = React.useCallback((callback: () => void): void => {
     _forceGuard.current = true;
     callback();
     _forceGuard.current = false;
-  };
+  }, []);
 
   const showSeekbar = useGuardedRef(
     config.get('seekbarVisibilityState') === 'always',
     () => config.get('seekbarVisibilityState') === 'auto' || _forceGuard.current,
   );
+
+  const showControls = useGuardedRef(
+    config.get('controlsVisibilityState') === 'always',
+    () => config.get('controlsVisibilityState') === 'auto' || _forceGuard.current,
+  );
+
+  const updateOptionalComponentsVisibility = React.useCallback((state: boolean): void => {
+    showSeekbar.current = state;
+    showControls.current = state;
+    events.emit('seekbarVisibility', showSeekbar.current);
+    events.emit('controlsVisibility', showControls.current);
+  }, []);
 
   React.useEffect(() => {
     const removeStateUpdateListener = events.on<SpotifyApi.CurrentPlaybackResponse>(
@@ -71,8 +85,10 @@ export const Modal = (): JSX.Element => {
           setTrack(event.detail.item);
           setDuration(event.detail.item.duration_ms);
           setProgress(event.detail.progress_ms);
-          setTimestamp(event.detail.timestamp);
           setPlaying(event.detail.is_playing);
+          setTimestamp(event.detail.timestamp);
+          setRepeat(event.detail.repeat_state);
+          setShuffle(event.detail.shuffle_state);
 
           durationRef.current = event.detail.item.duration_ms;
           playingRef.current = event.detail.is_playing;
@@ -91,7 +107,7 @@ export const Modal = (): JSX.Element => {
       if (!event.detail) setPlaying(false);
     });
 
-    const removeSeekbarVisibilityUpdateListener = events.on<AllSettingsUpdate>(
+    const removeSettingsUpdateListener = events.on<AllSettingsUpdate>(
       'settingsUpdate',
       (event): void => {
         if (event.detail.key === 'seekbarVisibilityState')
@@ -99,13 +115,18 @@ export const Modal = (): JSX.Element => {
             showSeekbar.current = event.detail.value === 'always';
             events.emit('seekbarVisibility', showSeekbar.current);
           });
+        else if (event.detail.key === 'controlsVisibilityState')
+          settingsForceUpdate((): void => {
+            showControls.current = event.detail.value === 'always';
+            events.emit('controlsVisibility', showControls.current);
+          });
       },
     );
 
     return (): void => {
       removeStateUpdateListener();
       removeShowUpdateListener();
-      removeSeekbarVisibilityUpdateListener();
+      removeSettingsUpdateListener();
     };
   }, []);
 
@@ -120,54 +141,16 @@ export const Modal = (): JSX.Element => {
       onContextMenu={(ev: React.MouseEvent): void =>
         openControlsContextMenu(ev, {
           forceUpdate: forceUpdateControls,
-          onPlayPauseClick: (event: React.MouseEvent): void =>
-            events.emit<PlayPauseInteraction>('controlInteraction', {
-              event,
-              type: 'playPause',
-              currentState: playingRef.current,
-            }),
-          onRepeatClick: (event: React.MouseEvent, newMode: 'off' | 'context' | 'track'): void =>
-            events.emit<RepeatInteraction>('controlInteraction', {
-              event,
-              type: 'repeat',
-              currentState: repeatRef.current,
-              newState: newMode,
-            }),
-          onShuffleClick: (event: React.MouseEvent): void =>
-            events.emit<ShuffleInteraction>('controlInteraction', {
-              event,
-              type: 'shuffle',
-              currentState: shuffleRef.current,
-            }),
-          onSkipNextClick: (event: React.MouseEvent): void =>
-            events.emit<SkipNextInteraction>('controlInteraction', {
-              event,
-              type: 'skipNext',
-            }),
-          onSkipPrevClick: (event: React.MouseEvent): void =>
-            events.emit<SkipPrevInteraction>('controlInteraction', {
-              event,
-              type: 'skipPrev',
-              currentDuration: durationRef.current,
-              currentProgress: progressRef.current,
-            }),
-          onVolumeChange: (newVolume: number): void =>
-            events.emit<VolumeInteraction>('controlInteraction', {
-              type: 'volume',
-              newVolume,
-            }),
+          duration: durationRef,
           playing: playingRef,
+          progress: progressRef,
           repeat: repeatRef,
           shuffle: shuffleRef,
           volume: volumeRef,
         })
       }
-      onMouseEnter={(): void => {
-        showSeekbar.current = true;
-      }}
-      onMouseLeave={(): void => {
-        showSeekbar.current = false;
-      }}
+      onMouseEnter={(): void => updateOptionalComponentsVisibility(true)}
+      onMouseLeave={(): void => updateOptionalComponentsVisibility(false)}
       ref={elementRef}>
       <div className='main'>
         <TrackDetails {...track} />
@@ -176,24 +159,19 @@ export const Modal = (): JSX.Element => {
           playing={playing}
           progress={progress}
           progressRef={progressRef}
-          showSeekbar={showSeekbar}
+          shouldShow={showSeekbar}
           timestamp={timestamp}
+        />
+        <Controls
+          duration={duration}
+          playing={playing}
+          progress={progressRef}
+          shouldShow={showControls}
+          repeat={repeat}
+          shuffle={shuffle}
         />
       </div>
       <div className='divider' />
     </div>
   );
 };
-
-/*
-          <Controls
-            duration={duration}
-            playing={playing}
-            progress={progressRef}
-            shuffle={shuffle}
-            repeat={repeat}
-            show={showControls}
-            track={track}
-          />
-
- */

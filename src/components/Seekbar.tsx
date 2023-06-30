@@ -7,7 +7,7 @@ export default (props: {
   playing: boolean;
   progress: number;
   progressRef: React.MutableRefObject<number>;
-  showSeekbar: React.MutableRefObject<boolean>;
+  shouldShow: React.MutableRefObject<boolean>;
   timestamp: number;
 }): JSX.Element => {
   const interval = React.useRef<number>(null);
@@ -83,17 +83,15 @@ export default (props: {
 
   React.useEffect(
     (): (() => void) =>
-      events.on<boolean>('seekbarVisibility', (event): void => {
-        toggleClass(seekBarRef.current, 'hidden', !event.detail);
-
-        toggleClass(containerRef.current, 'hidden', !props.showSeekbar.current);
-      }),
+      events.on<boolean>('seekbarVisibility', (event): void =>
+        toggleClass(containerRef.current, 'hidden', !event.detail),
+      ),
     [],
   );
 
   return (
     <div
-      className={toClassNameString('seekbar-container', !props.showSeekbar.current ? 'hidden' : '')}
+      className={toClassNameString('seekbar-container', !props.shouldShow.current ? 'hidden' : '')}
       ref={containerRef}>
       <div className='seekbar-timestamps'>
         <span ref={currentRef} className='current'>

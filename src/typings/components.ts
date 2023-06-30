@@ -1,12 +1,17 @@
+export interface ControlsComponentProps {
+  duration: number;
+  playing: boolean;
+  progress: React.MutableRefObject<number>;
+  repeat: 'off' | 'context' | 'track';
+  shouldShow: React.MutableRefObject<boolean>;
+  shuffle: boolean;
+}
+
 export interface ControlContextMenuProps {
+  duration: React.MutableRefObject<number>;
   forceUpdate: React.MutableRefObject<() => void>;
-  onPlayPauseClick?: (ev: React.MouseEvent) => void;
-  onRepeatClick?: (ev: React.MouseEvent, newMode: 'off' | 'context' | 'track') => void;
-  onShuffleClick?: (ev: React.MouseEvent) => void;
-  onSkipPrevClick?: (ev: React.MouseEvent) => void;
-  onSkipNextClick?: (ev: React.MouseEvent) => void;
-  onVolumeChange?: (newVolume: number) => void;
   playing: React.MutableRefObject<boolean>;
+  progress: React.MutableRefObject<number>;
   repeat: React.MutableRefObject<'off' | 'context' | 'track'>;
   shuffle: React.MutableRefObject<boolean>;
   volume: React.MutableRefObject<number>;

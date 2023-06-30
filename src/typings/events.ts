@@ -51,7 +51,10 @@ export interface SettingsUpdate<T extends DefaultConfigTypeKeys, D> {
 }
 
 export type AllSettingsUpdate =
-  | SettingsUpdate<'seekbarVisibilityState', 'always' | 'hidden' | 'auto'>
+  | SettingsUpdate<
+      'seekbarVisibilityState' | 'controlsVisibilityState',
+      'always' | 'hidden' | 'auto'
+    >
   | SettingsUpdate<
       | 'automaticReauthentication'
       | 'debugging'
