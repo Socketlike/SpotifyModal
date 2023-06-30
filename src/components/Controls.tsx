@@ -33,13 +33,15 @@ export const { MenuSliderControl } = await webpack.waitForModule<{
 export function Icon(props: {
   className?: string;
   onClick?: (event: React.MouseEvent) => void;
+  onContextMenu?: (event: React.MouseEvent) => void;
   path: string;
 }): JSX.Element {
   return (
     <svg
       className={toClassNameString('icon', props.className)}
       viewBox='0 0 24 24'
-      onClick={props.onClick}>
+      onClick={props.onClick}
+      onContextMenu={props.onContextMenu}>
       <path fill='currentColor' d={props.path} />
     </svg>
   );
@@ -210,11 +212,11 @@ export const Controls = (props: ControlsComponentProps): JSX.Element => {
   return (
     <div
       ref={containerRef}
-      className={toClassNameString('controls-container', props.shouldShow.current ? '' : 'hidden')}
-      onContextMenu={(e: React.MouseEvent): void => e.stopPropagation()}>
+      className={toClassNameString('controls-container', props.shouldShow.current ? '' : 'hidden')}>
       <Icon
         className={toClassNameString('shuffle-icon', props.shuffle ? 'active' : '')}
         path={mdiShuffle}
+        onContextMenu={(e: React.MouseEvent): void => e.stopPropagation()}
         onClick={(event: React.MouseEvent): void =>
           events.emit<ShuffleInteraction>('controlInteraction', {
             event,
@@ -226,6 +228,7 @@ export const Controls = (props: ControlsComponentProps): JSX.Element => {
       <Icon
         className='skip-prev-icon'
         path={mdiSkipPrevious}
+        onContextMenu={(e: React.MouseEvent): void => e.stopPropagation()}
         onClick={(event: React.MouseEvent): void =>
           events.emit<SkipPrevInteraction>('controlInteraction', {
             event,
@@ -238,6 +241,7 @@ export const Controls = (props: ControlsComponentProps): JSX.Element => {
       <Icon
         className='play-pause-icon'
         path={props.playing ? mdiPause : mdiPlay}
+        onContextMenu={(e: React.MouseEvent): void => e.stopPropagation()}
         onClick={(event: React.MouseEvent): void =>
           events.emit<PlayPauseInteraction>('controlInteraction', {
             event,
@@ -249,6 +253,7 @@ export const Controls = (props: ControlsComponentProps): JSX.Element => {
       <Icon
         className='skip-next-icon'
         path={mdiSkipNext}
+        onContextMenu={(e: React.MouseEvent): void => e.stopPropagation()}
         onClick={(event: React.MouseEvent): void =>
           events.emit<SkipNextInteraction>('controlInteraction', { event, type: 'skipNext' })
         }
@@ -256,6 +261,7 @@ export const Controls = (props: ControlsComponentProps): JSX.Element => {
       <Icon
         className={toClassNameString('repeat-icon', props.repeat !== 'off' ? 'active' : '')}
         path={props.repeat !== 'track' ? mdiRepeat : mdiRepeatOnce}
+        onContextMenu={(e: React.MouseEvent): void => e.stopPropagation()}
         onClick={(event: React.MouseEvent): void =>
           events.emit<RepeatInteraction>('controlInteraction', {
             event,
