@@ -2,18 +2,21 @@
   0% {
     transform: translateX(var(--scroll-space));
   }
+
   20% {
     transform: translateX(var(--scroll-space));
   }
+
   80% {
     transform: translateX(0);
   }
+
   100% {
     transform: translateX(0);
   }
 }
 
-#spotify-modal-root > #spotify-modal {
+#spotify-modal-root>#spotify-modal {
   --spotify-darker: #0a963c;
   height: 100%;
 
@@ -111,7 +114,6 @@
   display: flex;
   width: 100%;
   flex-direction: column;
-  gap: 4px;
 }
 
 #spotify-modal .seekbar-timestamps {
@@ -123,15 +125,23 @@
 
 #spotify-modal .seekbar {
   border-radius: 2px;
-  background-color: var(--background-modifier-accent);
-  height: 4px;
+  height: 30px;
 }
 
 #spotify-modal .seekbar .inner {
-  background-color: var(--spotify);
-  height: 100%;
-  max-width: 100%;
+  background-color: var(--background-modifier-accent);
   border-radius: 2px;
+}
+
+#spotify-modal .seekbar .inner div {
+  background-color: var(--spotify);
+  border-radius: 2px;
+}
+
+#spotify-modal .seekbar div .grabber {
+  margin-top: auto;
+  width: 6px;
+  height: 6px;
 }
 
 #spotify-modal .controls-container {
