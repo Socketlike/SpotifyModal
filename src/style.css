@@ -16,7 +16,7 @@
   }
 }
 
-#spotify-modal-root>#spotify-modal {
+#spotify-modal-root > #spotify-modal {
   --spotify-darker: #0a963c;
   height: 100%;
 

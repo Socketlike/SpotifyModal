@@ -18,7 +18,6 @@ export default (props: {
 
   const containerRef = React.useRef<HTMLDivElement>(null);
 
-
   const currentRef = React.useRef<HTMLSpanElement>(null);
   const durationRef = React.useRef<HTMLSpanElement>(null);
 
@@ -35,7 +34,7 @@ export default (props: {
   );
 
   React.useEffect(() => {
-    if (!props.timestamp) return () => { };
+    if (!props.timestamp) return () => {};
 
     interval.current = setInterval((): void => {
       const now = Date.now();
@@ -51,7 +50,7 @@ export default (props: {
       if (
         currentRef.current &&
         currentRef.current.innerText !==
-        parseTime(getProgressMS(props.playing, props.duration, props.progress))
+          parseTime(getProgressMS(props.playing, props.duration, props.progress))
       )
         currentRef.current.innerText = parseTime(
           getProgressMS(props.playing, props.duration, props.progress),
@@ -95,10 +94,12 @@ export default (props: {
         minValue={0}
         maxValue={props.duration}
         value={props.progress}
-        onChange={(v: number) => events.emit('controlInteraction', {
-          type: 'seek',
-          newProgress: Math.round(v),
-        })}
+        onChange={(v: number) =>
+          events.emit('controlInteraction', {
+            type: 'seek',
+            newProgress: Math.round(v),
+          })
+        }
         onValueRender={parseTime}
       />
     </div>
