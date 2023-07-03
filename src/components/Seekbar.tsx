@@ -1,6 +1,7 @@
-import { common } from 'replugged';
-import { calculatePercentage, events, parseTime, toClassNameString, toggleClass } from '@util';
+import { common, components } from 'replugged';
+import { events, parseTime, toClassNameString, toggleClass } from '@util';
 const { React } = common;
+const { Slider } = components;
 
 export default (props: {
   duration: number;
@@ -17,8 +18,6 @@ export default (props: {
 
   const containerRef = React.useRef<HTMLDivElement>(null);
 
-  const seekBarRef = React.useRef<HTMLDivElement>(null);
-  const seekBarInnerRef = React.useRef<HTMLDivElement>(null);
 
   const currentRef = React.useRef<HTMLSpanElement>(null);
   const durationRef = React.useRef<HTMLSpanElement>(null);
@@ -36,7 +35,7 @@ export default (props: {
   );
 
   React.useEffect(() => {
-    if (!props.timestamp) return () => {};
+    if (!props.timestamp) return () => { };
 
     interval.current = setInterval((): void => {
       const now = Date.now();
@@ -50,22 +49,9 @@ export default (props: {
         props.progressRef.current = getProgressMS(props.playing, props.duration, props.progress);
 
       if (
-        seekBarInnerRef.current &&
-        seekBarInnerRef.current.style.width !==
-          calculatePercentage(
-            getProgressMS(props.playing, props.duration, props.progress),
-            props.duration,
-          )
-      )
-        seekBarInnerRef.current.style.width = calculatePercentage(
-          getProgressMS(props.playing, props.duration, props.progress),
-          props.duration,
-        );
-
-      if (
         currentRef.current &&
         currentRef.current.innerText !==
-          parseTime(getProgressMS(props.playing, props.duration, props.progress))
+        parseTime(getProgressMS(props.playing, props.duration, props.progress))
       )
         currentRef.current.innerText = parseTime(
           getProgressMS(props.playing, props.duration, props.progress),
@@ -101,24 +87,20 @@ export default (props: {
           {parseTime(props.duration)}
         </span>
       </div>
-      <div
+      <Slider
         className='seekbar'
-        ref={seekBarRef}
-        onClick={(event: React.MouseEvent) =>
-          events.emit('controlInteraction', {
-            type: 'seek',
-            newProgress: Math.round(
-              props.duration *
-                (event.nativeEvent.offsetX / (seekBarRef.current as HTMLDivElement).offsetWidth),
-            ),
-          })
-        }>
-        <div
-          className='inner'
-          ref={seekBarInnerRef}
-          style={{ width: calculatePercentage(props.progress, props.duration) }}
-        />
-      </div>
+        barClassName='inner'
+        grabberClassName='grabber'
+        mini={true}
+        minValue={0}
+        maxValue={props.duration}
+        value={props.progress}
+        onChange={(v: number) => events.emit('controlInteraction', {
+          type: 'seek',
+          newProgress: Math.round(v),
+        })}
+        onValueRender={parseTime}
+      />
     </div>
   );
 };

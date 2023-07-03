@@ -8,7 +8,7 @@ const patches: types.PlaintextPatch[] = [
       {
         match: /return ?(.{0,30}\(.{1,3},\{[^}]+?,showTaglessAccountPanel:.+?\}\))/,
         replace:
-          'return [window.replugged.plugins.getExports("lib.evelyn.SpotifyModal").renderModal(),$1]',
+          'return [window.replugged.plugins.getExports("lib.evelyn.SpotifyModal")?.renderModal(),$1]',
       },
     ],
   },
@@ -18,7 +18,7 @@ const patches: types.PlaintextPatch[] = [
       {
         match: /(\.handleMessage=function\((.{1,3})\)){/,
         replace:
-          '$1{window.replugged.plugins.getExports("lib.evelyn.SpotifyModal").emitMessage($2, this);',
+          '$1{window.replugged.plugins.getExports("lib.evelyn.SpotifyModal")?.emitMessage($2, this);',
       },
     ],
   },
