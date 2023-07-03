@@ -12,12 +12,12 @@ declare const DiscordNative: {
 
 export default (props: SpotifyApi.TrackObjectFull | SpotifyApi.EpisodeObjectFull): JSX.Element => {
   const containerType = props.type === 'track' ? 'album' : 'show';
-  const image = props.type === 'track' ? props.album.images[0].url : props.show.images[0].url;
+  const image = props.type === 'track' ? props.album.images[0]?.url : props.show.images[0]?.url;
   const name = props.type === 'track' ? props.album.name : props.show.name;
   const { id: containerId } = (props.type === 'track' ? props.album : props.show) || {};
 
   return (
-    <Tooltip text={name}>
+    <Tooltip className={image ? '' : 'hidden'} text={name}>
       <img
         className='cover-art'
         src={image}
