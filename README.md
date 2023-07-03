@@ -50,12 +50,24 @@ modal css map:
       - track info: `.track-info`
         - song name: `.title`
         - artists: `.artists`
-    - dock: `.dock`
-      - song timestamps: `.seekbar-timestamps`
+    - seekbar container: `.seekbar-container`
+      - seekbar timestamps: `.seekbar-timestamps`
         - current: `.current`
         - song duration: `.duration`
       - seekbar: `.seekbar`
         - inner: `.inner`
+        - grabber: `.grabber`
+    - controls: `.controls`
+      - repeat icons:
+        - off: `.repeat-off-icon`
+        - all: `.repeat-all-icon`
+        - track: `.repeat-track-icon`
+      - skip previous: `.skip-prev-icon`
+      - play: `.play-icon`
+      - pause: `.pause-icon`
+      - skip next: `.skip-next-icon`
+      - shuffle: `.shuffle-icon`
+      - active (highlight): `.active`
   - divider: `.divider`
 
 ## Known issues
@@ -93,9 +105,9 @@ modal css map:
   - [x] skip forward / backward
   - [x] shuffle
   - [x] repeat
-  - [ ] seeking
+  - [x] seeking
     - [x] clicking on bar
-    - [ ] scrubbing
+    - [x] scrubbing
   - [ ] like / unlike ([docs/SCOPES](docs/SCOPES.md))
   - [x] volume control
 - [ ] custom oauth2 access tokens ([docs/AUTHORIZATION](docs/AUTHORIZATION.md))

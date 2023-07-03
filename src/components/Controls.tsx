@@ -66,61 +66,6 @@ export const openControlsContextMenu = (
     return (
       <ContextMenu.ContextMenu onClose={contextMenu.close} navId='spotify-modal-controls'>
         <ContextMenu.MenuGroup label='Controls'>
-          <ContextMenu.MenuItem
-            label={`Toggle shuffle ${props.shuffle.current ? 'off' : 'on'}`}
-            id='shuffle'
-            icon={() => (
-              <Icon
-                className='shuffle-icon'
-                path={props.shuffle.current ? mdiShuffleDisabled : mdiShuffle}
-              />
-            )}
-            action={(event: React.MouseEvent): void =>
-              events.emit<ShuffleInteraction>('controlInteraction', {
-                event,
-                type: 'shuffle',
-                currentState: props.shuffle.current,
-              })
-            }
-          />
-          <ContextMenu.MenuItem
-            label='Skip to previous track'
-            id='skip-previous'
-            icon={() => <Icon className='skip-prev-icon' path={mdiSkipPrevious} />}
-            action={(event: React.MouseEvent): void =>
-              events.emit<SkipPrevInteraction>('controlInteraction', {
-                event,
-                type: 'skipPrev',
-                currentDuration: props.duration.current,
-                currentProgress: props.progress.current,
-              })
-            }
-          />
-          <ContextMenu.MenuItem
-            label={`${props.playing.current ? 'Pause' : 'Resume'} playback`}
-            id='play-pause'
-            icon={() => (
-              <Icon className='play-pause-icon' path={props.playing.current ? mdiPause : mdiPlay} />
-            )}
-            action={(event: React.MouseEvent): void =>
-              events.emit<PlayPauseInteraction>('controlInteraction', {
-                event,
-                type: 'playPause',
-                currentState: props.playing.current,
-              })
-            }
-          />
-          <ContextMenu.MenuItem
-            label='Skip to next track'
-            id='skip-next'
-            icon={() => <Icon className='skip-next-icon' path={mdiSkipNext} />}
-            action={(event: React.MouseEvent) =>
-              events.emit<SkipNextInteraction>('controlInteraction', {
-                event,
-                type: 'skipNext',
-              })
-            }
-          />
           <ContextMenu.MenuItem label='Toggle repeat' id='repeat'>
             <ContextMenu.MenuItem
               label='Off'
@@ -165,6 +110,64 @@ export const openControlsContextMenu = (
               }
             />
           </ContextMenu.MenuItem>
+          <ContextMenu.MenuItem
+            label='Skip to previous track'
+            id='skip-previous'
+            icon={() => <Icon className='skip-prev-icon' path={mdiSkipPrevious} />}
+            action={(event: React.MouseEvent): void =>
+              events.emit<SkipPrevInteraction>('controlInteraction', {
+                event,
+                type: 'skipPrev',
+                currentDuration: props.duration.current,
+                currentProgress: props.progress.current,
+              })
+            }
+          />
+          <ContextMenu.MenuItem
+            label={`${props.playing.current ? 'Pause' : 'Resume'} playback`}
+            id='play-pause'
+            icon={() => (
+              <Icon
+                className={`${props.playing.current ? 'pause' : 'play'}-icon`}
+                path={props.playing.current ? mdiPause : mdiPlay}
+              />
+            )}
+            action={(event: React.MouseEvent): void =>
+              events.emit<PlayPauseInteraction>('controlInteraction', {
+                event,
+                type: 'playPause',
+                currentState: props.playing.current,
+              })
+            }
+          />
+          <ContextMenu.MenuItem
+            label='Skip to next track'
+            id='skip-next'
+            icon={() => <Icon className='skip-next-icon' path={mdiSkipNext} />}
+            action={(event: React.MouseEvent) =>
+              events.emit<SkipNextInteraction>('controlInteraction', {
+                event,
+                type: 'skipNext',
+              })
+            }
+          />
+          <ContextMenu.MenuItem
+            label={`Toggle shuffle ${props.shuffle.current ? 'off' : 'on'}`}
+            id='shuffle'
+            icon={() => (
+              <Icon
+                className='shuffle-icon'
+                path={props.shuffle.current ? mdiShuffleDisabled : mdiShuffle}
+              />
+            )}
+            action={(event: React.MouseEvent): void =>
+              events.emit<ShuffleInteraction>('controlInteraction', {
+                event,
+                type: 'shuffle',
+                currentState: props.shuffle.current,
+              })
+            }
+          />
           <ContextMenu.MenuControlItem
             id='volume'
             label='Player volume'
@@ -214,14 +217,18 @@ export const Controls = (props: ControlsComponentProps): JSX.Element => {
       ref={containerRef}
       className={toClassNameString('controls-container', props.shouldShow.current ? '' : 'hidden')}>
       <Icon
-        className={toClassNameString('shuffle-icon', props.shuffle ? 'active' : '')}
-        path={mdiShuffle}
+        className={toClassNameString(
+          `repeat-${props.repeat === 'context' ? 'all' : props.repeat}-icon`,
+          props.repeat !== 'off' ? 'active' : '',
+        )}
+        path={props.repeat !== 'track' ? mdiRepeat : mdiRepeatOnce}
         onContextMenu={(e: React.MouseEvent): void => e.stopPropagation()}
         onClick={(event: React.MouseEvent): void =>
-          events.emit<ShuffleInteraction>('controlInteraction', {
+          events.emit<RepeatInteraction>('controlInteraction', {
             event,
-            currentState: props.shuffle,
-            type: 'shuffle',
+            currentState: props.repeat,
+            newState: switchNextRepeatMode(props.repeat),
+            type: 'repeat',
           })
         }
       />
@@ -239,7 +246,7 @@ export const Controls = (props: ControlsComponentProps): JSX.Element => {
         }
       />
       <Icon
-        className='play-pause-icon'
+        className={`${props.playing ? 'pause' : 'play'}-icon`}
         path={props.playing ? mdiPause : mdiPlay}
         onContextMenu={(e: React.MouseEvent): void => e.stopPropagation()}
         onClick={(event: React.MouseEvent): void =>
@@ -259,15 +266,14 @@ export const Controls = (props: ControlsComponentProps): JSX.Element => {
         }
       />
       <Icon
-        className={toClassNameString('repeat-icon', props.repeat !== 'off' ? 'active' : '')}
-        path={props.repeat !== 'track' ? mdiRepeat : mdiRepeatOnce}
+        className={toClassNameString('shuffle-icon', props.shuffle ? 'active' : '')}
+        path={mdiShuffle}
         onContextMenu={(e: React.MouseEvent): void => e.stopPropagation()}
         onClick={(event: React.MouseEvent): void =>
-          events.emit<RepeatInteraction>('controlInteraction', {
+          events.emit<ShuffleInteraction>('controlInteraction', {
             event,
-            currentState: props.repeat,
-            newState: switchNextRepeatMode(props.repeat),
-            type: 'repeat',
+            currentState: props.shuffle,
+            type: 'shuffle',
           })
         }
       />

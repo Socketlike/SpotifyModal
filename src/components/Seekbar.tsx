@@ -1,5 +1,6 @@
 import { common, components } from 'replugged';
-import { events, parseTime, toClassNameString, toggleClass } from '@util';
+import { calculatePercentage, events, parseTime, toClassNameString, toggleClass } from '@util';
+
 const { React } = common;
 const { Slider } = components;
 
@@ -11,12 +12,17 @@ export default (props: {
   shouldShow: React.MutableRefObject<boolean>;
   timestamp: number;
 }): JSX.Element => {
+  const isUpdating = React.useRef<boolean>(false);
+
   const interval = React.useRef<number>(null);
 
   const progressTimestampRef = React.useRef<number>(0);
   const durationTimestampRef = React.useRef<number>(0);
 
   const containerRef = React.useRef<HTMLDivElement>(null);
+
+  const seekbarInnerRef = React.useRef<HTMLDivElement>(null);
+  const seekbarGrabberRef = React.useRef<HTMLDivElement>(null);
 
   const currentRef = React.useRef<HTMLSpanElement>(null);
   const durationRef = React.useRef<HTMLSpanElement>(null);
@@ -36,11 +42,24 @@ export default (props: {
   React.useEffect(() => {
     if (!props.timestamp) return () => {};
 
+    seekbarInnerRef.current = document.querySelector('#spotify-modal .seekbar [class^=barFill-]');
+    seekbarGrabberRef.current = document.querySelector('#spotify-modal .seekbar .grabber');
+
     interval.current = setInterval((): void => {
       const now = Date.now();
       if (!durationTimestampRef.current)
         durationTimestampRef.current = now + props.duration - props.progress;
       progressTimestampRef.current = now;
+
+      const currentPercentage = calculatePercentage(
+        getProgressMS(props.playing, props.duration, props.progress),
+        props.duration,
+      );
+
+      if (seekbarInnerRef.current && seekbarInnerRef.current.style.width !== currentPercentage)
+        seekbarInnerRef.current.style.width = currentPercentage;
+      if (seekbarGrabberRef.current && seekbarGrabberRef.current.style.left !== currentPercentage)
+        seekbarGrabberRef.current.style.left = currentPercentage;
 
       if (
         props.progressRef.current !== getProgressMS(props.playing, props.duration, props.progress)
@@ -94,12 +113,18 @@ export default (props: {
         minValue={0}
         maxValue={props.duration}
         value={props.progress}
-        onChange={(v: number) =>
+        onChange={(newValue: number): void => {
+          if (isUpdating.current) return;
+
+          isUpdating.current = true;
+
           events.emit('controlInteraction', {
             type: 'seek',
-            newProgress: Math.round(v),
-          })
-        }
+            newProgress: Math.round(newValue),
+          });
+
+          isUpdating.current = false;
+        }}
         onValueRender={parseTime}
       />
     </div>

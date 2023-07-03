@@ -77,15 +77,6 @@ export const Settings = (): JSX.Element => {
         Reauthenticate & retry automatically on failure
       </SwitchItem>
       <SwitchItem
-        note='Enable seeking by tapping on the seekbar'
-        {...useTrappedSettingsState(
-          util.useSetting(config, 'seekbarEnabled'),
-          'seekbarEnabled',
-          updateSetting,
-        )}>
-        Enable track seeking
-      </SwitchItem>
-      <SwitchItem
         note='Make the skip previous control reset your track playback progress when it is past a percentage of the track'
         {...useTrappedSettingsState(
           util.useSetting(config, 'skipPreviousShouldResetProgress'),

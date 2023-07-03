@@ -114,6 +114,7 @@
   display: flex;
   width: 100%;
   flex-direction: column;
+  gap: 4.4px;
 }
 
 #spotify-modal .seekbar-timestamps {
@@ -124,14 +125,19 @@
 }
 
 #spotify-modal .seekbar {
-  border-radius: 2px;
-  height: 10px;
+  height: 5px;
 }
 
 #spotify-modal .seekbar .inner {
   background-color: var(--background-modifier-accent);
   border-radius: 2px;
-  top: 5px;
+  top: 0;
+  height: 5px;
+}
+
+#spotify-modal .seekbar [class^='track-'] {
+  right: 0;
+  left: 0;
 }
 
 #spotify-modal .seekbar .inner div {
@@ -139,11 +145,16 @@
   border-radius: 2px;
 }
 
-#spotify-modal .seekbar div .grabber {
+#spotify-modal .seekbar .grabber {
+  display: none;
   margin-top: auto;
-  top: 5px;
-  width: 6px;
-  height: 6px;
+  top: -2.4px;
+  width: 7px;
+  height: 7px;
+}
+
+#spotify-modal .seekbar:hover .grabber {
+  display: block;
 }
 
 #spotify-modal .controls-container {
