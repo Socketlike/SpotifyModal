@@ -40,3 +40,8 @@ export type MenuSliderControlType = React.ForwardRefRenderFunction<
   }>,
   MenuSliderControlProps
 >;
+
+export interface ModalProps {
+  transitionState: 0 | 1 | 2 | 3 | 4;
+  onClose(): Promise<void>;
+}

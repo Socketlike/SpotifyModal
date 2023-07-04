@@ -4,12 +4,6 @@ import { overflowMitigation } from '@util';
 
 const { React } = common;
 
-declare const DiscordNative: {
-  clipboard: {
-    copy: (content: string) => void;
-  };
-};
-
 export const Artist = (
   props: SpotifyApi.ArtistObjectSimplified & { last: boolean },
 ): JSX.Element => (
@@ -20,7 +14,7 @@ export const Artist = (
         onContextMenu={(e: React.MouseEvent): void => {
           e.stopPropagation();
 
-          DiscordNative.clipboard.copy(`https://open.spotify.com/artist/${props.id}`);
+          window.DiscordNative.clipboard.copy(`https://open.spotify.com/artist/${props.id}`);
 
           common.toast.toast('Copied artist URL to clipboard', 1);
         }}

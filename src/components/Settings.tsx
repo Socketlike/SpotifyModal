@@ -2,7 +2,7 @@ import { common, components, util } from 'replugged';
 import { events, useTrappedSettingsState } from '@util';
 import { DefaultConfigType, DefaultConfigTypeKeys, config } from '@config';
 
-const { Category, FormItem, SelectItem, Slider, SwitchItem } = components;
+const { Category, Divider, FormItem, SelectItem, Slider, SwitchItem } = components;
 const { React, lodash: _ } = common;
 
 const updateSetting = <T extends DefaultConfigTypeKeys, D extends DefaultConfigType[T]>(
@@ -18,8 +18,8 @@ const updateSetting = <T extends DefaultConfigTypeKeys, D extends DefaultConfigT
 
 export const Settings = (): JSX.Element => {
   return (
-    <div>
-      <Category title='Visibility' note="Change specific element's visibility">
+    <div className='spotify-modal-settings'>
+      <Category title='Visibility' note="Change specific elements' visibility">
         <SelectItem
           note="Changes the seek bar's visibility"
           options={[
@@ -49,15 +49,38 @@ export const Settings = (): JSX.Element => {
           Controls Visibility
         </SelectItem>
       </Category>
-      {/*      <SwitchItem
-        note='Prints more verbose logs to console'
+      <SelectItem
+        note='Controls what the plugin does when it stops'
+        options={[
+          { label: 'Ask whether to restart Discord or not in a popout', value: 'ask' },
+          { label: 'Restart Discord', value: 'restartDiscord' },
+          { label: 'Do not restart Discord', value: 'doNotRestartDiscord' },
+        ]}
+        {...useTrappedSettingsState(
+          util.useSetting(config, 'pluginStopBehavior'),
+          'pluginStopBehavior',
+          updateSetting,
+        )}>
+        Plugin Stop Behavior
+      </SelectItem>
+      <SwitchItem
+        note='Prevent modal from displaying / updating by cutting off its source of state updates'
+        {...useTrappedSettingsState(
+          util.useSetting(config, 'disabled'),
+          'disabled',
+          updateSetting,
+        )}>
+        Disable Modal
+      </SwitchItem>
+      <SwitchItem
+        note='Prints more verbose logs to console (warning: very noisy!)'
         {...useTrappedSettingsState(
           util.useSetting(config, 'debugging'),
           'debugging',
           updateSetting,
         )}>
         Debugging
-      </SwitchItem>*/}
+      </SwitchItem>
       <SwitchItem
         note='Use Spotify URIs (open directly in Spotify) instead of normal links for hyperlinks'
         {...useTrappedSettingsState(
@@ -74,7 +97,7 @@ export const Settings = (): JSX.Element => {
           'automaticReauthentication',
           updateSetting,
         )}>
-        Reauthenticate & retry automatically on failure
+        Automatic Reauthentication
       </SwitchItem>
       <SwitchItem
         note='Make the skip previous control reset your track playback progress when it is past a percentage of the track'
@@ -89,7 +112,7 @@ export const Settings = (): JSX.Element => {
         title='Skip previous reset progress threshold'
         note='The percentage of the track duration to ignore playback progress reset on clicking skip previous.'>
         <Slider
-          className={'skip-prev-reset-slider'}
+          className={'skip-prev-percent-slider'}
           disabled={!config.get('skipPreviousShouldResetProgress')}
           minValue={0}
           maxValue={1}
@@ -99,7 +122,9 @@ export const Settings = (): JSX.Element => {
             'skipPreviousProgressResetThreshold',
             updateSetting,
           )}
+          onMarkerRender={(marker: number): string => `${Math.floor(marker * 100)}%`}
         />
+        <Divider style={{ marginTop: '20px' }} />
       </FormItem>
     </div>
   );

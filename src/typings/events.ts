@@ -1,5 +1,10 @@
 import { DefaultConfigTypeKeys } from '@config';
 
+export interface DebugEvent {
+  tag: string;
+  message: unknown | unknown[];
+}
+
 export type ControlInteraction<T extends string, D extends Record<string, unknown>> = {
   event?: React.MouseEvent;
   type: T;
@@ -55,10 +60,11 @@ export type AllSettingsUpdate =
       'seekbarVisibilityState' | 'controlsVisibilityState',
       'always' | 'hidden' | 'auto'
     >
+  | SettingsUpdate<'pluginStopBehavior', 'ask' | 'restartDiscord' | 'doNotRestartDiscord'>
   | SettingsUpdate<
       | 'automaticReauthentication'
       | 'debugging'
-      | 'noSpotifyPause'
+      | 'disabled'
       | 'hyperlinkURI'
       | 'seekbarEnabled'
       | 'skipPreviousShouldResetProgress',

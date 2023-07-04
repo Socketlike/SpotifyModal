@@ -14,8 +14,9 @@ export const toClassNameString = (...args: string[]): string =>
     .replace(/,/g, ' ');
 
 export const toggleClass = (element: HTMLElement, className: string, toggle: boolean): void => {
-  if (toggle && !element.classList.contains(className)) element.classList.add(className);
-  else if (!toggle && element.classList.contains(className)) element.classList.remove(className);
+  if (toggle && !element?.classList?.contains?.(className)) element.classList.add(className);
+  else if (!toggle && element?.classList?.contains?.(className))
+    element.classList.remove(className);
 };
 
 export function calculatePercentage(current: number, end: number): string {

@@ -136,8 +136,8 @@
 }
 
 #spotify-modal .seekbar [class^='track-'] {
-  right: 0;
-  left: 0;
+  right: 7px;
+  left: 7px;
 }
 
 #spotify-modal .seekbar .inner div {
@@ -190,7 +190,26 @@
   height: 1px;
 }
 
-/* Settings */
-.skip-prev-reset-slider {
-  margin-top: 18px;
+.spotify-modal-settings .skip-prev-percent-slider {
+  margin-top: 20px;
+}
+
+.spotify-modal-oauth2-generator .header {
+  display: flex;
+  justify-content: space-between;
+}
+
+.spotify-modal-oauth2-generator .guide-button {
+  width: 24px;
+  height: 24px;
+  color: var(--text-muted);
+}
+
+.spotify-modal-oauth2-generator .guide-button-tooltip {
+  width: 24px;
+  height: 24px;
+}
+
+.spotify-modal-oauth2-generator .guide-button:hover {
+  color: var(--text-normal);
 }

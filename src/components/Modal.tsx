@@ -3,18 +3,10 @@ import Seekbar from '@components/Seekbar';
 import TrackDetails from '@components/trackDetails';
 import { Controls, openControlsContextMenu } from '@components/Controls';
 import { config } from '@config';
-import {
-  AllSettingsUpdate,
-  PlayPauseInteraction,
-  RepeatInteraction,
-  ShuffleInteraction,
-  SkipNextInteraction,
-  SkipPrevInteraction,
-  VolumeInteraction,
-} from '@typings';
+import { AllSettingsUpdate } from '@typings';
 import { events, toClassNameString, toggleClass, useGuardedRef, useTrappedRef } from '@util';
 
-const { React } = common;
+const { React, lodash: _ } = common;
 
 const containerClasses = await webpack.waitForModule<{
   container: string;
@@ -71,8 +63,14 @@ export const Modal = (): JSX.Element => {
   const updateOptionalComponentsVisibility = React.useCallback((state: boolean): void => {
     showSeekbar.current = state;
     showControls.current = state;
+
     events.emit('seekbarVisibility', showSeekbar.current);
     events.emit('controlsVisibility', showControls.current);
+
+    events.debug('modal', [
+      'optional components visibility update by hover:',
+      { showSeekbar: showSeekbar.current, showControls: showControls.current },
+    ]);
   }, []);
 
   React.useEffect(() => {
@@ -97,6 +95,8 @@ export const Modal = (): JSX.Element => {
           volumeRef.current = event.detail.device?.volume_percent || 0;
 
           forceUpdateControls.current?.();
+
+          events.debug('modal', ['update by stateUpdate', _.clone(event.detail)]);
         }
       },
     );
@@ -105,21 +105,38 @@ export const Modal = (): JSX.Element => {
       showModal.current = event.detail;
 
       if (!event.detail) setPlaying(false);
+      else toggleClass(elementRef.current, 'hidden', !event.detail);
     });
 
     const removeSettingsUpdateListener = events.on<AllSettingsUpdate>(
       'settingsUpdate',
       (event): void => {
-        if (event.detail.key === 'seekbarVisibilityState')
+        if (event.detail.key === 'seekbarVisibilityState') {
           settingsForceUpdate((): void => {
             showSeekbar.current = event.detail.value === 'always';
             events.emit('seekbarVisibility', showSeekbar.current);
           });
-        else if (event.detail.key === 'controlsVisibilityState')
+
+          events.debug('modal', [
+            'showSeekbar update by settings (seekbarVisibilityState):',
+            event.detail.value,
+            event.detail.value === 'always',
+          ]);
+        } else if (event.detail.key === 'controlsVisibilityState') {
           settingsForceUpdate((): void => {
             showControls.current = event.detail.value === 'always';
             events.emit('controlsVisibility', showControls.current);
           });
+
+          events.debug('modal', [
+            'controlsVisibility update by settings (controlsVisibilityState):',
+            event.detail.value,
+            event.detail.value === 'always',
+          ]);
+        } else if (event.detail.key === 'disabled') {
+          events.debug('modal', ['showModal update by settings (disabled):', event.detail.value]);
+          events.emit('showUpdate', false);
+        }
       },
     );
 

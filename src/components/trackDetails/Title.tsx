@@ -4,12 +4,6 @@ import { overflowMitigation, toClassNameString } from '@util';
 
 const { React } = common;
 
-declare const DiscordNative: {
-  clipboard: {
-    copy: (content: string) => void;
-  };
-};
-
 export default (props: SpotifyApi.TrackObjectFull | SpotifyApi.EpisodeObjectFull): JSX.Element => {
   const elementRef = React.useRef<HTMLAnchorElement>(null);
 
@@ -35,7 +29,7 @@ export default (props: SpotifyApi.TrackObjectFull | SpotifyApi.EpisodeObjectFull
         e.stopPropagation();
 
         if (typeof props.id === 'string') {
-          DiscordNative.clipboard.copy(`https://open.spotify.com/${props.type}/${props.id}`);
+          window.DiscordNative.clipboard.copy(`https://open.spotify.com/${props.type}/${props.id}`);
           common.toast.toast('Copied track URL to clipboard', 1);
         }
       }}>

@@ -1,20 +1,21 @@
 /* eslint-disable @typescript-eslint/no-floating-promises, @typescript-eslint/naming-convention */
 import {
   AllControlInteractions,
+  HTTPResponse,
   SpotifyAccount,
   SpotifySocketPayloadDeviceStateEvent,
   SpotifySocketPayloadPlayerStateEvent,
   SpotifyStore,
 } from '@typings';
 import { common, types, webpack } from 'replugged';
-import { events, logger } from '@util';
+import { events } from '@util';
 import { config } from '@config';
 
-const { api, fluxDispatcher, toast } = common;
+const { api, fluxDispatcher, toast, lodash: _ } = common;
 
 const baseURL = 'https://api.spotify.com/v1/me/';
 
-const persist = { value: false };
+let persist = false;
 
 export const store = await webpack.waitForModule<SpotifyStore>(
   webpack.filters.byProps('getActiveSocketAndDevice'),
@@ -45,7 +46,11 @@ export const spotifyAPI = {
   refreshSpotifyAccessToken: async (
     accountId: string,
     discord: boolean,
-  ): Promise<{ ok: boolean; accessToken?: string }> => {
+  ): Promise<{
+    ok: boolean;
+    accessToken?: string;
+    res: HTTPResponse<{ access_token: string }>;
+  }> => {
     if (discord) {
       const newToken = await spotifyAPI.fetchToken(accountId);
 
@@ -56,7 +61,7 @@ export const spotifyAPI = {
           accessToken: newToken.body.access_token,
         });
 
-      return { ok: newToken.ok, accessToken: newToken?.body?.access_token };
+      return { ok: newToken.ok, accessToken: newToken?.body?.access_token, res: newToken };
     }
   },
   sendGenericRequest: (
@@ -147,17 +152,21 @@ const controlInteractionErrorHandler = async (
   ...data: unknown[]
 ): Promise<Response> => {
   if (config.get('automaticReauthentication') && res.status === 401) {
-    logger.log('access token deauthorized. attempting reauthentication');
+    events.debug('controls', ['status 401: deauthed. reauthing', res.clone()]);
 
     const newToken = await spotifyAPI.refreshSpotifyAccessToken(currentSpotifyAccount.id, true);
 
-    if (!newToken.ok)
+    if (!newToken.ok) {
       toast.toast(
-        'An error occurred whilst reauthenticating. Check console for details.',
+        `An error occurred whilst reauthenticating.${
+          config.get('debugging') ? ' Check console for details.' : ''
+        }`,
         toast.Kind.FAILURE,
       );
-    else {
-      logger.log('retrying action');
+
+      events.debug('controls', ['fetching token status not ok', _.clone(newToken.res)]);
+    } else {
+      events.debug('controls', ['retrying action', res.clone(), _.clone(data)]);
 
       const actionRes = (await spotifyAPI.getActionFromResponse(res)(
         getAccessTokenFromAccountId(),
@@ -165,13 +174,19 @@ const controlInteractionErrorHandler = async (
       )) as Response;
 
       if (!actionRes.ok) {
-        logger.error('action failed, status', actionRes.status, actionRes);
-        toast.toast('Action failed. Check console for details.', toast.Kind.FAILURE);
+        toast.toast(
+          `Retry control action failed.${
+            config.get('debugging') ? ' Check console for details.' : ''
+          }`,
+          toast.Kind.FAILURE,
+        );
+        events.debug('controls', ['retrying action failed', actionRes.clone()]);
       }
     }
-  } else if (res.status === 401)
+  } else if (res.status === 401) {
+    events.debug('controls', ['status 401: deauthed. not reauthing', res.clone()]);
     toast.toast('Access token deauthenticated. Please manually update your state.');
-  else if (res.status === 403) {
+  } else if (res.status === 403) {
     const { error } = (await res.clone().json()) as { error: { message: string; reason: string } };
 
     toast.toast(
@@ -181,17 +196,22 @@ const controlInteractionErrorHandler = async (
       toast.Kind.FAILURE,
     );
 
-    logger.log('player command action response:', res.clone(), error);
+    events.debug('controls', ['status 403: player controls violation.', res.clone(), error]);
   }
 
-  persist.value = false;
+  persist = false;
   return res;
 };
 
 events.on<AllControlInteractions>('controlInteraction', (event): void => {
-  if (!currentSpotifyAccount.id) return;
+  if (!currentSpotifyAccount.id) {
+    events.debug('controls', 'prevented controls interaction because there is no active account');
+    return;
+  }
 
-  persist.value = true;
+  events.debug('controls', ['received controls interaction:', _.clone(event.detail)]);
+
+  persist = true;
 
   const accessToken = getAccessTokenFromAccountId();
 
@@ -274,14 +294,16 @@ events.on<AllControlInteractions>('controlInteraction', (event): void => {
       break;
     }
     default: {
-      persist.value = false;
+      persist = false;
       break;
     }
   }
 });
 
 events.on<SpotifyApi.CurrentPlaybackResponse>('ready', async (): Promise<void> => {
-  if (store.shouldShowActivity()) {
+  if (store.shouldShowActivity() && !config.get('disabled')) {
+    events.debug('start', ['fetching spotify state']);
+
     const accountIds = Object.keys(spotifyAccounts);
     let res: Response;
     let raw: string;
@@ -308,16 +330,37 @@ events.on<{
 }>('message', (event): void => {
   const { accountId, data } = event.detail;
 
-  if (!currentSpotifyAccount.id) currentSpotifyAccount.id = accountId;
+  if (!currentSpotifyAccount.id) {
+    currentSpotifyAccount.id = accountId;
 
-  if (currentSpotifyAccount.id !== accountId) return;
+    events.debug('spotify', ['new active account:', currentSpotifyAccount.id]);
+  }
+
+  if (currentSpotifyAccount.id !== accountId) {
+    events.debug('spotify', [
+      'new state prevented due to mismatching active account:',
+      { active: currentSpotifyAccount.id, state: accountId },
+    ]);
+
+    return;
+  }
 
   if (data.type === 'PLAYER_STATE_CHANGED') events.emit('stateUpdate', data.event.state);
   else if (data.type === 'DEVICE_STATE_CHANGED') {
-    if (!persist.value) {
+    if (!persist) {
       if (!data.event.devices.length) currentSpotifyAccount.id = '';
 
       events.emit('showUpdate', Boolean(data.event.devices.length));
-    } else persist.value = false;
+      events.debug('modal', [
+        'showModal update by player device state:',
+        Boolean(data.event.devices.length),
+      ]);
+    } else {
+      persist = false;
+      events.debug(
+        'modal',
+        'showModal update by player device state prevented due to persistence (after controls interaction failure)',
+      );
+    }
   }
 });
