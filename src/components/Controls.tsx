@@ -192,9 +192,10 @@ export const Controls = (props: ControlsComponentProps): JSX.Element => {
   );
 
   React.useEffect(
-    events.on<boolean>('controlsVisibility', (event): void =>
-      toggleClass(containerRef.current, 'hidden', !event.detail),
-    ),
+    (): VoidFunction =>
+      events.on<boolean>('controlsVisibility', (event): void =>
+        toggleClass(containerRef.current, 'hidden', !event.detail),
+      ),
     [],
   );
 
