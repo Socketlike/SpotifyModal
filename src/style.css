@@ -135,11 +135,6 @@
   height: 5px;
 }
 
-#spotify-modal .seekbar [class^='track-'] {
-  right: 7px;
-  left: 7px;
-}
-
 #spotify-modal .seekbar .inner div {
   background-color: var(--spotify);
   border-radius: 2px;
@@ -172,6 +167,12 @@
   color: var(--text-normal);
   background-color: var(--background-modifier-hover);
   transition-duration: 400ms;
+}
+
+#spotify-modal .controls-container .icon.no-icon,
+#spotify-modal .controls-container .icon.no-icon:hover {
+  color: transparent !important;
+  background-color: transparent !important;
 }
 
 #spotify-modal .controls-container .icon.active,

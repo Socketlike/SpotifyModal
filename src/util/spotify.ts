@@ -301,7 +301,7 @@ events.on<AllControlInteractions>('controlInteraction', (event): void => {
 });
 
 events.on<SpotifyApi.CurrentPlaybackResponse>('ready', async (): Promise<void> => {
-  if (store.shouldShowActivity() && !config.get('disabled')) {
+  if (store.shouldShowActivity()) {
     events.debug('start', ['fetching spotify state']);
 
     const accountIds = Object.keys(spotifyAccounts);

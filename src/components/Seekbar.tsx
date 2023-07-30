@@ -12,38 +12,39 @@ export default (props: {
   shouldShow: React.MutableRefObject<boolean>;
   timestamp: number;
 }): JSX.Element => {
+  const containerElementRef = React.useRef<HTMLDivElement>(null);
+
+  const seekbarInnerElementRef = React.useRef<HTMLDivElement>(null);
+  const seekbarGrabberElementRef = React.useRef<HTMLDivElement>(null);
+
+  const progressTimeElementRef = React.useRef<HTMLSpanElement>(null);
+  const durationTimeElementRef = React.useRef<HTMLSpanElement>(null);
+
+  const isSliderChanging = React.useRef<boolean>(false);
   const isUpdating = React.useRef<boolean>(false);
 
-  const interval = React.useRef<number>(null);
+  const interval = React.useRef<NodeJS.Timer>(null);
 
   const progressTimestampRef = React.useRef<number>(0);
   const durationTimestampRef = React.useRef<number>(0);
 
-  const containerRef = React.useRef<HTMLDivElement>(null);
-
-  const seekbarInnerRef = React.useRef<HTMLDivElement>(null);
-  const seekbarGrabberRef = React.useRef<HTMLDivElement>(null);
-
-  const currentRef = React.useRef<HTMLSpanElement>(null);
-  const durationRef = React.useRef<HTMLSpanElement>(null);
-
-  const getProgressMS = React.useCallback<
-    (playing: boolean, duration: number, progress: number) => number
-  >(
-    (playing: boolean, duration: number, progress: number): number =>
-      playing
+  const getProgressMS = React.useCallback(
+    (): number =>
+      props.playing
         ? progressTimestampRef.current >= durationTimestampRef.current
-          ? duration
-          : duration - (durationTimestampRef.current - progressTimestampRef.current)
-        : progress,
-    [],
+          ? props.duration
+          : props.duration - (durationTimestampRef.current - progressTimestampRef.current)
+        : props.progress,
+    [props.playing, props.duration, props.progress],
   );
 
-  React.useEffect(() => {
+  React.useEffect((): VoidFunction => {
     if (!props.timestamp) return () => {};
 
-    seekbarInnerRef.current = document.querySelector('#spotify-modal .seekbar [class^=barFill-]');
-    seekbarGrabberRef.current = document.querySelector('#spotify-modal .seekbar .grabber');
+    seekbarInnerElementRef.current = document.querySelector(
+      '#spotify-modal .seekbar [class^=barFill-]',
+    );
+    seekbarGrabberElementRef.current = document.querySelector('#spotify-modal .seekbar .grabber');
 
     interval.current = setInterval((): void => {
       const now = Date.now();
@@ -51,33 +52,37 @@ export default (props: {
         durationTimestampRef.current = now + props.duration - props.progress;
       progressTimestampRef.current = now;
 
-      const currentPercentage = calculatePercentage(
-        getProgressMS(props.playing, props.duration, props.progress),
-        props.duration,
-      );
+      const progressMS = getProgressMS();
+      const progressTime = parseTime(progressMS);
+      const durationTime = parseTime(props.duration);
+      const percentage = calculatePercentage(progressMS, props.duration);
 
-      if (seekbarInnerRef.current && seekbarInnerRef.current.style.width !== currentPercentage)
-        seekbarInnerRef.current.style.width = currentPercentage;
-      if (seekbarGrabberRef.current && seekbarGrabberRef.current.style.left !== currentPercentage)
-        seekbarGrabberRef.current.style.left = currentPercentage;
+      props.progressRef.current = progressMS;
+
+      if (!isSliderChanging.current) {
+        if (
+          seekbarInnerElementRef.current &&
+          seekbarInnerElementRef.current.style.width !== percentage
+        )
+          seekbarInnerElementRef.current.style.width = percentage;
+        if (
+          seekbarGrabberElementRef.current &&
+          seekbarGrabberElementRef.current.style.left !== percentage
+        )
+          seekbarGrabberElementRef.current.style.left = percentage;
+      }
 
       if (
-        props.progressRef.current !== getProgressMS(props.playing, props.duration, props.progress)
+        progressTimeElementRef.current &&
+        progressTimeElementRef.current.innerText !== progressTime
       )
-        props.progressRef.current = getProgressMS(props.playing, props.duration, props.progress);
-
+        progressTimeElementRef.current.innerText = progressTime;
       if (
-        currentRef.current &&
-        currentRef.current.innerText !==
-          parseTime(getProgressMS(props.playing, props.duration, props.progress))
+        durationTimeElementRef.current &&
+        durationTimeElementRef.current.innerText !== durationTime
       )
-        currentRef.current.innerText = parseTime(
-          getProgressMS(props.playing, props.duration, props.progress),
-        );
-
-      if (durationRef.current && durationRef.current.innerText !== parseTime(props.duration))
-        durationRef.current.innerText = parseTime(props.duration);
-    }, 500) as unknown as number;
+        durationTimeElementRef.current.innerText = durationTime;
+    }, 500);
 
     return () => {
       clearInterval(interval.current);
@@ -86,9 +91,9 @@ export default (props: {
   }, [props.timestamp]);
 
   React.useEffect(
-    (): (() => void) =>
+    (): VoidFunction =>
       events.on<boolean>('seekbarVisibility', (event): void =>
-        toggleClass(containerRef.current, 'hidden', !event.detail),
+        toggleClass(containerElementRef.current, 'hidden', !event.detail),
       ),
     [],
   );
@@ -96,12 +101,12 @@ export default (props: {
   return (
     <div
       className={toClassNameString('seekbar-container', !props.shouldShow.current ? 'hidden' : '')}
-      ref={containerRef}>
+      ref={containerElementRef}>
       <div className='seekbar-timestamps'>
-        <span ref={currentRef} className='current'>
+        <span ref={progressTimeElementRef} className='progress'>
           {parseTime(props.progress)}
         </span>
-        <span ref={durationRef} className='duration'>
+        <span ref={durationTimeElementRef} className='duration'>
           {parseTime(props.duration)}
         </span>
       </div>
@@ -113,6 +118,9 @@ export default (props: {
         minValue={0}
         maxValue={props.duration}
         value={props.progress}
+        asValueChanges={(): void => {
+          if (!isSliderChanging.current) isSliderChanging.current = true;
+        }}
         onChange={(newValue: number): void => {
           if (isUpdating.current) return;
 
@@ -124,6 +132,7 @@ export default (props: {
           });
 
           isUpdating.current = false;
+          isSliderChanging.current = false;
         }}
         onValueRender={parseTime}
       />

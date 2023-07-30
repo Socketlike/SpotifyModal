@@ -19,9 +19,9 @@ const updateSetting = <T extends DefaultConfigTypeKeys, D extends DefaultConfigT
 export const Settings = (): JSX.Element => {
   return (
     <div className='spotify-modal-settings'>
-      <Category title='Visibility' note="Change specific elements' visibility">
+      <Category title='Visibility' note="Change specific elements' visibility state">
         <SelectItem
-          note="Changes the seek bar's visibility"
+          note='Changes the visibility of the seekbar in the modal'
           options={[
             { label: 'Shown', value: 'always' },
             { label: 'Hidden', value: 'hidden' },
@@ -35,7 +35,7 @@ export const Settings = (): JSX.Element => {
           Seekbar Visibility
         </SelectItem>
         <SelectItem
-          note="Changes the controls' visibility"
+          note='Changes the visibility state of the control buttons in the modal'
           options={[
             { label: 'Shown', value: 'always' },
             { label: 'Hidden', value: 'hidden' },
@@ -64,16 +64,7 @@ export const Settings = (): JSX.Element => {
         Plugin Stop Behavior
       </SelectItem>
       <SwitchItem
-        note='Prevent modal from displaying / updating by cutting off its source of state updates'
-        {...useTrappedSettingsState(
-          util.useSetting(config, 'disabled'),
-          'disabled',
-          updateSetting,
-        )}>
-        Disable Modal
-      </SwitchItem>
-      <SwitchItem
-        note='Prints more verbose logs to console (warning: very noisy!)'
+        note='Prints more verbose logs to console (warning: very noisy!) and allows you to access plugin internals (<exports>._)'
         {...useTrappedSettingsState(
           util.useSetting(config, 'debugging'),
           'debugging',

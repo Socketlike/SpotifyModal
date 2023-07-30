@@ -133,9 +133,6 @@ export const Modal = (): JSX.Element => {
             event.detail.value,
             event.detail.value === 'always',
           ]);
-        } else if (event.detail.key === 'disabled') {
-          events.debug('modal', ['showModal update by settings (disabled):', event.detail.value]);
-          events.emit('showUpdate', false);
         }
       },
     );

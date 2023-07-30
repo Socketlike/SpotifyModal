@@ -22,6 +22,7 @@ import {
   VolumeInteraction,
 } from '@typings';
 import { events, toClassNameString, toggleClass } from '@util';
+import { Icon } from './Icon';
 
 const { React, contextMenu } = common;
 const { ContextMenu } = components;
@@ -29,23 +30,6 @@ const { ContextMenu } = components;
 export const { MenuSliderControl } = await webpack.waitForModule<{
   MenuSliderControl: MenuSliderControlType;
 }>(webpack.filters.byProps('Slider', 'Spinner'));
-
-export function Icon(props: {
-  className?: string;
-  onClick?: (event: React.MouseEvent) => void;
-  onContextMenu?: (event: React.MouseEvent) => void;
-  path: string;
-}): JSX.Element {
-  return (
-    <svg
-      className={toClassNameString('icon', props.className)}
-      viewBox='0 0 24 24'
-      onClick={props.onClick}
-      onContextMenu={props.onContextMenu}>
-      <path fill='currentColor' d={props.path} />
-    </svg>
-  );
-}
 
 export const openControlsContextMenu = (
   ev: React.MouseEvent,
@@ -56,7 +40,9 @@ export const openControlsContextMenu = (
     const destroyed = React.useRef<boolean>(false);
 
     React.useEffect((): VoidFunction => {
-      props.forceUpdate.current = () => (destroyed.current ? undefined : forceUpdate());
+      props.forceUpdate.current = (): void => {
+        if (!destroyed.current) forceUpdate();
+      };
 
       return (): void => {
         destroyed.current = true;

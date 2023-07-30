@@ -1,9 +1,9 @@
 import { types } from 'replugged';
 
-/* https://github.com/Vendicated/Vencord/blob/main/src/plugins/spotifyControls/index.tsx#L49-L57 */
 const patches: types.PlaintextPatch[] = [
   {
-    find: /showTaglessAccountPanel:/,
+    /* https://github.com/Vendicated/Vencord/blob/main/src/plugins/spotifyControls/index.tsx#L49-L57 */
+    find: 'showTaglessAccountPanel:',
     replacements: [
       {
         match: /return ?(.{0,30}\(.{1,3},\{[^}]+?,showTaglessAccountPanel:.+?\}\))/,
@@ -13,7 +13,7 @@ const patches: types.PlaintextPatch[] = [
     ],
   },
   {
-    find: /dealer\.spotify\.com/,
+    find: 'dealer.spotify.com',
     replacements: [
       {
         match: /(\.handleMessage=function\((.{1,3})\)){/,
