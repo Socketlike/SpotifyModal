@@ -64,10 +64,11 @@ export type AllSettingsUpdate =
   | SettingsUpdate<
       | 'automaticReauthentication'
       | 'debugging'
-      | 'disabled'
       | 'hyperlinkURI'
       | 'seekbarEnabled'
       | 'skipPreviousShouldResetProgress',
       boolean
     >
+  | SettingsUpdate<'spotifyAppClientId' | 'spotifyAppRedirectUri', string>
+  | SettingsUpdate<'spotifyAppOauthTokens', Record<string, string>>
   | SettingsUpdate<'skipPreviousProgressResetThreshold', number>;
