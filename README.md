@@ -80,10 +80,13 @@ modal css map:
   updates.
   - fix: none - we cannot trust Spotify's timestamps. they are wildly inaccurate for some reason
 - the modal does not update while playing episodes (shows)
-  - fix: none - we don't get the item data for the episode at all (`null`). don't believe me?
-    execute
-    `<plugin exports>.events.on('message', (ev) => console.log(ev.detail.currently_playing_type, ev.detail.item))`
-    and check console when you play an episode.
+  - fix: none - we don't get the item data for the episode at all (`null`). check it yourself by
+    executing
+    ```js
+    replugged.plugins
+      .getExports('lib.evelyn.SpotifyModal')
+      ._.events.on('message', (e) => console.log(ev.detail.currently_playing_type, ev.detail.item));
+    ```
 - what happened to the `no Spotify pause` feature?
   - removed. you should check out [`NoSpotifyPause`](https://github.com/Socketlike/NoSpotifyPause)
     instead.
