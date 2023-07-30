@@ -67,7 +67,7 @@ modal css map:
       - pause: `.pause-icon`
       - skip next: `.skip-next-icon`
       - shuffle: `.shuffle-icon`
-      - no icon: '.no-icon'
+      - no icon: `.no-icon`
       - active (highlight): `.active`
   - divider: `.divider`
 
