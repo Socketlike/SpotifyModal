@@ -1,7 +1,7 @@
 import { common, components as repluggedComponents } from 'replugged';
 import { config } from '@config';
 import { Modal } from '@components';
-import { events, logger } from '@util';
+import { events } from '@util';
 import { SpotifyAccount, SpotifySocketData } from '@typings';
 import * as util from '@util';
 import * as components from '@components';
@@ -23,8 +23,8 @@ export const emitMessage = (msg: MessageEvent<string>, account: SpotifyAccount):
     events.emit('message', { accountId: account.accountId, data: raw.payloads[0].events[0] });
 };
 
-const startListener = (): void => {
-  common.fluxDispatcher.unsubscribe('POST_CONNECTION_OPEN', startListener);
+const postConnectionListener = (): void => {
+  common.fluxDispatcher.unsubscribe('POST_CONNECTION_OPEN', postConnectionListener);
 
   events.debug('start', ['waited for post connection ready']);
   events.emit('ready');
@@ -32,7 +32,7 @@ const startListener = (): void => {
 
 export const start = (): void => {
   if (!document.getElementById('spotify-modal-root'))
-    common.fluxDispatcher.subscribe('POST_CONNECTION_OPEN', startListener);
+    common.fluxDispatcher.subscribe('POST_CONNECTION_OPEN', postConnectionListener);
 };
 
 export const stop = async (): Promise<void> => {
@@ -54,24 +54,8 @@ export const stop = async (): Promise<void> => {
 
 export { Settings } from '@components';
 
-const internals = {
+export const _ = Object.freeze({
   components,
   config,
-  startListener,
   util,
-};
-
-export const _ = new Proxy(internals, {
-  get: (...args) => {
-    if (!config.get('debugging')) {
-      logger.error('(internals) cannot access internals without enabling debugging');
-      return undefined;
-    }
-
-    return Reflect.get(...args);
-  },
-  set: (): boolean => {
-    logger.error('(internals) assignment blocked');
-    return true;
-  },
 });

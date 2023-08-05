@@ -5,7 +5,7 @@ declare interface Window {
     };
 
     clipboard: {
-      copy: (content: string) => void;
+      copy(content: string): void;
     };
   };
 }

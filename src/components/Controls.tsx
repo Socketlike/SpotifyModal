@@ -181,15 +181,11 @@ export const openControlsContextMenu = (
 export const Controls = (props: ControlsComponentProps): JSX.Element => {
   const containerRef = React.useRef<HTMLDivElement>(null);
 
-  const switchNextRepeatMode = React.useCallback(
-    // eslint-disable-next-line consistent-return --- this rule is ridiculous
-    (mode: 'off' | 'context' | 'track'): 'off' | 'context' | 'track' => {
-      if (mode === 'off') return 'context';
-      if (mode === 'context') return 'track';
-      if (mode === 'track') return 'off';
-    },
-    [],
-  );
+  const nextRepeatMode = React.useMemo((): 'off' | 'context' | 'track' => {
+    if (props.repeat === 'off') return 'context';
+    else if (props.repeat === 'context') return 'track';
+    else return 'off';
+  }, [props.repeat]);
 
   React.useEffect(
     (): VoidFunction =>
@@ -214,7 +210,7 @@ export const Controls = (props: ControlsComponentProps): JSX.Element => {
           events.emit<RepeatInteraction>('controlInteraction', {
             event,
             currentState: props.repeat,
-            newState: switchNextRepeatMode(props.repeat),
+            newState: nextRepeatMode,
             type: 'repeat',
           })
         }

@@ -5,6 +5,7 @@ export * from './react';
 export * from './spotify';
 
 export const injector = new Injector();
+
 export const logger = Logger.plugin('SpotifyModal');
 
 export const toClassNameString = (...args: string[]): string =>
@@ -26,6 +27,7 @@ export function calculatePercentage(current: number, end: number): string {
 
 export function parseTime(ms: number): string {
   if (typeof ms !== 'number') return '';
+
   const dateObject = new Date(ms);
   const raw = {
     month: dateObject.getUTCMonth(),
@@ -55,4 +57,17 @@ export function overflowMitigation(element: HTMLElement): void {
 
     if (!element.classList.contains('overflow')) element.classList.add('overflow');
   } else if (element.classList.contains('overflow')) element.classList.remove('overflow');
+}
+
+export function filterObject<T extends Record<string, unknown>>(
+  obj: T,
+  predicate: (value: T[keyof T], key: keyof T) => boolean,
+): T {
+  return Object.entries(obj)
+    .filter(([key, value]) => predicate(value as T[keyof T], key as keyof T))
+    .reduce((acc, [key, value]): T => {
+      acc[key as keyof T] = value as T[keyof T];
+      return acc;
+      // eslint-disable-next-line @typescript-eslint/prefer-reduce-type-parameter
+    }, {} as T);
 }

@@ -64,7 +64,7 @@ export const Settings = (): JSX.Element => {
         Plugin Stop Behavior
       </SelectItem>
       <SwitchItem
-        note='Prints more verbose logs to console (warning: very noisy!) and allows you to access plugin internals (<exports>._)'
+        note='Prints more verbose logs to console (warning: very noisy!)'
         {...useTrappedSettingsState(
           util.useSetting(config, 'debugging'),
           'debugging',
