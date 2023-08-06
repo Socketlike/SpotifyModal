@@ -1,11 +1,11 @@
 import { common, components, util } from 'replugged';
 import { events, useTrappedSettingsState } from '@util';
-import { DefaultConfigType, DefaultConfigTypeKeys, config } from '@config';
+import { DefaultConfig, DefaultConfigKeys, config } from '@config';
 
 const { Category, Divider, FormItem, SelectItem, Slider, SwitchItem } = components;
 const { React, lodash: _ } = common;
 
-const updateSetting = <T extends DefaultConfigTypeKeys, D extends DefaultConfigType[T]>(
+const updateSetting = <T extends DefaultConfigKeys, D extends DefaultConfig[T]>(
   key: T,
   value: D,
 ): void => {

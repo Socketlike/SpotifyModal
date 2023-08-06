@@ -1,9 +1,9 @@
 import { common, webpack } from 'replugged';
 import Seekbar from '@components/Seekbar';
-import TrackDetails from '@components/trackDetails';
+import TrackDetails from '@components/TrackDetails';
 import { Controls, openControlsContextMenu } from '@components/Controls';
 import { config } from '@config';
-import { AllSettingsUpdate } from '@typings';
+import { SettingUpdates } from '@typings';
 import { events, toClassNameString, toggleClass, useGuardedRef, useTrappedRef } from '@util';
 
 const { React, lodash: _ } = common;
@@ -108,7 +108,7 @@ export const Modal = (): JSX.Element => {
       else toggleClass(elementRef.current, 'hidden', !event.detail);
     });
 
-    const removeSettingsUpdateListener = events.on<AllSettingsUpdate>(
+    const removeSettingsUpdateListener = events.on<SettingUpdates.Union>(
       'settingsUpdate',
       (event): void => {
         if (event.detail.key === 'seekbarVisibilityState') {

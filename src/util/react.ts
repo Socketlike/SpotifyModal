@@ -1,5 +1,5 @@
 import { common } from 'replugged';
-import { DefaultConfigTypeKeys } from '@config';
+import { DefaultConfigKeys } from '@config';
 
 const { React } = common;
 
@@ -28,11 +28,11 @@ export const useTrappedRef = <T>(
     },
   });
 
-export const useTrappedSettingsState = <T, D extends DefaultConfigTypeKeys>(
-  useSettingRes: { value: T; onChange: (newValue: T) => void },
-  key: D,
-  trap: (key: D, newValue: T) => void,
-): { value: T; onChange: (newValue: T) => void } => ({
+export const useTrappedSettingsState = <T extends DefaultConfigKeys, D>(
+  useSettingRes: { value: D; onChange: (newValue: D) => void },
+  key: T,
+  trap: (key: T, newValue: D) => void,
+): { value: D; onChange: (newValue: D) => void } => ({
   value: useSettingRes.value,
   onChange: (newValue): void => {
     trap(key, newValue);

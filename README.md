@@ -59,14 +59,16 @@ modal css map:
         - grabber: `.grabber`
     - controls: `.controls`
       - repeat icons:
-        - off: `.repeat-off-icon`
         - all: `.repeat-all-icon`
+        - off: `.repeat-off-icon`
         - track: `.repeat-track-icon`
       - skip previous: `.skip-prev-icon`
       - play: `.play-icon`
       - pause: `.pause-icon`
       - skip next: `.skip-next-icon`
-      - shuffle: `.shuffle-icon`
+      - shuffle icons:
+        - off: `.shuffle-off-icon`
+        - on: `.shuffle-on-icon`
       - no icon: `.no-icon`
       - active (highlight): `.active`
   - divider: `.divider`

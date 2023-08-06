@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-floating-promises, @typescript-eslint/naming-convention */
 import {
-  AllControlInteractions,
+  ControlInteractions,
   HTTPResponse,
   SpotifyAccount,
   SpotifySocketPayloadEvents,
   SpotifyStore,
 } from '@typings';
-import { common, types, webpack } from 'replugged';
+import { common, webpack } from 'replugged';
 import { events, filterObject } from '@util';
 import { config } from '@config';
 
@@ -206,47 +206,51 @@ export const spotifyAPI = {
     sendSpotifyRequest(accessToken, `player/${next ? 'next' : 'previous'}`, 'POST'),
 };
 
-events.on<AllControlInteractions>('controlInteraction', (event): void => {
+events.on<ControlInteractions.Union>('controlInteraction', (event): void => {
   if (!currentSpotifyAccount.id) {
     events.debug('controls', 'prevented controls interaction because there is no active account');
     return;
   }
 
-  events.debug('controls', ['received controls interaction', _.clone(event.detail)]);
-
   persist = true;
 
   const accessToken = getAccessTokenFromAccountId();
 
+  events.debug('controls', ['received controls interaction', _.clone(event.detail)]);
+
   switch (event.detail.type) {
     case 'shuffle': {
-      const { currentState } = event.detail;
+      const { state } = event.detail;
 
-      spotifyAPI.setShuffleState(accessToken, !currentState);
+      spotifyAPI.setShuffleState(accessToken, !state);
 
       break;
     }
+
     case 'skipPrev': {
-      if (
-        event.detail.currentProgress >=
-        event.detail.currentDuration * config.get('skipPreviousProgressResetThreshold')
-      )
+      const [progress, duration] = event.detail.state;
+
+      if (progress >= duration * config.get('skipPreviousProgressResetThreshold'))
         spotifyAPI.seekToPosition(accessToken, 0);
       else spotifyAPI.skipNextOrPrevious(accessToken, false);
-      break;
-    }
-    case 'playPause': {
-      const { currentState } = event.detail;
 
-      spotifyAPI.setPlaybackState(accessToken, !currentState);
       break;
     }
+
+    case 'playPause': {
+      const { state } = event.detail;
+
+      spotifyAPI.setPlaybackState(accessToken, !state);
+      break;
+    }
+
     case 'skipNext': {
       spotifyAPI.skipNextOrPrevious(accessToken);
       break;
     }
+
     case 'repeat': {
-      const { newState, currentState } = event.detail;
+      const [currentState, newState] = event.detail.state;
 
       if (
         typeof newState === 'string' &&
@@ -256,24 +260,25 @@ events.on<AllControlInteractions>('controlInteraction', (event): void => {
         spotifyAPI.setRepeatState(accessToken, newState);
       break;
     }
+
     case 'seek': {
-      const { newProgress } = event.detail;
+      const { state: newProgress } = event.detail;
 
       spotifyAPI.seekToPosition(accessToken, newProgress);
 
       break;
     }
+
     case 'volume': {
-      const { newVolume } = event.detail;
+      const { state: newVolume } = event.detail;
 
       spotifyAPI.setPlaybackVolume(accessToken, Math.round(newVolume));
 
       break;
     }
-    default: {
+
+    default:
       persist = false;
-      break;
-    }
   }
 });
 
@@ -282,6 +287,7 @@ events.on<SpotifyApi.CurrentPlaybackResponse>('ready', async (): Promise<void> =
     events.debug('start', ['fetching spotify state']);
 
     const accountIds = Object.keys(spotifyAccounts);
+
     let res: Response;
     let raw: string;
 
@@ -315,7 +321,7 @@ events.on<{
 
   if (currentSpotifyAccount.id !== accountId) {
     events.debug('spotify', [
-      'new state prevented due to mismatching active account:',
+      'new state prevented due to mismatching account ids:',
       { active: currentSpotifyAccount.id, state: accountId },
     ]);
 
@@ -334,6 +340,7 @@ events.on<{
       ]);
     } else {
       persist = false;
+
       events.debug(
         'modal',
         'showModal update by player device state prevented due to persistence (after controls interaction failure)',
