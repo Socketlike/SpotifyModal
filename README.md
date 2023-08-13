@@ -35,7 +35,7 @@ what you're playing on Spotify.
 
 ## Preview
 
-we will be right back
+![Preview](preview.gif)
 
 ## Customization
 
