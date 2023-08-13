@@ -105,7 +105,7 @@
   text-decoration: none;
 }
 
-#spotify-modal.artist:hover {
+#spotify-modal .artist:hover {
   color: var(--text-normal);
   text-decoration: underline;
 }

@@ -334,17 +334,14 @@ events.on<{
       if (!data.event.devices.length) currentSpotifyAccount.id = '';
 
       events.emit('showUpdate', Boolean(data.event.devices.length));
-      events.debug('modal', [
-        'showModal update by player device state:',
+      events.debug('spotify', [
+        'firing showUpdate (player device state)',
         Boolean(data.event.devices.length),
       ]);
     } else {
       persist = false;
 
-      events.debug(
-        'modal',
-        'showModal update by player device state prevented due to persistence (after controls interaction failure)',
-      );
+      events.debug('spotify', 'not firing showUpdate (persisted. controls interaction failure?)');
     }
   }
 });

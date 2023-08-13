@@ -6,7 +6,7 @@ const patches: types.PlaintextPatch[] = [
     find: 'showTaglessAccountPanel:',
     replacements: [
       {
-        match: /return ?(.{0,30}\(.{1,3},\{[^}]+?,showTaglessAccountPanel:.+?\}\))/,
+        match: /return?\s?(.{0,30}\(.{1,3},\{[^}]+?,showTaglessAccountPanel:.+?\}\))/s,
         replace:
           'return [window.replugged.plugins.getExports("lib.evelyn.SpotifyModal")?.renderModal(),$1]',
       },
