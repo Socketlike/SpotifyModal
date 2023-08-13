@@ -1,4 +1,5 @@
 {
+  "$schema": "https://socketlike.github.io/replugged/plugin.schema.json",
   "id": "lib.evelyn.SpotifyModal",
   "name": "SpotifyModal",
   "description": "A Post-SWC Replugged plugin that shows a little modal on your user dock that lets you see & control what you're playing on Spotify.",
@@ -17,5 +18,6 @@
   "renderer": "src/index.tsx",
   "reloadRequired": true,
   "plaintextPatches": "src/patches.ts",
-  "source": "https://github.com/Socketlike/SpotifyModal"
+  "source": "https://github.com/Socketlike/SpotifyModal",
+  "image": "https://media.discordapp.net/attachments/907813363294277652/1140263816823844864/DiscordCanary_qrl9e1908P.gif"
 }
