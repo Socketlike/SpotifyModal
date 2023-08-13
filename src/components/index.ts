@@ -1,4 +1,5 @@
 export * from './Modal';
+export * from './Controls';
 export * from './Settings';
 export * from './Popouts';
 export * from './Icon';
