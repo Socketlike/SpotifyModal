@@ -47,7 +47,7 @@ export const stop = async (): Promise<void> => {
         })
       : config.get('pluginStopBehavior') === 'restartDiscord';
 
-  events.emit('debug', { type: 'stop', message: ['restart Discord:', res] });
+  events.debug('stop', ['restart Discord:', res]);
 
   if (res) window.DiscordNative.app.relaunch();
 };
