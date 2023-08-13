@@ -1,5 +1,6 @@
 import { common, components } from 'replugged';
 import { calculatePercentage, events, parseTime, toClassNameString, toggleClass } from '@util';
+import { ControlInteractions } from '@typings';
 
 const { React } = common;
 const { Slider } = components;
@@ -126,9 +127,9 @@ export default (props: {
 
           isUpdating.current = true;
 
-          events.emit('controlInteraction', {
+          events.emit<ControlInteractions.Seek>('controlInteraction', {
             type: 'seek',
-            newProgress: Math.round(newValue),
+            state: Math.round(newValue),
           });
 
           isUpdating.current = false;
