@@ -106,6 +106,8 @@ export const Modal = (): JSX.Element => {
 
       if (!event.detail) setPlaying(false);
       else toggleClass(elementRef.current, 'hidden', !event.detail);
+
+      events.debug('modal', ['received showUpdate', event.detail]);
     });
 
     const removeSettingsUpdateListener = events.on<SettingUpdates.Union>(
