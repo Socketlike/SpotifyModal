@@ -23,16 +23,23 @@ export const emitMessage = (msg: MessageEvent<string>, account: SpotifyAccount):
     events.emit('message', { accountId: account.accountId, data: raw.payloads[0].events[0] });
 };
 
-const postConnectionListener = (): void => {
-  common.fluxDispatcher.unsubscribe('POST_CONNECTION_OPEN', postConnectionListener);
+const postConnectionOpenListener = (): void => {
+  common.fluxDispatcher.unsubscribe('POST_CONNECTION_OPEN', postConnectionOpenListener);
 
-  events.debug('start', ['waited for post connection ready']);
+  events.debug('start', ['waited for POST_CONNECTION_OPEN']);
   events.emit('ready');
+};
+
+// to detect account switches - we need to reset the modal
+const loginSuccessListener = (): void => {
+  events.emit('accountSwitch');
+  common.fluxDispatcher.subscribe('POST_CONNECTION_OPEN', postConnectionOpenListener);
 };
 
 export const start = (): void => {
   if (!document.getElementById('spotify-modal-root'))
-    common.fluxDispatcher.subscribe('POST_CONNECTION_OPEN', postConnectionListener);
+    common.fluxDispatcher.subscribe('POST_CONNECTION_OPEN', postConnectionOpenListener);
+  common.fluxDispatcher.subscribe('LOGIN_SUCCESS', loginSuccessListener);
 };
 
 export const stop = async (): Promise<void> => {

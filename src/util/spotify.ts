@@ -18,7 +18,10 @@ export const store = await webpack.waitForModule<SpotifyStore>(
   webpack.filters.byProps('getActiveSocketAndDevice'),
 );
 
-const spotifyAccounts = store.__getLocalVars().accounts;
+export const spotifyAccounts =
+  store.spotifyModalAccounts ||
+  store.__getLocalVars?.()?.accounts ||
+  ({} as Record<string, SpotifyAccount>);
 
 export const currentSpotifyAccount = { id: '' };
 
@@ -31,7 +34,7 @@ export const getAccessTokenFromAccountId = (accountId?: string): string => {
 export const getAccountFromAccountId = (accountId?: string): SpotifyAccount => {
   if (!accountId) return spotifyAccounts[currentSpotifyAccount.id];
 
-  return spotifyAccounts[accountId];
+  return spotifyAccounts.get[accountId];
 };
 
 export const refreshSpotifyToken = async (
@@ -60,7 +63,7 @@ export const refreshSpotifyToken = async (
   }
 };
 
-export const sendSpotifyRequest = (
+export const sendSpotifyRequest = async (
   accessToken: string,
   endpoint: string,
   method?: string,
@@ -84,7 +87,7 @@ export const sendSpotifyRequest = (
         url.searchParams.append(key, val);
     }
 
-  return fetch(
+  const res = await fetch(
     url,
     filterObject(
       {
@@ -96,43 +99,38 @@ export const sendSpotifyRequest = (
         body,
         mode: 'cors',
       } as const,
-      (value) => Boolean(value),
+      (val) => Boolean(val),
     ),
-  ).then(async (res: Response): Promise<Response> => {
-    if (!retrying) {
-      if (config.get('automaticReauthentication') && res.status === 401) {
-        events.debug('spotify', ['status 401: deauthed. reauthing', res.clone()]);
+  );
 
-        const newToken = await refreshSpotifyToken(currentSpotifyAccount.id);
+  if (!retrying) {
+    switch (res.status) {
+      case 401: {
+        if (config.get('automaticReauthentication')) {
+          events.debug('spotify', ['status 401: deauthed. reauthing', res.clone()]);
 
-        if (!newToken.ok) {
-          events.debug('controls', ['fetching token status not ok', _.clone(newToken.res)]);
+          const token = await refreshSpotifyToken(currentSpotifyAccount.id);
 
-          toast.toast(
-            `An error occurred whilst reauthenticating.${
-              config.get('debugging') ? ' Check console for details.' : ''
-            }`,
-            toast.Kind.FAILURE,
-          );
-        } else {
-          events.debug('controls', [
-            'retrying action',
-            res.clone(),
-            _.clone(url),
-            method,
-            _.clone(query),
-            _.clone(body),
-          ]);
+          if (token.ok) {
+            events.debug('controls', [
+              'retrying action',
+              res.clone(),
+              _.clone(url),
+              method,
+              _.clone(query),
+              _.clone(body),
+            ]);
 
-          sendSpotifyRequest(
-            getAccessTokenFromAccountId(),
-            endpoint,
-            method,
-            query,
-            body,
-            true,
-          ).then((res: Response): Response => {
-            if (!res?.ok) {
+            const retryRes = await sendSpotifyRequest(
+              getAccessTokenFromAccountId(),
+              endpoint,
+              method,
+              query,
+              body,
+              true,
+            );
+
+            if (!retryRes?.ok) {
               toast.toast(
                 `An error occurred whilst retrying control action.${
                   config.get('debugging') ? ' Check console for more details.' : ''
@@ -140,36 +138,46 @@ export const sendSpotifyRequest = (
                 toast.Kind.FAILURE,
               );
 
-              events.debug('controls', ['retrying action failed', res]);
+              events.debug('controls', ['retrying action failed', retryRes]);
             }
 
-            return res;
-          });
-        }
-      } else if (res.status === 401) {
-        events.debug('controls', ['status 401: deauthed. not reauthing', res.clone()]);
+            return retryRes;
+          }
+        } else {
+          events.debug('controls', ['status 401: deauthed. not reauthing', res.clone()]);
 
-        toast.toast('Access token expired. Please manually update your state.');
-      } else if (res.status === 403) {
+          toast.toast('Access token expired. Please manually update your state.');
+        }
+
+        break;
+      }
+
+      case 403: {
         const { error } = (await res.clone().json()) as {
           error: { message: string; reason: string };
         };
 
         toast.toast(
-          `Player controls violation: ${error?.reason || 'Unknown'}.${
+          `Got a 403 whilst handling control action: ${error?.reason || 'Unknown'}.${
             config.get('debugging') ? ' Check console for more details.' : ''
           }`,
           toast.Kind.FAILURE,
         );
 
-        events.debug('controls', ['status 403: player controls violation.', res.clone(), error]);
+        events.debug('controls', [
+          'status 403: likely a player controls violation',
+          res.clone(),
+          error,
+        ]);
+
+        break;
       }
-
-      persist = false;
     }
+  }
 
-    return res;
-  });
+  persist = false;
+
+  return res;
 };
 
 export const spotifyAPI = {
@@ -305,6 +313,15 @@ events.on<SpotifyApi.CurrentPlaybackResponse>('ready', async (): Promise<void> =
       }
     }
   }
+});
+
+// reset modal on account switch
+events.on<void>('accountSwitch', (): void => {
+  events.debug('accountSwitch', 'detected account switching - resetting modal');
+
+  currentSpotifyAccount.id = '';
+
+  events.emit('showUpdate', false);
 });
 
 events.on<{

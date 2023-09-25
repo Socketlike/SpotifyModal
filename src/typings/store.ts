@@ -1,12 +1,12 @@
 export interface SpotifyStore {
   shouldShowActivity(): boolean;
+  spotifyModalAccounts?: Record<string, SpotifyAccount>;
   // eslint-disable-next-line @typescript-eslint/naming-convention
   __getLocalVars(): {
     accounts: Record<string, SpotifyAccount>;
-    store: SpotifyStore;
   };
-  wasAutoPaused(): boolean;
 }
+
 export interface SpotifyAccount {
   accessToken: string;
   accountId: string;
@@ -34,10 +34,12 @@ export type SpotifySocketData =
       type: 'pong';
     }
   | {
+      headers?: { 'Spotify-Connection-Id'?: string; 'Content-Type'?: string };
       payloads: [
         {
           events: [SpotifySocketPayloadEvents];
         },
       ];
+      method?: 'PUT';
       type: 'message';
     };
