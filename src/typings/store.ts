@@ -30,12 +30,10 @@ export type SpotifySocketData =
       type: 'pong';
     }
   | {
-      headers?: { 'Spotify-Connection-Id'?: string; 'Content-Type'?: string };
       payloads: [
         {
           events: [SpotifySocketPayloadEvents];
         },
       ];
-      method?: 'PUT';
       type: 'message';
     };
