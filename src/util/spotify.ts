@@ -7,7 +7,7 @@ import {
   SpotifyStore,
 } from '@typings';
 import { common, webpack } from 'replugged';
-import { events, filterObject } from '@util';
+import { events, filterObject, logger } from '@util';
 import { config } from '@config';
 
 const { api, fluxDispatcher, toast, lodash: _ } = common;
@@ -18,10 +18,7 @@ export const store = await webpack.waitForModule<SpotifyStore>(
   webpack.filters.byProps('getActiveSocketAndDevice'),
 );
 
-export const spotifyAccounts =
-  store.spotifyModalAccounts ||
-  store.__getLocalVars?.()?.accounts ||
-  ({} as Record<string, SpotifyAccount>);
+export const spotifyAccounts = store.spotifyModalAccounts || ({} as Record<string, SpotifyAccount>);
 
 export const currentSpotifyAccount = { id: '' };
 
@@ -291,6 +288,17 @@ events.on<ControlInteractions.Union>('controlInteraction', (event): void => {
 });
 
 events.on<SpotifyApi.CurrentPlaybackResponse>('ready', async (): Promise<void> => {
+  if (!store.spotifyModalAccounts) {
+    toast.toast(
+      "(SpotifyModal) .spotifyModalAccounts wasn't found on SpotifyStore. controls will not work. please report this on GitHub.",
+      toast.Kind.FAILURE,
+    );
+
+    logger.error(
+      "(spotify) critical: .spotifyModalAccounts wasn't found on SpotifyStore - the plaintext patch for it is likely broken.\nplease report this on GitHub.",
+    );
+  }
+
   if (store.shouldShowActivity()) {
     events.debug('start', ['fetching spotify state']);
 
@@ -317,7 +325,7 @@ events.on<SpotifyApi.CurrentPlaybackResponse>('ready', async (): Promise<void> =
 
 // reset modal on account switch
 events.on<void>('accountSwitch', (): void => {
-  events.debug('accountSwitch', 'detected account switching - resetting modal');
+  events.debug('accountSwitch', 'account switching detected - resetting modal');
 
   currentSpotifyAccount.id = '';
 

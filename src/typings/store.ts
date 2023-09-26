@@ -1,10 +1,6 @@
 export interface SpotifyStore {
   shouldShowActivity(): boolean;
   spotifyModalAccounts?: Record<string, SpotifyAccount>;
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  __getLocalVars(): {
-    accounts: Record<string, SpotifyAccount>;
-  };
 }
 
 export interface SpotifyAccount {
