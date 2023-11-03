@@ -23,6 +23,9 @@
   </a>
 </p>
 
+> **Warning**
+> This plugin has moved to [**Socketlike/replugged-plugins**](https://github.com/Socketlike/replugged-plugins)
+
 <p align="center">
   a post-swc Replugged plugin that shows a little modal on your user dock that lets you see & control
 what you're playing on Spotify.
